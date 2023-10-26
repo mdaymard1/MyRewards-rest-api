@@ -1,0 +1,12 @@
+{
+  "type": "postgres",
+  "host": "localhost",
+  "port": 5432,
+  "username": "admin",
+  "password": "myrewards",
+  "database": "rewards",
+  "entities": ["dist/src/entity/*.{js,ts}"],
+  "synchronize": true,
+  "logging": true,
+  "autoLoadEntities": true
+}
