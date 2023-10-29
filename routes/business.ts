@@ -1,6 +1,6 @@
 import { EntityManager, Repository } from 'typeorm';
 import {Request, Response} from "express";
-import {getManager} from "typeorm";
+import { AppDataSource } from "../appDataSource"
 import { Business } from '../src/entity/Business';
 import { encryptToken, decryptToken } from "../src/services/EncryptionService";
 import { 
@@ -20,7 +20,7 @@ const getBusiness = async (request: Request, response: Response) => {
   // const algorithm = "aes-256-cbc";
   // const cipher = crypto.createCipheriv(
   //   algorithm, Buffer.from(key), encryptionIV);
-  // let encrypted = cipher.update("98da4a73-d817-45d4-ac17-8727bab88cbf", "utf8", "base64");
+  // let encrypted = cipher.update("a2754975-a5d3-4a63-a789-0545a1d8f6f0", "utf8", "base64");
   // encrypted += cipher.final("base64");
   // console.log("encrypted: " + encrypted.toString("hex"))
   // return encrypted.toString("hex");
@@ -28,20 +28,19 @@ const getBusiness = async (request: Request, response: Response) => {
   const encoded: string = Buffer.from("EAAAEYQN7Eyq8Zx5TKdvij2iMg1wx7IqZWbwjPwzMIrFjcTeKSLTMWU0KmC2aTN_", 'utf8').toString('base64');
   const encryptedKey = encryptToken("EAAAEYQN7Eyq8Zx5TKdvij2iMg1wx7IqZWbwjPwzMIrFjcTeKSLTMWU0KmC2aTN_");
 
-  const { id } = request.params;
+  const businessId = getBusinessIdFromAuthToken(request);
 
-  if (!id) {
+  if (!businessId) {
     response.status(400);
     return;
   }
 
-  const businessRepository = getManager().getRepository(Business);
-
-  const business = await businessRepository.findOne({
+  const business = await AppDataSource.manager.findOne(Business, {
     where: {
-      businessId: id
+      businessId: businessId
     }
-  });
+  })
+
   if (!business) {
         response.status(404);
         response.end();
@@ -71,18 +70,16 @@ const createBusiness = async (request: Request, response: Response) => {
     date = new Date(expirationDate);
   }
 
-  const businessRepository = getManager().getRepository(Business);
-
   if (businessId) {
-    const business = await businessRepository.findOne({
+    const business = await AppDataSource.manager.findOne(Business, {
       where: {
         businessId: businessId
       }
-    });
+    })
     if (business) {
       console.log("found business");
       // Business found, so update it with the latest tokens and exp date
-      updateBusinessEntity(businessRepository, businessId, merchantId, accessToken, refreshToken, expirationDate, business, function(updatedBusiness: Business) {
+      updateBusinessEntity(businessId, merchantId, accessToken, refreshToken, expirationDate, business, function(updatedBusiness: Business) {
         if (updatedBusiness?.businessId) {
           var businessResponse = Object();
           businessResponse.id = updatedBusiness.businessId;
@@ -105,7 +102,7 @@ const createBusiness = async (request: Request, response: Response) => {
     findBusinessByMerchantId(merchantId, function(business: Business | undefined) {
       if (business) {
         console.log("Found business for merchantId");
-        updateBusinessEntity(businessRepository, business.businessId, merchantId, accessToken, refreshToken, expirationDate, business, function(updatedBusiness: Business) {
+        updateBusinessEntity(business.businessId, merchantId, accessToken, refreshToken, expirationDate, business, function(updatedBusiness: Business) {
           if (updatedBusiness?.businessId) {
             var businessResponse = Object();
             businessResponse.id = updatedBusiness.businessId;
@@ -117,7 +114,7 @@ const createBusiness = async (request: Request, response: Response) => {
           }
         });
       } else {
-        createNewBusinessWithLoyalty(businessRepository, undefined, merchantId, accessToken, refreshToken, expirationDate, function(newBusiness: Business) {
+        createNewBusinessWithLoyalty(undefined, merchantId, accessToken, refreshToken, expirationDate, function(newBusiness: Business) {
           if (newBusiness?.businessId) {
             var businessResponse = Object();
             businessResponse.id = newBusiness.businessId;

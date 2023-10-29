@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const typeorm_1 = require("typeorm");
+const appDataSource_1 = require("../appDataSource");
 const Business_1 = require("../src/entity/Business");
 const Loyalty_1 = require("../src/entity/Loyalty");
 const MerchantService_1 = require("../src/services/MerchantService");
@@ -23,10 +23,8 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
         response.end();
         return;
     }
-    const businessRepository = (0, typeorm_1.getManager)().getRepository(Business_1.Business);
-    const loyaltyRepository = (0, typeorm_1.getManager)().getRepository(Loyalty_1.Loyalty);
     // First, we'll get the Business so we can grab the access token and merchantId
-    const business = yield businessRepository.findOne({
+    const business = yield appDataSource_1.AppDataSource.manager.findOne(Business_1.Business, {
         where: {
             businessId: businessId
         }
@@ -36,7 +34,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
         response.end();
         return;
     }
-    const loyalty = yield loyaltyRepository.findOne({
+    const loyalty = yield appDataSource_1.AppDataSource.manager.findOne(Loyalty_1.Loyalty, {
         where: {
             businessId: businessId
         }
@@ -55,7 +53,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
                             if (updatedloyalty) {
                                 //Get a refreshed loyalty
                                 console.log("loyalty updated, now getting refreshed version");
-                                getCurrentLoyaltyById(updatedloyalty.id, loyaltyRepository, function (refreshedLoyalty) {
+                                getCurrentLoyaltyById(updatedloyalty.id, function (refreshedLoyalty) {
                                     if (refreshedLoyalty) {
                                         response.send(refreshedLoyalty);
                                     }
@@ -76,7 +74,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
                 else {
                     (0, LoyaltyService_1.createAppLoyaltyFromLoyaltyProgram)(business.businessId, loyaltyProgram, promotions, categoryIdMap, function (newLoyalty) {
                         if (newLoyalty) {
-                            getCurrentLoyaltyById(newLoyalty.id, loyaltyRepository, function (loyalty) {
+                            getCurrentLoyaltyById(newLoyalty.id, function (loyalty) {
                                 if (loyalty) {
                                     response.send(loyalty);
                                 }
@@ -108,12 +106,34 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
     // return loaded post
     // response.send(loyalty);
 });
-const updateLoyatyStatus = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = request.params;
-    console.log("id:" + id);
+const updateLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    const { loyaltyId } = request.params;
+    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    console.log("businessId: " + businessId + ", + loyaltyId " + loyaltyId);
+    if (!businessId || !loyaltyId) {
+        console.log("missing input");
+        response.status(400);
+        response.end();
+        return;
+    }
+    const { loyaltyAccruals, promotions, loyaltyRewardTiers, } = request.body;
+    if (!loyaltyAccruals && !promotions && !loyaltyRewardTiers) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    (0, LoyaltyService_1.updateLoyaltyItems)(businessId, loyaltyId, loyaltyAccruals, promotions, loyaltyRewardTiers, function (wasSuccessful) {
+        response.status(wasSuccessful ? 204 : 404);
+        response.end();
+    });
+});
+const updateLoyaltyStatus = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    const { loyaltyId } = request.params;
+    // console.log("showLoyaltyInApp: " + showLoyaltyInApp);
+    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    console.log("businessId: " + businessId + ", + loyaltyId" + loyaltyId);
     const { showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, } = request.body;
-    console.log("showLoyaltyInApp: " + showLoyaltyInApp);
-    if (!id || !loyaltyStatus) {
+    if (!businessId || !loyaltyStatus) {
         console.log("missing input");
         response.status(400);
         response.end();
@@ -130,7 +150,7 @@ const updateLoyatyStatus = (request, response) => __awaiter(void 0, void 0, void
         response.end();
         return;
     }
-    (0, LoyaltyService_1.updateLoyaltyStatus)(id, showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, function (wasSuccessful) {
+    (0, LoyaltyService_1.updateLoyaltyStatuses)(businessId, loyaltyId, showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, function (wasSuccessful) {
         response.status(wasSuccessful ? 204 : 500);
         response.end();
     });
@@ -138,8 +158,8 @@ const updateLoyatyStatus = (request, response) => __awaiter(void 0, void 0, void
 function isValidLoyaltyStatus(value) {
     return Object.values(LoyaltyService_1.LoyaltyStatusType).includes(value);
 }
-const getCurrentLoyaltyById = (loyaltyId, loyaltyRepository, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    const loyalty = yield loyaltyRepository.findOne({
+const getCurrentLoyaltyById = (loyaltyId, callback) => __awaiter(void 0, void 0, void 0, function* () {
+    const loyalty = yield appDataSource_1.AppDataSource.manager.findOne(Loyalty_1.Loyalty, {
         where: {
             id: loyaltyId
         }
@@ -148,5 +168,6 @@ const getCurrentLoyaltyById = (loyaltyId, loyaltyRepository, callback) => __awai
 });
 module.exports = {
     getLoyalty,
-    updateLoyatyStatus,
+    updateLoyalty,
+    updateLoyaltyStatus,
 };

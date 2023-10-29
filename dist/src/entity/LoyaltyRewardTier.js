@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoyaltyRewardTier = void 0;
 const typeorm_1 = require("typeorm");
 const Loyalty_1 = require("./Loyalty");
-let LoyaltyRewardTier = class LoyaltyRewardTier {
+let LoyaltyRewardTier = class LoyaltyRewardTier extends typeorm_1.BaseEntity {
     ;
 };
 exports.LoyaltyRewardTier = LoyaltyRewardTier;

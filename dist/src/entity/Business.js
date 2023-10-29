@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Business = void 0;
 const typeorm_1 = require("typeorm");
 const Loyalty_1 = require("./Loyalty");
-let Business = class Business {
+let Business = class Business extends typeorm_1.BaseEntity {
 };
 exports.Business = Business;
 __decorate([

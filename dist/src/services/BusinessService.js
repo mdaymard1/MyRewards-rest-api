@@ -13,8 +13,8 @@ exports.findBusinessByMerchantId = exports.updateBusinessEntity = exports.create
 const LoyaltyService_1 = require("./LoyaltyService");
 const EncryptionService_1 = require("./EncryptionService");
 const MerchantService_1 = require("./MerchantService");
-const typeorm_1 = require("typeorm");
 const Business_1 = require("../entity/Business");
+const appDataSource_1 = require("../../appDataSource");
 function getBusinessIdFromAuthToken(request) {
     if (request.headers.authorization) {
         const authValues = request.headers.authorization.split(' ');
@@ -26,10 +26,10 @@ function getBusinessIdFromAuthToken(request) {
     return undefined;
 }
 exports.getBusinessIdFromAuthToken = getBusinessIdFromAuthToken;
-const createNewBusinessWithLoyalty = (businessRepository, name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("creating new business");
     try {
-        (0, exports.createBusinessFromMerchantInfo)(businessRepository, name, merchantId, accessToken, refreshToken, expirationDate, function (newBusiness) {
+        (0, exports.createBusinessFromMerchantInfo)(name, merchantId, accessToken, refreshToken, expirationDate, function (newBusiness) {
             if (newBusiness) {
                 var token = "";
                 token = (0, EncryptionService_1.decryptToken)(newBusiness.merchantAccessToken);
@@ -69,7 +69,7 @@ const createNewBusinessWithLoyalty = (businessRepository, name, merchantId, acce
     }
 });
 exports.createNewBusinessWithLoyalty = createNewBusinessWithLoyalty;
-const createBusinessFromMerchantInfo = (businessRepository, name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const createBusinessFromMerchantInfo = (name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside createBusinessFromMerchantInfo");
     // First, we need to make sure the tokens are valid, so we'll get the latest merchant info first
     (0, MerchantService_1.getMerchantInfo)(merchantId, accessToken, function (merchant) {
@@ -77,7 +77,7 @@ const createBusinessFromMerchantInfo = (businessRepository, name, merchantId, ac
         if (merchant) {
             console.log("got merchant, calling createBusinessEntity");
             var merchantName = (_a = merchant.businessName) !== null && _a !== void 0 ? _a : undefined;
-            createBusinessEntity(businessRepository, merchantId, merchantName, accessToken, refreshToken, expirationDate, function (business) {
+            createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate, function (business) {
                 console.log("returned from createBusinessEntity with business: " + business);
                 callback(business);
                 return;
@@ -90,15 +90,15 @@ const createBusinessFromMerchantInfo = (businessRepository, name, merchantId, ac
     });
 });
 exports.createBusinessFromMerchantInfo = createBusinessFromMerchantInfo;
-const createBusinessEntity = (businessRepository, merchantId, merchantName, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    const business = businessRepository.create({
+const createBusinessEntity = (merchantId, merchantName, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
+    const business = appDataSource_1.AppDataSource.manager.create(Business_1.Business, {
         name: merchantName !== null && merchantName !== void 0 ? merchantName : "unknown",
         merchantId: merchantId,
         merchantAccessToken: accessToken,
         merchantRefreshToken: refreshToken,
         accessTokenExpirationDate: expirationDate,
     });
-    yield businessRepository.save(business);
+    // await businessRepository.save(business);
     console.log("just created business with id: " + business.businessId);
     callback(business);
     // updateBusinessWithBusinessIdToken(businessRepository, business.businessId, merchantId, function(wasSuccessful: boolean) {
@@ -120,9 +120,10 @@ const createBusinessEntity = (businessRepository, merchantId, merchantName, acce
 //     callback(false);
 //   }
 // }
-const updateBusinessEntity = (businessRepository, businessId, merchantId, accessToken, refreshToken, expirationDate, business, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    businessRepository.update(businessId, {
+const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken, expirationDate, business, callback) => __awaiter(void 0, void 0, void 0, function* () {
+    appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
         merchantId: merchantId,
+    }, {
         merchantAccessToken: accessToken,
         merchantRefreshToken: refreshToken,
         accessTokenExpirationDate: expirationDate,
@@ -133,9 +134,8 @@ const updateBusinessEntity = (businessRepository, businessId, merchantId, access
 exports.updateBusinessEntity = updateBusinessEntity;
 const findBusinessByMerchantId = (merchantId, callback) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside findBusinessByMerchantId");
-    const businessRepository = (0, typeorm_1.getManager)().getRepository(Business_1.Business);
     try {
-        const business = yield businessRepository
+        const business = yield Business_1.Business
             .createQueryBuilder("business")
             .where('business.merchantId = :merchantId', { merchantId: merchantId })
             .getOne();

@@ -12,7 +12,7 @@ const LoyaltyAccrual_1 = require("./LoyaltyAccrual");
 const LoyaltyRewardTier_1 = require("./LoyaltyRewardTier");
 const Promotion_1 = require("./Promotion");
 const Business_1 = require("./Business");
-let Loyalty = class Loyalty {
+let Loyalty = class Loyalty extends typeorm_1.BaseEntity {
 };
 exports.Loyalty = Loyalty;
 __decorate([

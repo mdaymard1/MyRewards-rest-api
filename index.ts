@@ -1,4 +1,5 @@
 import express, { Express, Request, Response } from 'express';
+import { AppDataSource } from './appDataSource';
 import dotenv from 'dotenv';
 
 // const express = require('express');
@@ -12,6 +13,14 @@ const typeorm = require('typeorm');
 // import { createConnection } from 'typeorm';
 
 dotenv.config();
+
+AppDataSource.initialize()
+  .then(() => {
+    console.log("Data Source has been initialized");
+  })
+  .catch((err) => {
+    console.error("Error during Data Source initialization", err)
+  })
 
 const app: Express = express();
 const port = process.env.PORT;
@@ -37,10 +46,11 @@ typeorm.createConnection()
     console.log('Error connecting to database:', error);
   });
 
-app.get('/business/:id', businessRoute.getBusiness);
+app.get('/business', businessRoute.getBusiness);
 app.post('/business', businessRoute.createBusiness);
 app.get('/loyalty', loyaltyRoute.getLoyalty);
-app.put('/business/:id/loyalty/status', loyaltyRoute.updateLoyatyStatus);
+app.post('/loyalty/:loyaltyId', loyaltyRoute.updateLoyalty);
+app.put('/loyalty/:loyaltyId/status', loyaltyRoute.updateLoyaltyStatus);
 app.listen(port, () => {
   console.log(`Horror movie app is running on port ${port}.`);
 });

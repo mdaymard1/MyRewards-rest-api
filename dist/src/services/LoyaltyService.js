@@ -9,13 +9,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateLoyaltyStatus = exports.updateAppLoyaltyFromMerchant = exports.isLoyaltyOrPromotionsOutOfDate = exports.createAppLoyaltyFromLoyaltyProgram = exports.LoyaltyStatusType = void 0;
+exports.updateLoyaltyItems = exports.updateLoyaltyStatuses = exports.updateAppLoyaltyFromMerchant = exports.isLoyaltyOrPromotionsOutOfDate = exports.createAppLoyaltyFromLoyaltyProgram = exports.LoyaltyStatusType = void 0;
 const Loyalty_1 = require("../entity/Loyalty");
 const LoyaltyAccrual_1 = require("../entity/LoyaltyAccrual");
 const LoyaltyRewardTier_1 = require("../entity/LoyaltyRewardTier");
 const Promotion_1 = require("../entity/Promotion");
-const typeorm_1 = require("typeorm");
-const typeorm_2 = require("typeorm");
+const appDataSource_1 = require("../../appDataSource");
 var LoyaltyStatusType;
 (function (LoyaltyStatusType) {
     LoyaltyStatusType["Active"] = "Active";
@@ -28,8 +27,7 @@ const createAppLoyaltyFromLoyaltyProgram = (businessId, loyaltyProgram, loyaltyP
         callback(undefined);
         return;
     }
-    const loyaltyRepository = (0, typeorm_2.getManager)().getRepository(Loyalty_1.Loyalty);
-    const loyalty = loyaltyRepository.create({
+    const loyalty = appDataSource_1.AppDataSource.manager.create(Loyalty_1.Loyalty, {
         showLoyaltyInApp: true,
         showPromotionsInApp: true,
         automaticallyUpdateChangesFromMerchant: true,
@@ -39,30 +37,25 @@ const createAppLoyaltyFromLoyaltyProgram = (businessId, loyaltyProgram, loyaltyP
         businessId: businessId,
         createDate: new Date(),
     });
-    yield loyaltyRepository.save(loyalty);
     console.log("created new loyalty with id: " + loyalty.id);
     const loyaltyId = loyalty.id;
-    const loyaltyAccrualRepository = (0, typeorm_2.getManager)().getRepository(LoyaltyAccrual_1.LoyaltyAccrual);
-    const loyaltyRewardTierRepository = (0, typeorm_2.getManager)().getRepository(LoyaltyRewardTier_1.LoyaltyRewardTier);
-    const promotionRepository = (0, typeorm_2.getManager)().getRepository(Promotion_1.Promotion);
-    // const loyaltyId: string = uuidv4();
     // var accrualRules: LoyaltyAccrual[] = [];
     if (loyaltyProgram.accrualRules) {
         loyaltyProgram.accrualRules.forEach(function (loyaltyAccrualRule) {
-            createAccrual(loyaltyAccrualRule, categoryIdMap, loyaltyProgram.terminology, loyaltyAccrualRepository, loyaltyId);
+            createAccrual(loyaltyAccrualRule, categoryIdMap, loyaltyProgram.terminology, loyaltyId);
         });
     }
     if (loyaltyProgram.rewardTiers) {
         loyaltyProgram.rewardTiers.forEach(function (loyaltyRewardTier) {
             if (loyaltyRewardTier.id && loyaltyProgram.terminology) {
-                createRewardTier(loyaltyRewardTier, loyaltyProgram.terminology, loyaltyRewardTierRepository, loyaltyId);
+                createRewardTier(loyaltyRewardTier, loyaltyProgram.terminology, loyaltyId);
             }
         });
     }
     // var promotions: Promotion[] = [];
     if (loyaltyPromotions) {
         loyaltyPromotions.forEach(function (loyaltyPromotion) {
-            createPromotion(loyaltyPromotion, loyaltyProgram.terminology, promotionRepository, loyaltyId);
+            createPromotion(loyaltyPromotion, loyaltyProgram.terminology, loyaltyId);
         });
     }
     callback(loyalty);
@@ -150,11 +143,7 @@ exports.isLoyaltyOrPromotionsOutOfDate = isLoyaltyOrPromotionsOutOfDate;
 const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categoryIdMap, callback) => __awaiter(void 0, void 0, void 0, function* () {
     var _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
     console.log("inside updateAppLoyaltyFromMerchant");
-    const loyaltyAccrualRepository = (0, typeorm_2.getManager)().getRepository(LoyaltyAccrual_1.LoyaltyAccrual);
-    const loyaltyRewardTierRepository = (0, typeorm_2.getManager)().getRepository(LoyaltyRewardTier_1.LoyaltyRewardTier);
-    const promotionRepository = (0, typeorm_2.getManager)().getRepository(Promotion_1.Promotion);
-    const loyaltyRepository = (0, typeorm_2.getManager)().getRepository(Loyalty_1.Loyalty);
-    const queryRunner = yield (0, typeorm_1.getConnection)().createQueryRunner();
+    const queryRunner = yield appDataSource_1.AppDataSource.createQueryRunner();
     yield queryRunner.startTransaction();
     try {
         if (loyaltyProgram.accrualRules && loyaltyProgram.terminology) {
@@ -219,10 +208,10 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
                     // }
                 }
                 if (existingAppAccural) {
-                    updateAccrual(loyaltyAccrualRule, categoryIdMap, loyaltyProgram.terminology, loyaltyAccrualRepository, loyalty.id, existingAppAccural, displayEarningPointsDescription, displayAdditionalEarningPointsDescription);
+                    updateAccrual(loyaltyAccrualRule, categoryIdMap, loyaltyProgram.terminology, loyalty.id, existingAppAccural, displayEarningPointsDescription, displayAdditionalEarningPointsDescription);
                 }
                 else {
-                    createAccrual(loyaltyAccrualRule, categoryIdMap, loyaltyProgram.terminology, loyaltyAccrualRepository, loyalty.id);
+                    createAccrual(loyaltyAccrualRule, categoryIdMap, loyaltyProgram.terminology, loyalty.id);
                 }
             }
         }
@@ -250,10 +239,10 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
                     }
                 }
                 if (existingAppRewardTier) {
-                    updateRewardTier(loyaltyRewardTier, loyaltyProgram.terminology, loyaltyRewardTierRepository, loyalty.id, existingAppRewardTier, displayRewardDescription);
+                    updateRewardTier(loyaltyRewardTier, loyaltyProgram.terminology, loyalty.id, existingAppRewardTier, displayRewardDescription);
                 }
                 else {
-                    createRewardTier(loyaltyRewardTier, loyaltyProgram.terminology, loyaltyRewardTierRepository, loyalty.id);
+                    createRewardTier(loyaltyRewardTier, loyaltyProgram.terminology, loyalty.id);
                 }
             }
         }
@@ -277,10 +266,10 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
                 }
             }
             if (existingPromotion) {
-                updatePromotion(loyaltyPromotion, loyaltyProgram.terminology, promotionRepository, loyalty.id, existingPromotion, displayName);
+                updatePromotion(loyaltyPromotion, loyaltyProgram.terminology, loyalty.id, existingPromotion, displayName);
             }
             else {
-                createPromotion(loyaltyPromotion, loyaltyProgram.terminology, promotionRepository, loyalty.id);
+                createPromotion(loyaltyPromotion, loyaltyProgram.terminology, loyalty.id);
             }
         }
         //Now let's remove old accrual rows from the db that are no longer in the loyalty program
@@ -311,7 +300,7 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
                 }
                 if (!wasAccrualFound) {
                     console.log("need to delete accrualId: " + appLoyaltyAccrual.id);
-                    deleteAccrual(appLoyaltyAccrual.id, loyaltyAccrualRepository);
+                    deleteAccrual(appLoyaltyAccrual.id);
                 }
             }
         }
@@ -331,7 +320,7 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
                 }
                 if (!wasRewardTierFound) {
                     console.log("need to delete rewardTier: " + appRewardTier.id);
-                    deleteRewardTier(appRewardTier.id, loyaltyRewardTierRepository);
+                    deleteRewardTier(appRewardTier.id);
                 }
             }
         }
@@ -349,11 +338,10 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
                 }
                 if (!wasPromotionFound) {
                     console.log("need to delete promotion: " + appPromotion.id);
-                    deletePromotion(appPromotion.id, promotionRepository);
+                    deletePromotion(appPromotion.id);
                 }
             }
         }
-        // updateLoyaltyUpdatedDate(loyalty.id, loyaltyRepository);
         yield queryRunner.commitTransaction();
         callback(loyalty);
     }
@@ -366,18 +354,15 @@ const updateAppLoyaltyFromMerchant = (loyalty, loyaltyProgram, promotions, categ
     }
 });
 exports.updateAppLoyaltyFromMerchant = updateAppLoyaltyFromMerchant;
-const updateLoyaltyStatus = (businessId, showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const updateLoyaltyStatuses = (businessId, loyaltyId, showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, callback) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateLoyaltyStatus");
     console.log("showLoyaltyInApp: " + showLoyaltyInApp);
-    const loyaltyRepository = (0, typeorm_2.getManager)().getRepository(Loyalty_1.Loyalty);
-    const existingLoyalty = yield loyaltyRepository
+    const existingLoyalty = yield Loyalty_1.Loyalty
         .createQueryBuilder("loyalty")
         .where('loyalty.businessId = :businessId', { businessId: businessId })
         .getOne();
-    // .leftJoinAndSelect("loyalty.business", "business")
-    // .getMany()
-    if (existingLoyalty) {
-        yield loyaltyRepository.update(existingLoyalty.id, {
+    if (existingLoyalty && existingLoyalty.id == loyaltyId) {
+        yield Loyalty_1.Loyalty.update(existingLoyalty.id, {
             showLoyaltyInApp: showLoyaltyInApp,
             showPromotionsInApp: showPromotionsInApp,
             automaticallyUpdateChangesFromMerchant: automaticallyUpdateChangesFromMerchant,
@@ -390,57 +375,126 @@ const updateLoyaltyStatus = (businessId, showLoyaltyInApp, showPromotionsInApp, 
         console.log("existingLoyalty not found");
     }
 });
-exports.updateLoyaltyStatus = updateLoyaltyStatus;
-const deleteAccrual = (accrualId, loyaltyAccrualRepository) => __awaiter(void 0, void 0, void 0, function* () {
-    yield loyaltyAccrualRepository.delete(accrualId);
+exports.updateLoyaltyStatuses = updateLoyaltyStatuses;
+const updateLoyaltyItems = (businessId, loyaltyId, loyaltyAccruals, promotions, loyaltyRewardTiers, callback) => __awaiter(void 0, void 0, void 0, function* () {
+    var _r, _s, _t;
+    console.log("inside updateLoyaltyItems");
+    const existingLoyalty = yield Loyalty_1.Loyalty.findOne({
+        where: {
+            id: loyaltyId
+        }
+    });
+    if (!existingLoyalty) {
+        console.log("loyaltyId: " + loyaltyId + " not found");
+        callback(false);
+    }
+    const queryRunner = yield appDataSource_1.AppDataSource.createQueryRunner();
+    yield queryRunner.startTransaction();
+    try {
+        if (loyaltyAccruals) {
+            for (var loyaltyAccrual of loyaltyAccruals) {
+                var matches = (_r = existingLoyalty === null || existingLoyalty === void 0 ? void 0 : existingLoyalty.loyaltyAccruals) === null || _r === void 0 ? void 0 : _r.filter((accrual) => accrual.id == loyaltyAccrual.id);
+                if (matches && matches.length > 0) {
+                    if (matches[0].displayEarningPointsDescription != loyaltyAccrual.displayEarningPointsDescription ||
+                        matches[0].displayEarningAdditionalEarningPointsDescription != loyaltyAccrual.displayEarningAdditionalEarningPointsDescription) {
+                        console.log("loyaltyAccrual will be updated for id: " + loyaltyAccrual.id);
+                        yield LoyaltyAccrual_1.LoyaltyAccrual.update(loyaltyAccrual.id, {
+                            displayEarningPointsDescription: loyaltyAccrual.displayEarningPointsDescription,
+                            displayEarningAdditionalEarningPointsDescription: loyaltyAccrual.displayEarningAdditionalEarningPointsDescription,
+                            lastUpdateDate: new Date(),
+                        });
+                    }
+                }
+            }
+        }
+        if (promotions) {
+            for (var promotion of promotions) {
+                var promotionMatches = (_s = existingLoyalty === null || existingLoyalty === void 0 ? void 0 : existingLoyalty.promotions) === null || _s === void 0 ? void 0 : _s.filter((existingPromotion) => existingPromotion.id == promotion.id);
+                if (promotionMatches && promotionMatches.length > 0) {
+                    if (promotionMatches[0].displayName != promotion.displayName) {
+                        console.log("promotion will be updated for id: " + promotion.id);
+                        yield Promotion_1.Promotion.update(promotion.id, {
+                            displayName: promotion.displayName,
+                            lastUpdateDate: new Date(),
+                        });
+                    }
+                }
+            }
+        }
+        if (loyaltyRewardTiers) {
+            for (var loyaltyRewardTier of loyaltyRewardTiers) {
+                var rewardTierMatches = (_t = existingLoyalty === null || existingLoyalty === void 0 ? void 0 : existingLoyalty.loyaltyRewardTiers) === null || _t === void 0 ? void 0 : _t.filter((existingRewardTier) => existingRewardTier.id == loyaltyRewardTier.id);
+                if (rewardTierMatches && rewardTierMatches.length > 0) {
+                    if (rewardTierMatches[0].displayReward != loyaltyRewardTier.displayReward ||
+                        rewardTierMatches[0].displayRewardDescription != loyaltyRewardTier.displayRewardDescription) {
+                        console.log("loyaltyRewardTier will be updated for id: " + loyaltyRewardTier.id);
+                        yield LoyaltyRewardTier_1.LoyaltyRewardTier.update(loyaltyRewardTier.id, {
+                            displayReward: loyaltyRewardTier.displayReward,
+                            displayRewardDescription: loyaltyRewardTier.displayRewardDescription,
+                            lastUpdateDate: new Date(),
+                        });
+                    }
+                }
+            }
+        }
+        yield queryRunner.commitTransaction();
+        callback(true);
+    }
+    catch (err) {
+        console.log("error in updateLoyaltyItems: " + err);
+        yield queryRunner.rollbackTransaction();
+    }
+    finally {
+        yield queryRunner.release();
+    }
+});
+exports.updateLoyaltyItems = updateLoyaltyItems;
+const deleteAccrual = (accrualId) => __awaiter(void 0, void 0, void 0, function* () {
+    yield appDataSource_1.AppDataSource.manager.delete(LoyaltyAccrual_1.LoyaltyAccrual, accrualId);
     console.log("just deleted accral with id:" + accrualId);
 });
-const deleteRewardTier = (rewardTierId, loyaltyRewardTierRepository) => __awaiter(void 0, void 0, void 0, function* () {
-    yield loyaltyRewardTierRepository.delete(rewardTierId);
+const deleteRewardTier = (rewardTierId) => __awaiter(void 0, void 0, void 0, function* () {
+    yield appDataSource_1.AppDataSource.manager.delete(LoyaltyRewardTier_1.LoyaltyRewardTier, rewardTierId);
     console.log("just deleted reward tier with id:" + rewardTierId);
 });
-const deletePromotion = (promotionId, promotionRepository) => __awaiter(void 0, void 0, void 0, function* () {
-    yield promotionRepository.delete(promotionId);
+const deletePromotion = (promotionId) => __awaiter(void 0, void 0, void 0, function* () {
+    yield appDataSource_1.AppDataSource.manager.delete(Promotion_1.Promotion, promotionId);
     console.log("just deleted promotion with id:" + promotionId);
 });
-const updateLoyaltyUpdatedDate = (loyaltyId, loyaltyRepository) => __awaiter(void 0, void 0, void 0, function* () {
-    loyaltyRepository.update(loyaltyId, {
-        lastUpdateDate: new Date(),
-    });
-    console.log("just updated loyalty with id:" + loyaltyId);
-});
-const createAccrual = (loyaltyAccrualRule, categoryIdMap, terminology, loyaltyAccrualRepository, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
-    var _r, _s, _t;
-    var categoryName = undefined;
-    if ((_r = loyaltyAccrualRule.categoryData) === null || _r === void 0 ? void 0 : _r.categoryId) {
-        categoryName = categoryIdMap.get(loyaltyAccrualRule.categoryData.categoryId);
-    }
-    const ruleValues = rewardsRuleValue(loyaltyAccrualRule, categoryName, terminology);
-    console.log("ruleValues: " + ruleValues);
-    const accrual = loyaltyAccrualRepository.create({
-        loyaltyId: loyaltyId,
-        accrualType: loyaltyAccrualRule.accrualType,
-        categoryId: (_s = loyaltyAccrualRule.categoryData) === null || _s === void 0 ? void 0 : _s.categoryId,
-        variantId: (_t = loyaltyAccrualRule.itemVariationData) === null || _t === void 0 ? void 0 : _t.itemVariationId,
-        merchantEarningPointsDescription: ruleValues[0],
-        merchantAdditionalEarningPointsDescription: ruleValues[1],
-    });
-    yield loyaltyAccrualRepository.save(accrual);
-    console.log("just created accral with id:" + accrual.id);
-});
-const updateAccrual = (loyaltyAccrualRule, categoryIdMap, terminology, loyaltyAccrualRepository, loyaltyId, existingAppAccural, displayEarningPointsDescription, displayAdditionalEarningPointsDescription) => __awaiter(void 0, void 0, void 0, function* () {
+const createAccrual = (loyaltyAccrualRule, categoryIdMap, terminology, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
     var _u, _v, _w;
-    console.log("inside updateAccrual");
     var categoryName = undefined;
     if ((_u = loyaltyAccrualRule.categoryData) === null || _u === void 0 ? void 0 : _u.categoryId) {
         categoryName = categoryIdMap.get(loyaltyAccrualRule.categoryData.categoryId);
     }
     const ruleValues = rewardsRuleValue(loyaltyAccrualRule, categoryName, terminology);
     console.log("ruleValues: " + ruleValues);
-    console.log("existingAppAccural.displayEarningAdditionalEarningPointsDescription = " + existingAppAccural.displayEarningAdditionalEarningPointsDescription);
-    yield loyaltyAccrualRepository.update(existingAppAccural.id, {
+    const accrual = appDataSource_1.AppDataSource.manager.create(LoyaltyAccrual_1.LoyaltyAccrual, {
+        loyaltyId: loyaltyId,
         accrualType: loyaltyAccrualRule.accrualType,
-        categoryId: (_w = (_v = loyaltyAccrualRule.categoryData) === null || _v === void 0 ? void 0 : _v.categoryId) !== null && _w !== void 0 ? _w : undefined,
+        categoryId: (_v = loyaltyAccrualRule.categoryData) === null || _v === void 0 ? void 0 : _v.categoryId,
+        variantId: (_w = loyaltyAccrualRule.itemVariationData) === null || _w === void 0 ? void 0 : _w.itemVariationId,
+        merchantEarningPointsDescription: ruleValues[0],
+        merchantAdditionalEarningPointsDescription: ruleValues[1],
+    });
+    // await loyaltyAccrualRepository.save(accrual);
+    console.log("just created accral with id:" + accrual.id);
+});
+const updateAccrual = (loyaltyAccrualRule, categoryIdMap, terminology, loyaltyId, existingAppAccural, displayEarningPointsDescription, displayAdditionalEarningPointsDescription) => __awaiter(void 0, void 0, void 0, function* () {
+    var _x, _y, _z;
+    console.log("inside updateAccrual");
+    var categoryName = undefined;
+    if ((_x = loyaltyAccrualRule.categoryData) === null || _x === void 0 ? void 0 : _x.categoryId) {
+        categoryName = categoryIdMap.get(loyaltyAccrualRule.categoryData.categoryId);
+    }
+    const ruleValues = rewardsRuleValue(loyaltyAccrualRule, categoryName, terminology);
+    console.log("ruleValues: " + ruleValues);
+    console.log("existingAppAccural.displayEarningAdditionalEarningPointsDescription = " + existingAppAccural.displayEarningAdditionalEarningPointsDescription);
+    yield appDataSource_1.AppDataSource.manager.update(LoyaltyAccrual_1.LoyaltyAccrual, {
+        id: existingAppAccural.id,
+    }, {
+        accrualType: loyaltyAccrualRule.accrualType,
+        categoryId: (_z = (_y = loyaltyAccrualRule.categoryData) === null || _y === void 0 ? void 0 : _y.categoryId) !== null && _z !== void 0 ? _z : undefined,
         merchantEarningPointsDescription: ruleValues[0],
         merchantAdditionalEarningPointsDescription: ruleValues[1],
         displayEarningPointsDescription: displayEarningPointsDescription !== null && displayEarningPointsDescription !== void 0 ? displayEarningPointsDescription : null,
@@ -449,34 +503,36 @@ const updateAccrual = (loyaltyAccrualRule, categoryIdMap, terminology, loyaltyAc
     });
     console.log("just updated loyatyAccrual with id:" + existingAppAccural.id);
 });
-const createRewardTier = (loyaltyRewardTier, terminology, loyaltyRewardTierRepository, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
-    const rewardTier = loyaltyRewardTierRepository.create({
+const createRewardTier = (loyaltyRewardTier, terminology, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
+    const rewardTier = appDataSource_1.AppDataSource.manager.create(LoyaltyRewardTier_1.LoyaltyRewardTier, {
         loyaltyId: loyaltyId,
         rewardTierId: loyaltyRewardTier.id,
         merchantReward: getRewardValue(loyaltyRewardTier, terminology),
         merchantRewardDescription: loyaltyRewardTier.name
     });
     // rewardTiers.push(rewardTier);
-    yield loyaltyRewardTierRepository.save(rewardTier);
+    // await loyaltyRewardTierRepository.save(rewardTier);
     console.log("just created rewardTier with id:" + rewardTier.id);
 });
-const updateRewardTier = (loyaltyRewardTier, terminology, loyaltyRewardTierRepository, loyaltyId, existingAppRewardTier, displayRewardDescription) => __awaiter(void 0, void 0, void 0, function* () {
-    var _x;
-    loyaltyRewardTierRepository.update(existingAppRewardTier.id, {
+const updateRewardTier = (loyaltyRewardTier, terminology, loyaltyId, existingAppRewardTier, displayRewardDescription) => __awaiter(void 0, void 0, void 0, function* () {
+    var _0;
+    appDataSource_1.AppDataSource.manager.update(LoyaltyRewardTier_1.LoyaltyRewardTier, {
+        id: existingAppRewardTier.id,
+    }, {
         merchantReward: getRewardValue(loyaltyRewardTier, terminology),
         merchantRewardDescription: loyaltyRewardTier.name,
-        displayReward: (_x = existingAppRewardTier.displayReward) !== null && _x !== void 0 ? _x : null,
+        displayReward: (_0 = existingAppRewardTier.displayReward) !== null && _0 !== void 0 ? _0 : null,
         displayRewardDescription: displayRewardDescription !== null && displayRewardDescription !== void 0 ? displayRewardDescription : null,
         lastUpdateDate: new Date(),
     });
     console.log("just updaated rewardTier with id:" + existingAppRewardTier.id);
 });
-const createPromotion = (loyaltyPromotion, terminology, promotionRepository, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
+const createPromotion = (loyaltyPromotion, terminology, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
     var startsOn;
     if (loyaltyPromotion.availableTime.startDate) {
         startsOn = new Date(loyaltyPromotion.availableTime.startDate);
     }
-    const promotion = promotionRepository.create({
+    const promotion = appDataSource_1.AppDataSource.manager.create(Promotion_1.Promotion, {
         loyaltyId: loyaltyId,
         promotionId: loyaltyPromotion.id,
         status: loyaltyPromotion.status,
@@ -484,15 +540,17 @@ const createPromotion = (loyaltyPromotion, terminology, promotionRepository, loy
         promotionStartsOn: startsOn,
     });
     // promotions.push(promotion);
-    yield promotionRepository.save(promotion);
+    // await promotionRepository.save(promotion);
     console.log("just created promotion with id: " + promotion.id);
 });
-const updatePromotion = (loyaltyPromotion, terminology, promotionRepository, loyaltyId, existingPromotion, displayName) => __awaiter(void 0, void 0, void 0, function* () {
+const updatePromotion = (loyaltyPromotion, terminology, loyaltyId, existingPromotion, displayName) => __awaiter(void 0, void 0, void 0, function* () {
     var startsOn;
     if (loyaltyPromotion.availableTime.startDate) {
         startsOn = new Date(loyaltyPromotion.availableTime.startDate);
     }
-    promotionRepository.update(existingPromotion.id, {
+    appDataSource_1.AppDataSource.manager.update(Promotion_1.Promotion, {
+        id: existingPromotion.id,
+    }, {
         status: loyaltyPromotion.status,
         merchantName: loyaltyPromotion.name,
         promotionStartsOn: startsOn,
@@ -587,6 +645,7 @@ module.exports = {
     createAppLoyaltyFromLoyaltyProgram: exports.createAppLoyaltyFromLoyaltyProgram,
     isLoyaltyOrPromotionsOutOfDate: exports.isLoyaltyOrPromotionsOutOfDate,
     updateAppLoyaltyFromMerchant: exports.updateAppLoyaltyFromMerchant,
-    updateLoyaltyStatus: exports.updateLoyaltyStatus,
+    updateLoyaltyItems: exports.updateLoyaltyItems,
+    updateLoyaltyStatuses: exports.updateLoyaltyStatuses,
     LoyaltyStatusType,
 };

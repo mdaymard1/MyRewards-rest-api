@@ -1,8 +1,8 @@
-import { Entity, Column, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Entity, Column, JoinColumn, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Loyalty } from "./Loyalty";
 
 @Entity()
-export class Business {
+export class Business extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   businessId: string;
 

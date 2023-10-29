@@ -1,8 +1,12 @@
-import { Entity, Column, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Entity, Column, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Loyalty } from "./Loyalty";
 
-@Entity()
-export class LoyaltyAccrual {
+@Entity({
+  orderBy: {
+    merchantEarningPointsDescription: "ASC",
+  }
+})
+export class LoyaltyAccrual extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

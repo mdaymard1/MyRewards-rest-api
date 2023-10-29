@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoyaltyAccrual = void 0;
 const typeorm_1 = require("typeorm");
 const Loyalty_1 = require("./Loyalty");
-let LoyaltyAccrual = class LoyaltyAccrual {
+let LoyaltyAccrual = class LoyaltyAccrual extends typeorm_1.BaseEntity {
 };
 exports.LoyaltyAccrual = LoyaltyAccrual;
 __decorate([
@@ -51,5 +51,9 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: 'loyaltyId' })
 ], LoyaltyAccrual.prototype, "loyalty", void 0);
 exports.LoyaltyAccrual = LoyaltyAccrual = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)({
+        orderBy: {
+            merchantEarningPointsDescription: "ASC",
+        }
+    })
 ], LoyaltyAccrual);

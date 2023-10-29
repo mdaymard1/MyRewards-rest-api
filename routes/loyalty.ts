@@ -1,6 +1,6 @@
 import { EntityManager } from 'typeorm';
 import { Request, Response } from "express";
-import { getManager, Repository } from "typeorm";
+import { AppDataSource } from "../appDataSource"
 import { Business } from '../src/entity/Business';
 import { Loyalty } from "../src/entity/Loyalty";
 import { getMainLoyaltyProgramFromMerchant } from "../src/services/MerchantService";
@@ -11,7 +11,8 @@ import {
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
   LoyaltyStatusType,
-  updateLoyaltyStatus,
+  updateLoyaltyItems,
+  updateLoyaltyStatuses,
  } from "../src/services/LoyaltyService";
 import { LoyaltyProgram, LoyaltyPromotion } from 'square';
 
@@ -25,11 +26,8 @@ const getLoyalty = async (request: Request, response: Response) => {
     return;
   }
 
-  const businessRepository = getManager().getRepository(Business);
-  const loyaltyRepository = getManager().getRepository(Loyalty);
-
   // First, we'll get the Business so we can grab the access token and merchantId
-  const business = await businessRepository.findOne({
+  const business = await AppDataSource.manager.findOne(Business, {
     where: {
       businessId: businessId
     }
@@ -41,7 +39,7 @@ const getLoyalty = async (request: Request, response: Response) => {
       return;
   }
 
-  const loyalty = await loyaltyRepository.findOne({
+  const loyalty = await AppDataSource.manager.findOne(Loyalty, {
     where: {
       businessId: businessId
     }
@@ -62,7 +60,7 @@ const getLoyalty = async (request: Request, response: Response) => {
               if (updatedloyalty) {
                 //Get a refreshed loyalty
                 console.log("loyalty updated, now getting refreshed version");
-                getCurrentLoyaltyById(updatedloyalty.id, loyaltyRepository, function(refreshedLoyalty: Loyalty) {
+                getCurrentLoyaltyById(updatedloyalty.id, function(refreshedLoyalty: Loyalty) {
                   if (refreshedLoyalty) {
                     response.send(refreshedLoyalty);
                   } else {
@@ -80,7 +78,7 @@ const getLoyalty = async (request: Request, response: Response) => {
         } else {
           createAppLoyaltyFromLoyaltyProgram(business.businessId, loyaltyProgram, promotions, categoryIdMap, function(newLoyalty: Loyalty) {
             if (newLoyalty) {
-              getCurrentLoyaltyById(newLoyalty.id, loyaltyRepository, function(loyalty: Loyalty) {
+              getCurrentLoyaltyById(newLoyalty.id, function(loyalty: Loyalty) {
                 if (loyalty) {
                   response.send(loyalty);
                 } else {
@@ -112,11 +110,47 @@ const getLoyalty = async (request: Request, response: Response) => {
     // response.send(loyalty);
 }
 
-const updateLoyatyStatus = async (request: Request, response: Response) => {
+const updateLoyalty =async (request: Request, response: Response) => {  
+  
+  const { loyaltyId } = request.params;
 
-  const { id } = request.params;
+  const businessId = getBusinessIdFromAuthToken(request);
+  console.log("businessId: " + businessId + ", + loyaltyId " + loyaltyId);
 
-  console.log("id:" + id);
+  if (!businessId || !loyaltyId) {
+    console.log("missing input");
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  const {
+    loyaltyAccruals,
+    promotions,
+    loyaltyRewardTiers,
+  } = request.body
+
+  if (!loyaltyAccruals && !promotions && !loyaltyRewardTiers) {
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  updateLoyaltyItems(businessId, loyaltyId, loyaltyAccruals, promotions, loyaltyRewardTiers, function(wasSuccessful: boolean) {
+    response.status(wasSuccessful ? 204 : 404);
+    response.end();
+  });
+}
+
+const updateLoyaltyStatus = async (request: Request, response: Response) => {
+
+  const { loyaltyId } = request.params;
+
+  // console.log("showLoyaltyInApp: " + showLoyaltyInApp);
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  console.log("businessId: " + businessId + ", + loyaltyId" + loyaltyId);
 
   const {
       showLoyaltyInApp,
@@ -125,9 +159,7 @@ const updateLoyatyStatus = async (request: Request, response: Response) => {
       loyaltyStatus,
   } = request.body
 
-  console.log("showLoyaltyInApp: " + showLoyaltyInApp);
-
-  if (!id || !loyaltyStatus) {
+  if (!businessId || !loyaltyStatus) {
     console.log("missing input");
     response.status(400);
     response.end();
@@ -145,7 +177,7 @@ const updateLoyatyStatus = async (request: Request, response: Response) => {
     return;
   }
 
-  updateLoyaltyStatus(id, showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, function(wasSuccessful: boolean) {
+  updateLoyaltyStatuses(businessId, loyaltyId, showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, function(wasSuccessful: boolean) {
     response.status(wasSuccessful ? 204 : 500);
     response.end();
   })
@@ -155,8 +187,8 @@ function isValidLoyaltyStatus(value: string): value is LoyaltyStatusType {
   return Object.values<string>(LoyaltyStatusType).includes(value);
 }
 
-const getCurrentLoyaltyById = async (loyaltyId: string, loyaltyRepository: Repository<Loyalty>, callback: any) => {
-  const loyalty = await loyaltyRepository.findOne({
+const getCurrentLoyaltyById = async (loyaltyId: string, callback: any) => {
+  const loyalty = await AppDataSource.manager.findOne(Loyalty, {
     where: {
       id: loyaltyId
     }
@@ -166,5 +198,6 @@ const getCurrentLoyaltyById = async (loyaltyId: string, loyaltyRepository: Repos
 
 module.exports = {
   getLoyalty,
-  updateLoyatyStatus,
+  updateLoyalty,
+  updateLoyaltyStatus,
 }

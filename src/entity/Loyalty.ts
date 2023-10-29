@@ -1,11 +1,11 @@
-import { Entity, Column, Index, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseEntity, Entity, Column, Index, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { LoyaltyAccrual } from "./LoyaltyAccrual";
 import { LoyaltyRewardTier } from "./LoyaltyRewardTier";
 import { Promotion } from "./Promotion";
 import { Business } from "./Business";
 
 @Entity()
-export class Loyalty {
+export class Loyalty extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

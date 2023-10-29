@@ -1,11 +1,11 @@
 import { createAppLoyaltyFromLoyaltyProgram } from "./LoyaltyService";
 import { encryptToken, decryptToken } from "./EncryptionService";
 import { getMerchantInfo, getMainLoyaltyProgramFromMerchant } from "./MerchantService";
-import { getManager, EntityManager, Repository } from 'typeorm';
 import { Business } from '../entity/Business';
 import { Loyalty } from '../entity/Loyalty';
 import { LoyaltyProgram, LoyaltyPromotion, Merchant } from 'square';
 import {Request, Response} from "express";
+import { AppDataSource } from "../../appDataSource";
 
 export function getBusinessIdFromAuthToken(request: Request): string | undefined {
   if (request.headers.authorization) {
@@ -18,11 +18,11 @@ export function getBusinessIdFromAuthToken(request: Request): string | undefined
   return undefined;
 }
 
-export const createNewBusinessWithLoyalty = async (businessRepository: Repository<Business>, name: string | undefined, merchantId: string, accessToken: string, refreshToken: string, expirationDate: Date | undefined, callback: any) => {
+export const createNewBusinessWithLoyalty = async (name: string | undefined, merchantId: string, accessToken: string, refreshToken: string, expirationDate: Date | undefined, callback: any) => {
   console.log("creating new business");
 
   try {
-    createBusinessFromMerchantInfo(businessRepository, name, merchantId, accessToken, refreshToken, expirationDate, function(newBusiness: Business) {
+    createBusinessFromMerchantInfo(name, merchantId, accessToken, refreshToken, expirationDate, function(newBusiness: Business) {
       if (newBusiness) {
         var token: string | undefined = "";
         token = decryptToken(newBusiness.merchantAccessToken);
@@ -59,14 +59,14 @@ export const createNewBusinessWithLoyalty = async (businessRepository: Repositor
   }
 }
 
-export const createBusinessFromMerchantInfo = async (businessRepository: Repository<Business>, name: string | undefined, merchantId: string, accessToken: string, refreshToken: string, expirationDate: Date | undefined, callback: any) => {
+export const createBusinessFromMerchantInfo = async (name: string | undefined, merchantId: string, accessToken: string, refreshToken: string, expirationDate: Date | undefined, callback: any) => {
   console.log("inside createBusinessFromMerchantInfo");
   // First, we need to make sure the tokens are valid, so we'll get the latest merchant info first
   getMerchantInfo(merchantId, accessToken, function(merchant: Merchant | undefined) {
     if (merchant) {
       console.log("got merchant, calling createBusinessEntity");
       var merchantName: string | undefined = merchant.businessName ?? undefined;
-      createBusinessEntity(businessRepository, merchantId, merchantName, accessToken, refreshToken, expirationDate, function(business: Business | undefined) {
+      createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate, function(business: Business | undefined) {
         console.log("returned from createBusinessEntity with business: " + business);
         callback(business);
         return;
@@ -78,15 +78,15 @@ export const createBusinessFromMerchantInfo = async (businessRepository: Reposit
   })
 }
 
-const createBusinessEntity = async (businessRepository: Repository<Business>, merchantId: string, merchantName: string | undefined, accessToken: string, refreshToken: string, expirationDate: Date | undefined, callback: any) => {
-  const business = businessRepository.create({
+const createBusinessEntity = async (merchantId: string, merchantName: string | undefined, accessToken: string, refreshToken: string, expirationDate: Date | undefined, callback: any) => {
+  const business = AppDataSource.manager.create(Business, {
     name: merchantName ?? "unknown",
     merchantId: merchantId,
     merchantAccessToken: accessToken,
     merchantRefreshToken: refreshToken,
     accessTokenExpirationDate: expirationDate,
   })
-  await businessRepository.save(business);
+  // await businessRepository.save(business);
   console.log("just created business with id: " + business.businessId);
   callback(business);
 
@@ -111,13 +111,16 @@ const createBusinessEntity = async (businessRepository: Repository<Business>, me
 //   }
 // }
 
-export const updateBusinessEntity = async (businessRepository: Repository<Business>, businessId: string, merchantId: string, accessToken: string, refreshToken: string, expirationDate: Date | undefined, business: Business, callback: any) => {
-  businessRepository.update(businessId, {
-    merchantId: merchantId,
-    merchantAccessToken: accessToken,
-    merchantRefreshToken: refreshToken,
-    accessTokenExpirationDate: expirationDate,
-  })
+export const updateBusinessEntity = async (businessId: string, merchantId: string, accessToken: string, refreshToken: string, expirationDate: Date | undefined, business: Business, callback: any) => {
+
+  AppDataSource.manager.update(Business, {
+      merchantId: merchantId,
+    }, {
+      merchantAccessToken: accessToken,
+      merchantRefreshToken: refreshToken,
+      accessTokenExpirationDate: expirationDate,
+    }
+  );
   console.log("just updated business with id: " + business.businessId);
   callback(business);
 }
@@ -125,10 +128,8 @@ export const updateBusinessEntity = async (businessRepository: Repository<Busine
 export const findBusinessByMerchantId = async (merchantId: string, callback: any) => {
   console.log("inside findBusinessByMerchantId");
 
-  const businessRepository = getManager().getRepository(Business);
-
   try {
-    const business = await businessRepository
+    const business = await Business
       .createQueryBuilder("business")
       .where('business.merchantId = :merchantId', { merchantId: merchantId })
       .getOne()
