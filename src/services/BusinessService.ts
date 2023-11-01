@@ -1,5 +1,5 @@
 import { createAppLoyaltyFromLoyaltyProgram } from "./LoyaltyService";
-import { encryptToken, decryptToken } from "./EncryptionService";
+import { decryptToken } from "./EncryptionService";
 import { getMerchantInfo, getMainLoyaltyProgramFromMerchant } from "./MerchantService";
 import { Business } from '../entity/Business';
 import { Loyalty } from '../entity/Loyalty';

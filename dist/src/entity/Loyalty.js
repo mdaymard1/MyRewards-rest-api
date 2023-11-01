@@ -37,6 +37,9 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true })
 ], Loyalty.prototype, "loyaltyStatus", void 0);
 __decorate([
+    (0, typeorm_1.Column)('jsonb', { nullable: true, default: {} })
+], Loyalty.prototype, "locations", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
     (0, typeorm_1.Index)()
 ], Loyalty.prototype, "businessId", void 0);

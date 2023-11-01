@@ -3,6 +3,7 @@ import { LoyaltyAccrual } from "./LoyaltyAccrual";
 import { LoyaltyRewardTier } from "./LoyaltyRewardTier";
 import { Promotion } from "./Promotion";
 import { Business } from "./Business";
+import { nullable } from 'square/dist/types/schema';
 
 @Entity()
 export class Loyalty extends BaseEntity {
@@ -26,6 +27,9 @@ export class Loyalty extends BaseEntity {
 
   @Column({ type: 'text', nullable: true })
   loyaltyStatus: string;
+
+  @Column('jsonb', { nullable: true, default: {} })
+  locations: string[];
 
   @Column({ type: 'uuid', nullable: false })
   @Index()
