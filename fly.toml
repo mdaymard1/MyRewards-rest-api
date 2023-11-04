@@ -1,0 +1,28 @@
+# fly.toml app configuration file generated for my-rewards on 2023-10-31T19:40:10-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "my-rewards"
+primary_region = "sjc"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[build]
+  builder = "paketobuildpacks/builder:base"
+  buildpacks = ["gcr.io/paketo-buildpacks/nodejs"]
+
+[env]
+  PORT = "8080"
+  HOST = "0.0.0.0"
+  DBHOST = "my-rewards-db.internal"
+  DBPORT = "5432"
+  USERNAME = "postgres"
+  PASSWORD = "BffCZMdZQ7ZLvxg"
+  DATABASE = "postgres" 

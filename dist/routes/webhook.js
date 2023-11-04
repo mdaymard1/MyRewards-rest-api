@@ -14,19 +14,25 @@ const LoyaltyService_1 = require("../src/services/LoyaltyService");
 const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { body } = request;
     const webhook = new SquareWebhook_1.SquareWebhook(body);
-    console.log('webhook type: ' + webhook.type);
+    console.log('webhook type: ' + webhook.type + ' for merchant: ' + webhook.merchantId);
     if (!webhook) {
+        console.log('webhook payload was empty');
         response.status(200);
         response.end();
         return;
     }
     if (!webhook.merchantId) {
+        console.log('webhook merchantId missing');
         response.status(200);
         response.end();
         return;
     }
+    const callbackBody = JSON.stringify(request.body);
+    console.log('callbackBody: ' + callbackBody);
+    console.log('payload is valid.');
     if (webhook.loyaltyProgram) {
         (0, LoyaltyService_1.updateLoyaltyFromWebhook)(webhook.merchantId, webhook.loyaltyProgram, function (wasSuccessful) {
+            console.log('handleSquareWebhook completed successfully');
             response.status(200);
             response.end();
         });
@@ -39,6 +45,7 @@ const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, voi
     }
     else {
         // We're not interested in this event
+        console.log('webhook event skipped');
         response.status(200);
         response.end();
     }

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCategoryIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantInfo = void 0;
+exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantInfo = void 0;
 const square_1 = require("square");
 const EncryptionService_1 = require("./EncryptionService");
 const getMerchantInfo = (merchantId, accessToken, callback) => __awaiter(void 0, void 0, void 0, function* () {
@@ -62,6 +62,7 @@ const getMainLoyaltyProgramFromMerchant = (token, callback) => __awaiter(void 0,
         console.log('response: ' + (promotionsResponse === null || promotionsResponse === void 0 ? void 0 : promotionsResponse.result));
         if (!promotionsResponse) {
             callback(undefined);
+            return;
         }
         if ((_f = promotionsResponse.result) === null || _f === void 0 ? void 0 : _f.loyaltyPromotions) {
             promotions = promotionsResponse.result.loyaltyPromotions;
@@ -78,44 +79,14 @@ const getMainLoyaltyProgramFromMerchant = (token, callback) => __awaiter(void 0,
         var accrualType = '';
         // Loop through each tier to determine its type
         if (program.accrualRules) {
-            (0, exports.getCategoryIdMapFromAccurals)(token, program.accrualRules, function (categoryNameMap) {
-                callback(program, promotions, accrualType, categoryNameMap);
+            (0, exports.getCatalogItemIdMapFromAccurals)(token, program.accrualRules, function (catalogItemNameMap) {
+                callback(program, promotions, accrualType, catalogItemNameMap);
+                return;
             });
-            //   program.accrualRules.forEach(function (accrualRule) {
-            //     console.log(accrualRule.accrualType);
-            //     if (accrualRule.accrualType == "CATEGORY" && accrualRule.categoryData?.categoryId) {
-            //       accrualType = "CATEGORY";
-            //       categoryIds.push(accrualRule.categoryData!.categoryId);
-            //     } else if (accrualRule.accrualType == "VISIT") {
-            //       accrualType = "VISIT";
-            //     } else if (accrualRule.accrualType == "SPEND") {
-            //       accrualType = "SPEND";
-            //     } else if (accrualRule.accrualType == "ITEM") {
-            //       accrualType = "ITEM";
-            //     }
-            //   });
-            //   if (categoryIds.length > 0) {
-            //     var catIds: string[] = [];
-            //     categoryIds.forEach(function(categoryId) {
-            //       catIds.push(categoryId.toString());
-            //     })
-            //     const body: BatchRetrieveCatalogObjectsRequest = {
-            //       objectIds: catIds,
-            //       includeRelatedObjects: true,
-            //       includeDeletedObjects: false,
-            //     };
-            //     var categoryResults = await catalogApi.batchRetrieveCatalogObjects(body);
-            //     if (categoryResults?.result?.objects) {
-            //       categoryResults?.result?.objects.forEach(function(catalogObject) {
-            //         if (catalogObject.type == "CATEGORY" && catalogObject.categoryData?.name) {
-            //           console.log("received a category back");
-            //           categoryNameMap.set(catalogObject.id, catalogObject.categoryData.name) ;
-            //         }
-            //       })
-            //     }
-            //   }
         }
-        callback(program, promotions, accrualType, new Map());
+        else {
+            callback(program, promotions, accrualType, new Map());
+        }
     }
     catch (error) {
         if (error instanceof square_1.ApiError) {
@@ -128,57 +99,90 @@ const getMainLoyaltyProgramFromMerchant = (token, callback) => __awaiter(void 0,
         else {
             console.log('Unexpected error occurred while getting loyalty program: ', error);
         }
+        callback(undefined);
     }
 });
 exports.getMainLoyaltyProgramFromMerchant = getMainLoyaltyProgramFromMerchant;
-const getCategoryIdMapFromAccurals = (token, accrualRules, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    var _h, _j, _k;
-    console.log('inside getCategoryIdMapFromAccurals');
-    var categoryIds = [];
-    var categoryNameMap = new Map();
+const getCatalogItemIdMapFromAccurals = (token, accrualRules, callback) => __awaiter(void 0, void 0, void 0, function* () {
+    var _h, _j, _k, _l, _m;
+    console.log('inside getCatalogItemIdMapFromAccurals');
+    var catalogItemIds = [];
+    var itemNameMap = new Map();
+    var variantItemMap = new Map();
     // Loop through each accrual rule to determine its type
     for (var accrualRule of accrualRules) {
         console.log(accrualRule.accrualType);
         if (accrualRule.accrualType == 'CATEGORY' &&
             ((_h = accrualRule.categoryData) === null || _h === void 0 ? void 0 : _h.categoryId)) {
-            categoryIds.push(accrualRule.categoryData.categoryId);
+            catalogItemIds.push(accrualRule.categoryData.categoryId);
+            console.log('adding categoryId: ' +
+                accrualRule.categoryData.categoryId +
+                ' to lookup list');
+        }
+        else if (accrualRule.accrualType == 'ITEM_VARIATION' &&
+            ((_j = accrualRule.itemVariationData) === null || _j === void 0 ? void 0 : _j.itemVariationId)) {
+            catalogItemIds.push(accrualRule.itemVariationData.itemVariationId);
+            variantItemMap.set(accrualRule.itemVariationData.itemVariationId, accrualRule.itemVariationData.itemVariationId);
+            console.log('adding itemId: ' +
+                accrualRule.itemVariationData.itemVariationId +
+                ' to lookup list');
         }
     }
-    if (categoryIds.length > 0) {
+    if (catalogItemIds.length > 0) {
+        console.log('Fetching items from catalog to get item names');
         const client = new square_1.Client({
             accessToken: token,
             environment: square_1.Environment.Sandbox,
         });
         const { catalogApi } = client;
-        var catIds = [];
-        categoryIds.forEach(function (categoryId) {
-            catIds.push(categoryId.toString());
+        var itemIds = [];
+        catalogItemIds.forEach(function (itemId) {
+            itemIds.push(itemId.toString());
         });
         const body = {
-            objectIds: catIds,
+            objectIds: itemIds,
             includeRelatedObjects: true,
             includeDeletedObjects: false,
         };
         var categoryResults = yield catalogApi.batchRetrieveCatalogObjects(body);
-        if ((_j = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _j === void 0 ? void 0 : _j.objects) {
-            (_k = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _k === void 0 ? void 0 : _k.objects.forEach(function (catalogObject) {
+        if ((_k = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _k === void 0 ? void 0 : _k.objects) {
+            (_l = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _l === void 0 ? void 0 : _l.objects.forEach(function (catalogObject) {
                 var _a;
                 if (catalogObject.type == 'CATEGORY' &&
                     ((_a = catalogObject.categoryData) === null || _a === void 0 ? void 0 : _a.name)) {
                     console.log('received a category back: ' + catalogObject.categoryData.name);
-                    categoryNameMap.set(catalogObject.id, catalogObject.categoryData.name);
+                    itemNameMap.set(catalogObject.id, catalogObject.categoryData.name);
                 }
             });
         }
-        callback(categoryNameMap);
+        console.log('searching related objects for variantIds');
+        // Items are returned in relatedObjects, so we must loop thru its variants
+        // to look for a match on variant id and then take it's parent (item) name
+        if (categoryResults.result.relatedObjects) {
+            for (var relatedObject of categoryResults.result.relatedObjects) {
+                if (relatedObject.type == 'ITEM' &&
+                    ((_m = relatedObject.itemData) === null || _m === void 0 ? void 0 : _m.variations)) {
+                    for (var variant of relatedObject.itemData.variations) {
+                        const variantFromMap = variantItemMap.get(variant.id);
+                        if (variantFromMap) {
+                            if (relatedObject.itemData.name) {
+                                console.log('received an item back: ' + relatedObject.itemData.name);
+                                itemNameMap.set(variant.id, relatedObject.itemData.name);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        callback(itemNameMap);
     }
     else {
-        callback(categoryNameMap);
+        callback(itemNameMap);
     }
 });
-exports.getCategoryIdMapFromAccurals = getCategoryIdMapFromAccurals;
+exports.getCatalogItemIdMapFromAccurals = getCatalogItemIdMapFromAccurals;
 module.exports = {
-    getCategoryIdMapFromAccurals: exports.getCategoryIdMapFromAccurals,
+    getCatalogItemIdMapFromAccurals: exports.getCatalogItemIdMapFromAccurals,
     getMerchantInfo: exports.getMerchantInfo,
     getMainLoyaltyProgramFromMerchant: exports.getMainLoyaltyProgramFromMerchant,
 };

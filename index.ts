@@ -25,6 +25,9 @@ AppDataSource.initialize()
 
 const app: Express = express();
 const port = process.env.PORT;
+const host = process.env.HOST;
+
+console.log('index.ts using port: ' + port + ', host: ' + host);
 
 var businessRoute = require('./routes/business');
 var loyaltyRoute = require('./routes/loyalty');
@@ -58,3 +61,6 @@ app.post('/webhook', webhookRoute.handleSquareWebhook);
 app.listen(port, () => {
   console.log(`Horror movie app is running on port ${port}.`);
 });
+// app.listen({ port: port, host: host }, () => {
+//   console.log(`Horror movie app is running on port ${port}.`);
+// });

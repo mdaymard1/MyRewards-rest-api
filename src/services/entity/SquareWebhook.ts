@@ -1,12 +1,15 @@
 export class SquareWebhook {
   constructor(payload: any) {
+    console.log(
+      'inside SquareWebhook constructor with type: ' + payload.data.type,
+    );
     this.type = payload.type;
     this.merchantId = payload.merchant_id;
     if (
       (this.type == 'loyalty.program.updated' ||
         this.type == 'loyalty.program.created') &&
       this.merchantId &&
-      payload.data.type == 'loyalty_program' &&
+      payload.data.type == 'loyalty.program' &&
       payload.data.object.loyalty_program
     ) {
       this.loyaltyProgram = new SquareLoyaltyProgram(
@@ -17,7 +20,7 @@ export class SquareWebhook {
       (this.type == 'loyalty.promotion.created' ||
         this.type == 'loyalty.promotion.updated') &&
       this.merchantId &&
-      payload.data.type == 'loyalty_promotion' &&
+      payload.data.type == 'loyalty.promotion' &&
       payload.data.object.loyalty_promotion
     ) {
       this.loyaltyPromotion = new SquareLoyaltyPromotion(
@@ -34,6 +37,7 @@ export class SquareWebhook {
 
 export class SquareLoyaltyPromotion {
   constructor(payload: any) {
+    console.log('inside SquareLoyaltyPromotion constructor');
     this.id = payload.id;
     this.name = payload.name;
     this.status = payload.status;
@@ -62,6 +66,7 @@ export type SquareTerminology = {
 
 export class SquareLoyaltyProgram {
   constructor(payload: any) {
+    console.log('inside SquareLoyaltyProgram constructor');
     this.id = payload.id;
     this.status = payload.status;
     if (payload.accrual_rules) {
@@ -101,6 +106,7 @@ export class SquareLoyaltyProgram {
 
 export class SquareAccrualRules {
   constructor(payload: any) {
+    console.log('inside SquareAccrualRules constructor');
     this.accrualType = payload.accrual_type;
     this.points = payload.points;
     if (payload.spend_data && payload.spend_data?.amount_money) {
@@ -122,11 +128,11 @@ export class SquareAccrualRules {
       };
     } else if (payload.item_variation_data) {
       this.itemVariationData = {
-        itemVariationId: payload.item_variation_data,
+        itemVariationId: payload.item_variation_data.item_variation_id,
       };
-    } else if (payload.category_id) {
+    } else if (payload.category_data) {
       this.categoryData = {
-        categoryId: payload.category_id,
+        categoryId: payload.category_data.category_id,
       };
     }
   }
@@ -156,6 +162,7 @@ export class SquareAccrualRules {
 
 export class SquareRewardTier {
   constructor(payload: any) {
+    console.log('inside SquareRewardTier constructor');
     this.id = payload.id;
     this.name = payload.name;
     this.points = payload.points;
