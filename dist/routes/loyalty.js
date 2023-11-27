@@ -17,6 +17,7 @@ const BusinessService_1 = require("../src/services/BusinessService");
 const EncryptionService_1 = require("../src/services/EncryptionService");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('inside getLoyalty');
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -44,13 +45,13 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
     if (token) {
         (0, MerchantService_1.getMainLoyaltyProgramFromMerchant)(token, function (loyaltyProgram, promotions, accrualType, catalogItemNameMap) {
             console.log('got back program: ' +
-                loyaltyProgram.id +
+                (loyaltyProgram === null || loyaltyProgram === void 0 ? void 0 : loyaltyProgram.id) +
                 ', promo count: ' +
-                promotions.length +
+                (promotions === null || promotions === void 0 ? void 0 : promotions.length) +
                 ', accrualType: ' +
                 accrualType +
                 ', categoryIdMap count: ' +
-                catalogItemNameMap.size);
+                (catalogItemNameMap === null || catalogItemNameMap === void 0 ? void 0 : catalogItemNameMap.size));
             if (loyaltyProgram) {
                 if (loyalty) {
                     if ((0, LoyaltyService_1.isLoyaltyOrPromotionsOutOfDate)(loyalty, loyaltyProgram, promotions)) {

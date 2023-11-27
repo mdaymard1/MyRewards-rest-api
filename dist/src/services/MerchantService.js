@@ -8,10 +8,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantInfo = void 0;
 const square_1 = require("square");
 const EncryptionService_1 = require("./EncryptionService");
+const dotenv_1 = __importDefault(require("dotenv"));
 const getMerchantInfo = (merchantId, accessToken, callback) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
     console.log('inside getMerchantInfo');
@@ -19,9 +23,12 @@ const getMerchantInfo = (merchantId, accessToken, callback) => __awaiter(void 0,
     token = (0, EncryptionService_1.decryptToken)(accessToken);
     console.log('converted encrypted token: ' + accessToken + ' to ' + token);
     console.log('merchantId: ' + merchantId);
+    const env = process.env.NODE_ENV == 'development'
+        ? square_1.Environment.Sandbox
+        : square_1.Environment.Production;
     const client = new square_1.Client({
         accessToken: token,
-        environment: square_1.Environment.Sandbox,
+        environment: env,
     });
     const { merchantsApi } = client;
     try {
@@ -43,9 +50,14 @@ exports.getMerchantInfo = getMerchantInfo;
 const getMainLoyaltyProgramFromMerchant = (token, callback) => __awaiter(void 0, void 0, void 0, function* () {
     var _e, _f, _g;
     console.log('token: ' + token);
+    dotenv_1.default.config();
+    const env = process.env.NODE_ENV == 'development'
+        ? square_1.Environment.Sandbox
+        : square_1.Environment.Production;
+    console.log('looking up ProgramLoyalty in env: ' + env);
     const client = new square_1.Client({
         accessToken: token,
-        environment: square_1.Environment.Sandbox,
+        environment: env,
     });
     const { catalogApi, loyaltyApi } = client;
     try {
@@ -104,23 +116,26 @@ const getMainLoyaltyProgramFromMerchant = (token, callback) => __awaiter(void 0,
 });
 exports.getMainLoyaltyProgramFromMerchant = getMainLoyaltyProgramFromMerchant;
 const getCatalogItemIdMapFromAccurals = (token, accrualRules, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    var _h, _j, _k, _l, _m;
+    var _h, _j, _k, _l, _m, _o;
     console.log('inside getCatalogItemIdMapFromAccurals');
     var catalogItemIds = [];
     var itemNameMap = new Map();
     var variantItemMap = new Map();
+    console.log('accrualRules size: ' + accrualRules.length);
     // Loop through each accrual rule to determine its type
     for (var accrualRule of accrualRules) {
-        console.log(accrualRule.accrualType);
+        console.log(accrualRule.accrualType +
+            ', categoryId: ' +
+            ((_h = accrualRule.categoryData) === null || _h === void 0 ? void 0 : _h.categoryId));
         if (accrualRule.accrualType == 'CATEGORY' &&
-            ((_h = accrualRule.categoryData) === null || _h === void 0 ? void 0 : _h.categoryId)) {
+            ((_j = accrualRule.categoryData) === null || _j === void 0 ? void 0 : _j.categoryId)) {
             catalogItemIds.push(accrualRule.categoryData.categoryId);
             console.log('adding categoryId: ' +
                 accrualRule.categoryData.categoryId +
                 ' to lookup list');
         }
         else if (accrualRule.accrualType == 'ITEM_VARIATION' &&
-            ((_j = accrualRule.itemVariationData) === null || _j === void 0 ? void 0 : _j.itemVariationId)) {
+            ((_k = accrualRule.itemVariationData) === null || _k === void 0 ? void 0 : _k.itemVariationId)) {
             catalogItemIds.push(accrualRule.itemVariationData.itemVariationId);
             variantItemMap.set(accrualRule.itemVariationData.itemVariationId, accrualRule.itemVariationData.itemVariationId);
             console.log('adding itemId: ' +
@@ -145,8 +160,8 @@ const getCatalogItemIdMapFromAccurals = (token, accrualRules, callback) => __awa
             includeDeletedObjects: false,
         };
         var categoryResults = yield catalogApi.batchRetrieveCatalogObjects(body);
-        if ((_k = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _k === void 0 ? void 0 : _k.objects) {
-            (_l = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _l === void 0 ? void 0 : _l.objects.forEach(function (catalogObject) {
+        if ((_l = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _l === void 0 ? void 0 : _l.objects) {
+            (_m = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _m === void 0 ? void 0 : _m.objects.forEach(function (catalogObject) {
                 var _a;
                 if (catalogObject.type == 'CATEGORY' &&
                     ((_a = catalogObject.categoryData) === null || _a === void 0 ? void 0 : _a.name)) {
@@ -161,7 +176,7 @@ const getCatalogItemIdMapFromAccurals = (token, accrualRules, callback) => __awa
         if (categoryResults.result.relatedObjects) {
             for (var relatedObject of categoryResults.result.relatedObjects) {
                 if (relatedObject.type == 'ITEM' &&
-                    ((_m = relatedObject.itemData) === null || _m === void 0 ? void 0 : _m.variations)) {
+                    ((_o = relatedObject.itemData) === null || _o === void 0 ? void 0 : _o.variations)) {
                     for (var variant of relatedObject.itemData.variations) {
                         const variantFromMap = variantItemMap.get(variant.id);
                         if (variantFromMap) {

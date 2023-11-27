@@ -11,10 +11,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const SquareWebhook_1 = require("../src/services/entity/SquareWebhook");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
+const SpecialService_1 = require("../src/services/SpecialService");
 const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { body } = request;
     const webhook = new SquareWebhook_1.SquareWebhook(body);
     console.log('webhook type: ' + webhook.type + ' for merchant: ' + webhook.merchantId);
+    const callbackBody = JSON.stringify(request.body);
+    console.log('callbackBody: ' + callbackBody);
     if (!webhook) {
         console.log('webhook payload was empty');
         response.status(200);
@@ -27,8 +30,6 @@ const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, voi
         response.end();
         return;
     }
-    const callbackBody = JSON.stringify(request.body);
-    console.log('callbackBody: ' + callbackBody);
     console.log('payload is valid.');
     if (webhook.loyaltyProgram) {
         (0, LoyaltyService_1.updateLoyaltyFromWebhook)(webhook.merchantId, webhook.loyaltyProgram, function (wasSuccessful) {
@@ -39,6 +40,13 @@ const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, voi
     }
     else if (webhook.loyaltyPromotion) {
         (0, LoyaltyService_1.updatePromotionsFromWebhook)(webhook.merchantId, webhook.loyaltyPromotion, function (wasSuccessful) {
+            response.status(200);
+            response.end();
+        });
+    }
+    else if (webhook.catalogVersionUpdated) {
+        (0, SpecialService_1.updateSpecialsFromWebhook)(webhook.merchantId, webhook.catalogVersionUpdated, function (wasSuccessful) {
+            console.log('returned from updateSpecialsFromWebhook');
             response.status(200);
             response.end();
         });

@@ -32,6 +32,7 @@ console.log('index.ts using port: ' + port + ', host: ' + host);
 var businessRoute = require('./routes/business');
 var loyaltyRoute = require('./routes/loyalty');
 var webhookRoute = require('./routes/webhook');
+var specialRoute = require('./routes/special');
 
 app.use(logger('dev'));
 // app.use(express.json());
@@ -54,10 +55,15 @@ app.use(cookieParser());
 
 app.get('/business', businessRoute.getBusiness);
 app.post('/business', businessRoute.createBusiness);
+app.put('/business', businessRoute.updateBusiness);
 app.get('/loyalty', loyaltyRoute.getLoyalty);
 app.post('/loyalty/:loyaltyId', loyaltyRoute.updateLoyalty);
 app.put('/loyalty/:loyaltyId/status', loyaltyRoute.updateLoyaltyStatus);
 app.post('/webhook', webhookRoute.handleSquareWebhook);
+app.get('/special', specialRoute.getSpecials);
+app.post('/special', specialRoute.createNewSpecial);
+app.post('/special/:specialId', specialRoute.updateSpecial);
+app.delete('/special/:specialId', specialRoute.deleteSpecial);
 app.listen(port, () => {
   console.log(`Horror movie app is running on port ${port}.`);
 });

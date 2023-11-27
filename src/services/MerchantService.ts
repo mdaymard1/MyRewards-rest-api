@@ -28,9 +28,14 @@ export const getMerchantInfo = async (
   console.log('converted encrypted token: ' + accessToken + ' to ' + token);
   console.log('merchantId: ' + merchantId);
 
+  const env =
+    process.env.NODE_ENV == 'development'
+      ? Environment.Sandbox
+      : Environment.Production;
+
   const client = new Client({
     accessToken: token,
-    environment: Environment.Sandbox,
+    environment: env,
   });
   const { merchantsApi } = client;
 
@@ -56,9 +61,16 @@ export const getMainLoyaltyProgramFromMerchant = async (
 ) => {
   console.log('token: ' + token);
 
+  dotenv.config();
+
+  const env =
+    process.env.NODE_ENV == 'development'
+      ? Environment.Sandbox
+      : Environment.Production;
+  console.log('looking up ProgramLoyalty in env: ' + env);
   const client = new Client({
     accessToken: token,
-    environment: Environment.Sandbox,
+    environment: env,
   });
 
   const { catalogApi, loyaltyApi } = client;
@@ -152,9 +164,15 @@ export const getCatalogItemIdMapFromAccurals = async (
   var itemNameMap = new Map<string, string>();
   var variantItemMap = new Map<string, string>();
 
+  console.log('accrualRules size: ' + accrualRules.length);
+
   // Loop through each accrual rule to determine its type
   for (var accrualRule of accrualRules) {
-    console.log(accrualRule.accrualType);
+    console.log(
+      accrualRule.accrualType +
+        ', categoryId: ' +
+        accrualRule.categoryData?.categoryId,
+    );
     if (
       accrualRule.accrualType == 'CATEGORY' &&
       accrualRule.categoryData?.categoryId

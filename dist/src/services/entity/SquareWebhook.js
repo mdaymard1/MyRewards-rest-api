@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SquareRewardTier = exports.SquareAccrualRules = exports.SquareLoyaltyProgram = exports.SquareLoyaltyPromotion = exports.SquareWebhook = void 0;
+exports.SquareRewardTier = exports.SquareAccrualRules = exports.SquareLoyaltyProgram = exports.SquareLoyaltyPromotion = exports.SquareCatalogVersionUpdated = exports.SquareWebhook = void 0;
 class SquareWebhook {
     constructor(payload) {
         console.log('inside SquareWebhook constructor with type: ' + payload.data.type);
@@ -20,10 +20,27 @@ class SquareWebhook {
             payload.data.object.loyalty_promotion) {
             this.loyaltyPromotion = new SquareLoyaltyPromotion(payload.data.object.loyalty_promotion);
         }
+        if (this.type == 'catalog.version.updated' &&
+            this.merchantId &&
+            payload.data.type == 'catalog' &&
+            payload.data.object.catalog_version) {
+            this.catalogVersionUpdated = new SquareCatalogVersionUpdated(payload.data.object.catalog_version);
+        }
         console.log('SquareWebhook initialized');
     }
 }
 exports.SquareWebhook = SquareWebhook;
+class SquareCatalogVersionUpdated {
+    constructor(payload) {
+        console.log('inside SquareCatalogVersionUpdated constructor');
+        if (payload.updated_at) {
+            this.catalogVersion = {
+                updatedAt: payload.updated_at,
+            };
+        }
+    }
+}
+exports.SquareCatalogVersionUpdated = SquareCatalogVersionUpdated;
 class SquareLoyaltyPromotion {
     constructor(payload) {
         console.log('inside SquareLoyaltyPromotion constructor');

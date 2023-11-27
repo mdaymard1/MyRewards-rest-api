@@ -1,10 +1,18 @@
-import { BaseEntity, Entity, Column, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Loyalty } from "./Loyalty";
+import {
+  BaseEntity,
+  Entity,
+  Column,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Loyalty } from './Loyalty';
 
 @Entity({
   orderBy: {
-    merchantEarningPointsDescription: "ASC",
-  }
+    merchantEarningPointsDescription: 'ASC',
+  },
 })
 export class LoyaltyAccrual extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
@@ -36,19 +44,16 @@ export class LoyaltyAccrual extends BaseEntity {
   displayEarningAdditionalEarningPointsDescription!: string | null;
 
   // @CreateDateColumn({ type: 'timestamp', nullable: true })
-  @Column({ type: 'timestamp', nullable: true, default: () => "now()" })
+  @Column({ type: 'timestamp', nullable: true, default: () => 'now()' })
   createDate: Date;
 
   // @LastUpdatedDate({ type: 'timestamp', nullable: true })
-  @Column({ type: 'timestamp', nullable: true, default: () => "now()" })
+  @Column({ type: 'timestamp', nullable: true, default: () => 'now()' })
   lastUpdateDate: Date;
 
-  @ManyToOne(
-    () => Loyalty,
-    loyalty => loyalty.loyaltyAccruals,
-    { nullable: true}
-  )
-
+  @ManyToOne(() => Loyalty, (loyalty) => loyalty.loyaltyAccruals, {
+    nullable: true,
+  })
   @JoinColumn({ name: 'loyaltyId' })
   loyalty: Loyalty;
 }

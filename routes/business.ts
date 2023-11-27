@@ -1,12 +1,12 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../appDataSource';
 import { Business } from '../src/entity/Business';
-import { encryptToken, decryptToken } from '../src/services/EncryptionService';
 import {
   createNewBusinessWithLoyalty,
   findBusinessByMerchantId,
   updateBusinessEntity,
   getBusinessIdFromAuthToken,
+  updateBusinessDetails,
 } from '../src/services/BusinessService';
 
 import crypto from 'crypto';
@@ -44,11 +44,33 @@ const getBusiness = async (request: Request, response: Response) => {
     return;
   }
 
-  const business = await AppDataSource.manager.findOne(Business, {
-    where: {
-      businessId: businessId,
-    },
-  });
+  // const business = await AppDataSource.manager.findOne(Business, {
+  //   select: { businessId, },
+  //   where: {
+  //     businessId: businessId,
+  //   },
+  // });
+
+  const business = await Business.createQueryBuilder('business')
+    .select([
+      'business.businessId',
+      'business.lastUpdateDate',
+      'business.businessName',
+      'business.addressLine1',
+      'business.addressLine2',
+      'business.city',
+      'business.state',
+      'business.zipCode',
+      'business.phone',
+      'business.hoursOfOperation',
+      'business.businessDescription',
+      'business.websiteUrl',
+      'business.appStoreUrl',
+      'business.googlePlayStoreUrl',
+      'business.reviewsUrl',
+    ])
+    .where('business.businessId = :businessId', { businessId: businessId })
+    .getOne();
 
   if (!business) {
     response.status(404);
@@ -59,6 +81,8 @@ const getBusiness = async (request: Request, response: Response) => {
 };
 
 const createBusiness = async (request: Request, response: Response) => {
+  console.log('inside createBusiness');
+
   const { merchantId, accessToken, refreshToken, expirationDate } =
     request.body;
 
@@ -68,6 +92,8 @@ const createBusiness = async (request: Request, response: Response) => {
   businessId = getBusinessIdFromAuthToken(request);
 
   console.log('businessId: ' + businessId);
+  console.log('accessToken: ' + accessToken);
+  console.log('refreshToken: ' + refreshToken);
 
   var date: Date | undefined;
   console.log('expirationDate: ' + expirationDate);
@@ -163,7 +189,64 @@ const createBusiness = async (request: Request, response: Response) => {
   }
 };
 
+const updateBusiness = async (request: Request, response: Response) => {
+  console.log('inside updateBusiness');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.sendStatus(404);
+    return;
+  }
+
+  const {
+    id,
+    lastUpdateDate,
+    businessName,
+    addressLine1,
+    addressLine2,
+    city,
+    state,
+    zipCode,
+    phone,
+    hoursOfOperation,
+    businessDescription,
+    websiteUrl,
+    appStoreUrl,
+    googlePlayStoreUrl,
+    reviewsUrl,
+  } = request.body;
+
+  if (!businessName || !lastUpdateDate) {
+    response.sendStatus(400);
+    return;
+  }
+
+  console.log('businessId: ' + businessId);
+
+  const wasUpdated: boolean = await updateBusinessDetails(
+    businessId,
+    lastUpdateDate,
+    businessName,
+    addressLine1,
+    addressLine2,
+    city,
+    state,
+    zipCode,
+    phone,
+    hoursOfOperation,
+    businessDescription,
+    websiteUrl,
+    appStoreUrl,
+    googlePlayStoreUrl,
+    reviewsUrl,
+  );
+  response.status(wasUpdated ? 203 : 500);
+  response.end();
+};
+
 module.exports = {
   getBusiness,
   createBusiness,
+  updateBusiness,
 };

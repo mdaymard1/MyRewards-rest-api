@@ -9,68 +9,65 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LoyaltyAccrual = void 0;
+exports.SpecialItem = void 0;
 const typeorm_1 = require("typeorm");
-const Loyalty_1 = require("./Loyalty");
-let LoyaltyAccrual = class LoyaltyAccrual extends typeorm_1.BaseEntity {
+const Special_1 = require("./Special");
+let SpecialItem = class SpecialItem extends typeorm_1.BaseEntity {
 };
-exports.LoyaltyAccrual = LoyaltyAccrual;
+exports.SpecialItem = SpecialItem;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
     __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "id", void 0);
+], SpecialItem.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "loyaltyId", void 0);
+], SpecialItem.prototype, "specialId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: false }),
+    __metadata("design:type", Number)
+], SpecialItem.prototype, "sortOrder", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: false }),
     __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "accrualType", void 0);
+], SpecialItem.prototype, "itemId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: false }),
+    __metadata("design:type", String)
+], SpecialItem.prototype, "name", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "variantId", void 0);
+], SpecialItem.prototype, "itemDescription", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
+    __metadata("design:type", Boolean)
+], SpecialItem.prototype, "isManuallyEntered", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "categoryId", void 0);
+], SpecialItem.prototype, "itemPriceRange", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true }),
     __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "merchantEarningPointsDescription", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
-    __metadata("design:type", String)
-], LoyaltyAccrual.prototype, "merchantAdditionalEarningPointsDescription", void 0);
+], SpecialItem.prototype, "priceCurrency", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: true, default: null }),
     __metadata("design:type", Object)
-], LoyaltyAccrual.prototype, "displayEarningPointsDescription", void 0);
+], SpecialItem.prototype, "imageUrl", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: true, default: null }),
-    __metadata("design:type", Object)
-], LoyaltyAccrual.prototype, "displayEarningAdditionalEarningPointsDescription", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true, default: () => 'now()' }),
-    __metadata("design:type", Date)
-], LoyaltyAccrual.prototype, "createDate", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true, default: () => 'now()' }),
-    __metadata("design:type", Date)
-], LoyaltyAccrual.prototype, "lastUpdateDate", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => Loyalty_1.Loyalty, (loyalty) => loyalty.loyaltyAccruals, {
+    (0, typeorm_1.ManyToOne)(() => Special_1.Special, (special) => special.items, {
         nullable: true,
+        onDelete: 'CASCADE',
     }),
-    (0, typeorm_1.JoinColumn)({ name: 'loyaltyId' }),
-    __metadata("design:type", Loyalty_1.Loyalty)
-], LoyaltyAccrual.prototype, "loyalty", void 0);
-exports.LoyaltyAccrual = LoyaltyAccrual = __decorate([
+    (0, typeorm_1.JoinColumn)({ name: 'specialId' }),
+    __metadata("design:type", Special_1.Special)
+], SpecialItem.prototype, "special", void 0);
+exports.SpecialItem = SpecialItem = __decorate([
     (0, typeorm_1.Entity)({
         orderBy: {
-            merchantEarningPointsDescription: 'ASC',
+            sortOrder: 'ASC',
         },
     })
-], LoyaltyAccrual);
+], SpecialItem);

@@ -17,6 +17,8 @@ import {
 import { LoyaltyProgram, LoyaltyPromotion } from 'square';
 
 const getLoyalty = async (request: Request, response: Response) => {
+  console.log('inside getLoyalty');
+
   const businessId = getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
@@ -57,13 +59,13 @@ const getLoyalty = async (request: Request, response: Response) => {
       ) {
         console.log(
           'got back program: ' +
-            loyaltyProgram.id +
+            loyaltyProgram?.id +
             ', promo count: ' +
-            promotions.length +
+            promotions?.length +
             ', accrualType: ' +
             accrualType +
             ', categoryIdMap count: ' +
-            catalogItemNameMap.size,
+            catalogItemNameMap?.size,
         );
 
         if (loyaltyProgram) {
@@ -218,6 +220,7 @@ const updateLoyaltyStatus = async (request: Request, response: Response) => {
     response.end();
     return;
   }
+
   if (!isValidLoyaltyStatus(loyaltyStatus)) {
     response.status(400);
     response.end();

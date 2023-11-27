@@ -1,3 +1,5 @@
+import exp from 'constants';
+
 export class SquareWebhook {
   constructor(payload: any) {
     console.log(
@@ -27,12 +29,37 @@ export class SquareWebhook {
         payload.data.object.loyalty_promotion,
       );
     }
+    if (
+      this.type == 'catalog.version.updated' &&
+      this.merchantId &&
+      payload.data.type == 'catalog' &&
+      payload.data.object.catalog_version
+    ) {
+      this.catalogVersionUpdated = new SquareCatalogVersionUpdated(
+        payload.data.object.catalog_version,
+      );
+    }
     console.log('SquareWebhook initialized');
   }
   merchantId: string;
   type: string;
   loyaltyProgram: SquareLoyaltyProgram;
   loyaltyPromotion: SquareLoyaltyPromotion;
+  catalogVersionUpdated: SquareCatalogVersionUpdated;
+}
+
+export class SquareCatalogVersionUpdated {
+  constructor(payload: any) {
+    console.log('inside SquareCatalogVersionUpdated constructor');
+    if (payload.updated_at) {
+      this.catalogVersion = {
+        updatedAt: payload.updated_at,
+      };
+    }
+  }
+  catalogVersion: {
+    updatedAt: string;
+  };
 }
 
 export class SquareLoyaltyPromotion {

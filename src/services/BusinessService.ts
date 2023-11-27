@@ -55,13 +55,13 @@ export const createNewBusinessWithLoyalty = async (
               ) {
                 console.log(
                   'got back program: ' +
-                    loyaltyProgram.id +
+                    loyaltyProgram?.id +
                     ', promo count: ' +
-                    promotions.length +
+                    promotions?.length +
                     ', accrualType: ' +
                     accrualType +
                     ', catalogItemNameMap count: ' +
-                    catalogItemNameMap.size,
+                    catalogItemNameMap?.size,
                 );
 
                 if (loyaltyProgram) {
@@ -151,10 +151,15 @@ const createBusinessEntity = async (
 ) => {
   const business = AppDataSource.manager.create(Business, {
     name: merchantName ?? 'unknown',
+    businessName: merchantName ?? 'unknown',
     merchantId: merchantId,
     merchantAccessToken: accessToken,
     merchantRefreshToken: refreshToken,
     accessTokenExpirationDate: expirationDate,
+    loyaltyUsesCatalogItems: false,
+    specialsUseCatalogItems: false,
+    createDate: new Date(),
+    lastUpdateDate: new Date(),
   });
   await AppDataSource.manager.save(business);
   console.log('just created business with id: ' + business.businessId);
@@ -205,6 +210,65 @@ export const updateBusinessEntity = async (
   callback(business);
 };
 
+export const updateBusinessDetails = async (
+  businessId: string,
+  lastUpdateDate: string,
+  businessName: string,
+  addressLine1?: string,
+  addressLine2?: string,
+  city?: string,
+  state?: string,
+  zipCode?: string,
+  phone?: string,
+  hoursOfOperation?: string,
+  businessDescription?: string,
+  websiteUrl?: string,
+  appStoreUrl?: string,
+  googlePlayStoreUrl?: string,
+  reviewsUrl?: string,
+): Promise<boolean> => {
+  console.log('inside updateBusinessDetails');
+  try {
+    // First make sure the business does exist
+    const business = await Business.createQueryBuilder('business')
+      .where('business.businessId = :businessId', { businessId: businessId })
+      .getOne();
+    if (!business) {
+      return false;
+    }
+
+    const lastUpdate = new Date(lastUpdateDate);
+
+    // Now update its values
+    AppDataSource.manager.update(
+      Business,
+      {
+        businessId: businessId,
+      },
+      {
+        lastUpdateDate: lastUpdate,
+        businessName: businessName,
+        addressLine1: addressLine1,
+        addressLine2: addressLine2,
+        city: city,
+        state: state,
+        zipCode: zipCode,
+        phone: phone,
+        hoursOfOperation: hoursOfOperation,
+        businessDescription: businessDescription,
+        websiteUrl: websiteUrl,
+        appStoreUrl: appStoreUrl,
+        googlePlayStoreUrl: googlePlayStoreUrl,
+        reviewsUrl: reviewsUrl,
+      },
+    );
+    return true;
+  } catch (err) {
+    console.log('Error returned while getting business by id: ' + err);
+    return false;
+  }
+};
+
 export const findBusinessByMerchantId = async (
   merchantId: string,
   callback: any,
@@ -225,6 +289,7 @@ module.exports = {
   createBusinessFromMerchantInfo,
   createNewBusinessWithLoyalty,
   getBusinessIdFromAuthToken,
+  updateBusinessDetails,
   updateBusinessEntity,
   findBusinessByMerchantId,
 };

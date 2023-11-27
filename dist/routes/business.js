@@ -41,11 +41,32 @@ const getBusiness = (request, response) => __awaiter(void 0, void 0, void 0, fun
         response.status(400);
         return;
     }
-    const business = yield appDataSource_1.AppDataSource.manager.findOne(Business_1.Business, {
-        where: {
-            businessId: businessId,
-        },
-    });
+    // const business = await AppDataSource.manager.findOne(Business, {
+    //   select: { businessId, },
+    //   where: {
+    //     businessId: businessId,
+    //   },
+    // });
+    const business = yield Business_1.Business.createQueryBuilder('business')
+        .select([
+        'business.businessId',
+        'business.lastUpdateDate',
+        'business.businessName',
+        'business.addressLine1',
+        'business.addressLine2',
+        'business.city',
+        'business.state',
+        'business.zipCode',
+        'business.phone',
+        'business.hoursOfOperation',
+        'business.businessDescription',
+        'business.websiteUrl',
+        'business.appStoreUrl',
+        'business.googlePlayStoreUrl',
+        'business.reviewsUrl',
+    ])
+        .where('business.businessId = :businessId', { businessId: businessId })
+        .getOne();
     if (!business) {
         response.status(404);
         response.end();
@@ -54,11 +75,14 @@ const getBusiness = (request, response) => __awaiter(void 0, void 0, void 0, fun
     response.send(business);
 });
 const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('inside createBusiness');
     const { merchantId, accessToken, refreshToken, expirationDate } = request.body;
     var businessId = undefined;
     var encryptedBusinessIdToken;
     businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     console.log('businessId: ' + businessId);
+    console.log('accessToken: ' + accessToken);
+    console.log('refreshToken: ' + refreshToken);
     var date;
     console.log('expirationDate: ' + expirationDate);
     if (expirationDate) {
@@ -132,7 +156,25 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
         response.sendStatus(404);
     }
 });
+const updateBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('inside updateBusiness');
+    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    if (!businessId) {
+        response.sendStatus(404);
+        return;
+    }
+    const { id, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, } = request.body;
+    if (!businessName || !lastUpdateDate) {
+        response.sendStatus(400);
+        return;
+    }
+    console.log('businessId: ' + businessId);
+    const wasUpdated = yield (0, BusinessService_1.updateBusinessDetails)(businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl);
+    response.status(wasUpdated ? 203 : 500);
+    response.end();
+});
 module.exports = {
     getBusiness,
     createBusiness,
+    updateBusiness,
 };

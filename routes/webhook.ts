@@ -4,6 +4,7 @@ import {
   updateLoyaltyFromWebhook,
   updatePromotionsFromWebhook,
 } from '../src/services/LoyaltyService';
+import { updateSpecialsFromWebhook } from '../src/services/SpecialService';
 
 const handleSquareWebhook = async (request: Request, response: Response) => {
   const { body } = request;
@@ -13,6 +14,9 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
   console.log(
     'webhook type: ' + webhook.type + ' for merchant: ' + webhook.merchantId,
   );
+
+  const callbackBody = JSON.stringify(request.body);
+  console.log('callbackBody: ' + callbackBody);
 
   if (!webhook) {
     console.log('webhook payload was empty');
@@ -27,9 +31,6 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
     response.end();
     return;
   }
-
-  const callbackBody = JSON.stringify(request.body);
-  console.log('callbackBody: ' + callbackBody);
 
   console.log('payload is valid.');
 
@@ -48,6 +49,16 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
       webhook.merchantId,
       webhook.loyaltyPromotion,
       function (wasSuccessful: boolean) {
+        response.status(200);
+        response.end();
+      },
+    );
+  } else if (webhook.catalogVersionUpdated) {
+    updateSpecialsFromWebhook(
+      webhook.merchantId,
+      webhook.catalogVersionUpdated,
+      function (wasSuccessful: boolean) {
+        console.log('returned from updateSpecialsFromWebhook');
         response.status(200);
         response.end();
       },
