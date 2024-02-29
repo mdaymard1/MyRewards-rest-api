@@ -52,42 +52,6 @@ const enrollCustomerInLoyalty = (businessId, token, firstName, lastName, phoneNu
         return merchCustomerId;
     }
     return null;
-    /*
-    // First, check to see if a merchant customer account already exists for this phone number
-    let existingCustomerId = await lookupCustomerIdByPhoneNumber(
-      token,
-      phoneNumber,
-    );
-  
-    if (existingCustomerId) {
-      // Next we need to create a Customer row to track this customer's points
-      let appCustomer = await upsertCustomer(businessId, existingCustomerId);
-      return existingCustomerId;
-    } else {
-      // First, create a new Customer in the merchant system if it doesn't already exist
-      let merchantCustomerId = await createMerchantCustomerAccount(
-        token,
-        firstName,
-        lastName,
-        phoneNumber,
-        email,
-      );
-      if (merchantCustomerId) {
-        // Now we create a loyalty account with the merchant using phone number
-        let loyaltyCustomerAccountId = await createLoyaltyAccount(
-          token,
-          existingLoyalty.merchantLoyaltyId,
-          phoneNumber,
-        );
-        console.log(
-          'done creating customer account: ' + loyaltyCustomerAccountId,
-        );
-        // Next we need to create a Customer row to track this customer's points
-        let appCustomer = await upsertCustomer(businessId, merchantCustomerId);
-        return loyaltyCustomerAccountId;
-      }
-    }
-    */
     return null;
 });
 exports.enrollCustomerInLoyalty = enrollCustomerInLoyalty;

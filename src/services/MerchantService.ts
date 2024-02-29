@@ -5,18 +5,11 @@ import {
   Environment,
   BatchRetrieveCatalogObjectsRequest,
   LoyaltyPromotion,
-  Merchant,
-  RetrieveMerchantResponse,
   CreateCustomerRequest,
-  CreateCustomerResponse,
   CreateLoyaltyAccountRequest,
-  CreateLoyaltyAccountResponse,
   LoyaltyProgramAccrualRule,
-  RetrieveCustomerResponse,
   SearchCustomersRequest,
-  SearchCustomersResponse,
   UpdateCustomerRequest,
-  UpdateCustomerResponse,
 } from 'square';
 // import { UUID } from 'crypto';
 import { decryptToken } from './EncryptionService';
@@ -157,7 +150,7 @@ export const upsertMerchantCustomerAccount = async (
   phone: string,
   email?: string,
 ) => {
-  console.log('inside createMerchantCustomerAccount');
+  console.log('inside upsertMerchantCustomerAccount');
 
   const env =
     process.env.NODE_ENV == 'development'
@@ -201,58 +194,6 @@ export const upsertMerchantCustomerAccount = async (
     } else {
       console.log('some unexpected error: ' + error);
     }
-  }
-};
-
-export const createMerchantCustomerAccount = async (
-  accessToken: string,
-  // merchantCustomerId: string,
-  // appCustomerId: string,
-  firstName: string,
-  lastName: string,
-  phone: string,
-  email?: string,
-) => {
-  console.log('inside createMerchantCustomerAccount');
-
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
-
-  const client = new Client({
-    squareVersion: '2024-01-18',
-    accessToken: accessToken,
-    environment: env,
-  });
-
-  const createCustomerBody: CreateCustomerRequest = {
-    givenName: firstName,
-    familyName: lastName,
-    emailAddress: email,
-    // referenceId: appCustomerId,
-    phoneNumber: phone,
-  };
-
-  const { customersApi } = client;
-
-  try {
-    let createCustomerResponse = await customersApi.createCustomer(
-      createCustomerBody,
-    );
-    return createCustomerResponse.result.customer?.id;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      // @ts-expect-error: unused variables
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const errors = error.result;
-      const { statusCode, headers } = error;
-      console.log('Got an error while creating square customer: ' + statusCode);
-      if (error.errors && error.errors.length > 0) {
-        console.log('error: ' + error.errors[0].detail);
-      }
-    }
-    return null;
   }
 };
 
@@ -506,7 +447,6 @@ export const getCatalogItemIdMapFromAccurals = async (
 
 module.exports = {
   createLoyaltyAccount,
-  createMerchantCustomerAccount,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
   getMainLoyaltyProgramFromMerchant,
