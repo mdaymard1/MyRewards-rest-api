@@ -73,6 +73,7 @@ app.get('/business', businessRoute.getBusiness);
 app.post('/business', businessRoute.createBusiness);
 app.put('/business', businessRoute.updateBusiness);
 app.get('/loyalty', loyaltyRoute.getLoyalty);
+app.post('/loyalty/enroll', loyaltyRoute.enrollCustomer);
 app.post('/loyalty/:loyaltyId', loyaltyRoute.updateLoyalty);
 app.put('/loyalty/:loyaltyId/status', loyaltyRoute.updateLoyaltyStatus);
 app.post('/webhook', webhookRoute.handleSquareWebhook);

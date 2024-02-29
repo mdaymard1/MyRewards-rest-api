@@ -8,6 +8,7 @@ import { getBusinessIdFromAuthToken } from '../src/services/BusinessService';
 import { decryptToken } from '../src/services/EncryptionService';
 import {
   createAppLoyaltyFromLoyaltyProgram,
+  enrollCustomerInLoyalty,
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
   LoyaltyStatusType,
@@ -15,6 +16,68 @@ import {
   updateLoyaltyStatuses,
 } from '../src/services/LoyaltyService';
 import { LoyaltyProgram, LoyaltyPromotion } from 'square';
+
+const enrollCustomer = async (request: Request, response: Response) => {
+  console.log('inside enrollCustomer');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const business = await AppDataSource.manager.findOne(Business, {
+    where: {
+      businessId: businessId,
+    },
+  });
+
+  if (!business) {
+    response.status(404);
+    response.end();
+    return;
+  }
+
+  const { firstName, lastName, phone, email } = request.body;
+
+  if (!firstName || !lastName || !phone) {
+    console.log('missing fields');
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  // let digitRegExp = /^\d+$/;
+
+  console.log(
+    'received input of ' +
+      firstName +
+      ' ' +
+      lastName +
+      ' +' +
+      phone +
+      ', ' +
+      email,
+  );
+
+  var token: string | undefined = '';
+  token = decryptToken(business.merchantAccessToken);
+
+  if (token) {
+    await enrollCustomerInLoyalty(
+      businessId,
+      token,
+      firstName,
+      lastName,
+      phone,
+      email,
+    );
+    response.status(201);
+    response.end();
+  }
+};
 
 const getLoyalty = async (request: Request, response: Response) => {
   console.log('inside getLoyalty');
@@ -255,6 +318,7 @@ const getCurrentLoyaltyById = async (loyaltyId: string, callback: any) => {
 };
 
 module.exports = {
+  enrollCustomer,
   getLoyalty,
   updateLoyalty,
   updateLoyaltyStatus,

@@ -7,13 +7,254 @@ import {
   LoyaltyPromotion,
   Merchant,
   RetrieveMerchantResponse,
+  CreateCustomerRequest,
+  CreateCustomerResponse,
+  CreateLoyaltyAccountRequest,
+  CreateLoyaltyAccountResponse,
   LoyaltyProgramAccrualRule,
+  RetrieveCustomerResponse,
+  SearchCustomersRequest,
+  SearchCustomersResponse,
+  UpdateCustomerRequest,
+  UpdateCustomerResponse,
 } from 'square';
+// import { UUID } from 'crypto';
 import { decryptToken } from './EncryptionService';
 
 import dotenv from 'dotenv';
 import { SquareAccrualRules } from './entity/SquareWebhook';
 import { LoyaltyAccrual } from '../entity/LoyaltyAccrual';
+
+export const createLoyaltyAccount = async (
+  accessToken: string,
+  loyaltyProgramId: string,
+  phoneNumber: string,
+) => {
+  console.log(
+    'inside createLoyaltyAccount with loyaltyProgramId: ' +
+      loyaltyProgramId +
+      ', phoneNumber: ' +
+      phoneNumber,
+  );
+
+  const env =
+    process.env.NODE_ENV == 'development'
+      ? Environment.Sandbox
+      : Environment.Production;
+
+  const client = new Client({
+    squareVersion: '2024-01-18',
+    accessToken: accessToken,
+    environment: env,
+  });
+
+  const crypto = require('crypto');
+
+  let idempotencyKey = crypto.randomUUID();
+  console.log('idempotencyKey: ' + idempotencyKey);
+  const createLoyaltyBody: CreateLoyaltyAccountRequest = {
+    loyaltyAccount: {
+      programId: loyaltyProgramId,
+      mapping: {
+        phoneNumber: phoneNumber,
+      },
+    },
+    idempotencyKey: idempotencyKey,
+  };
+  const { loyaltyApi } = client;
+
+  try {
+    let createLoyaltyAccountResponse = await loyaltyApi.createLoyaltyAccount(
+      createLoyaltyBody,
+    );
+    if (createLoyaltyAccountResponse) {
+      console.log(
+        'just created loyalty account in square. Loyalty account id: ' +
+          createLoyaltyAccountResponse.result.loyaltyAccount?.id +
+          ', customerId: ' +
+          createLoyaltyAccountResponse.result.loyaltyAccount?.customerId,
+      );
+    }
+    return createLoyaltyAccountResponse.result.loyaltyAccount?.customerId;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      // @ts-expect-error: unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const errors = error.result;
+      const { statusCode, headers } = error;
+      console.log('Got an error while creating loyalty account: ' + statusCode);
+      if (error.errors && error.errors.length > 0) {
+        console.log('error: ' + error.errors[0].detail);
+      }
+    }
+    return null;
+  }
+};
+
+export const lookupCustomerIdByPhoneNumber = async (
+  accessToken: string,
+  phoneNumber: string,
+) => {
+  console.log('inside lookupCustomerByPhoneNumber');
+
+  const env =
+    process.env.NODE_ENV == 'development'
+      ? Environment.Sandbox
+      : Environment.Production;
+
+  const client = new Client({
+    squareVersion: '2024-01-18',
+    accessToken: accessToken,
+    environment: env,
+  });
+
+  const body: SearchCustomersRequest = {
+    query: {
+      filter: {
+        phoneNumber: {
+          exact: phoneNumber,
+        },
+      },
+    },
+  };
+  const { customersApi } = client;
+
+  try {
+    let searchCustomerResponse = await customersApi.searchCustomers(body);
+    if (
+      searchCustomerResponse.result.customers &&
+      searchCustomerResponse.result.customers.length > 0
+    ) {
+      console.log(
+        'found customer with id of ' +
+          searchCustomerResponse.result.customers[0].id,
+      );
+      return searchCustomerResponse.result.customers[0].id;
+    }
+    console.log('customer not found');
+    return null;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      // @ts-expect-error: unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const errors = error.result;
+      const { statusCode, headers } = error;
+      console.log('Got an error while creating square customer: ' + statusCode);
+      if (error.errors && error.errors.length > 0) {
+        console.log('error: ' + error.errors[0].detail);
+      }
+    }
+    return null;
+  }
+};
+
+export const upsertMerchantCustomerAccount = async (
+  accessToken: string,
+  merchantCustomerId: string,
+  appCustomerId: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  email?: string,
+) => {
+  console.log('inside createMerchantCustomerAccount');
+
+  const env =
+    process.env.NODE_ENV == 'development'
+      ? Environment.Sandbox
+      : Environment.Production;
+
+  const client = new Client({
+    squareVersion: '2024-01-18',
+    accessToken: accessToken,
+    environment: env,
+  });
+  const { customersApi } = client;
+
+  try {
+    let retrieveCustomerResponse = await customersApi.retrieveCustomer(
+      merchantCustomerId,
+    );
+    let existingCustomer = retrieveCustomerResponse.result.customer;
+    // Only update fields that are missing
+    if (existingCustomer) {
+      console.log('found customer account. updating...');
+      const body: UpdateCustomerRequest = {
+        givenName: existingCustomer.givenName ?? firstName,
+        familyName: existingCustomer.familyName ?? lastName,
+        emailAddress: existingCustomer.emailAddress ?? email,
+        referenceId: appCustomerId,
+      };
+      let updateCustomerResponse = await customersApi.updateCustomer(
+        merchantCustomerId,
+        body,
+      );
+      return existingCustomer.id;
+    } else {
+      console.log('customer not returned in response');
+    }
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.errors && error.errors.length > 0) {
+        console.log('error: ' + error.errors[0].detail);
+      }
+    } else {
+      console.log('some unexpected error: ' + error);
+    }
+  }
+};
+
+export const createMerchantCustomerAccount = async (
+  accessToken: string,
+  // merchantCustomerId: string,
+  // appCustomerId: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  email?: string,
+) => {
+  console.log('inside createMerchantCustomerAccount');
+
+  const env =
+    process.env.NODE_ENV == 'development'
+      ? Environment.Sandbox
+      : Environment.Production;
+
+  const client = new Client({
+    squareVersion: '2024-01-18',
+    accessToken: accessToken,
+    environment: env,
+  });
+
+  const createCustomerBody: CreateCustomerRequest = {
+    givenName: firstName,
+    familyName: lastName,
+    emailAddress: email,
+    // referenceId: appCustomerId,
+    phoneNumber: phone,
+  };
+
+  const { customersApi } = client;
+
+  try {
+    let createCustomerResponse = await customersApi.createCustomer(
+      createCustomerBody,
+    );
+    return createCustomerResponse.result.customer?.id;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      // @ts-expect-error: unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const errors = error.result;
+      const { statusCode, headers } = error;
+      console.log('Got an error while creating square customer: ' + statusCode);
+      if (error.errors && error.errors.length > 0) {
+        console.log('error: ' + error.errors[0].detail);
+      }
+    }
+    return null;
+  }
+};
 
 export const getMerchantInfo = async (
   merchantId: string,
@@ -69,6 +310,7 @@ export const getMainLoyaltyProgramFromMerchant = async (
       : Environment.Production;
   console.log('looking up ProgramLoyalty in env: ' + env);
   const client = new Client({
+    squareVersion: '2024-01-18',
     accessToken: token,
     environment: env,
   });
@@ -263,7 +505,11 @@ export const getCatalogItemIdMapFromAccurals = async (
 };
 
 module.exports = {
+  createLoyaltyAccount,
+  createMerchantCustomerAccount,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
   getMainLoyaltyProgramFromMerchant,
+  lookupCustomerIdByPhoneNumber,
+  upsertMerchantCustomerAccount,
 };

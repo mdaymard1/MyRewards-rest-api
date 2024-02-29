@@ -31,6 +31,14 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Loyalty.prototype, "showPromotionsInApp", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
+    __metadata("design:type", Boolean)
+], Loyalty.prototype, "showLoyaltyEnrollmentInApp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
+    __metadata("design:type", Boolean)
+], Loyalty.prototype, "enrollInSquareLoyaltyDirectly", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
     __metadata("design:type", Boolean)
 ], Loyalty.prototype, "automaticallyUpdateChangesFromMerchant", void 0);
@@ -51,28 +59,34 @@ __decorate([
     __metadata("design:type", Array)
 ], Loyalty.prototype, "locations", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Loyalty.prototype, "merchantLoyaltyId", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
 ], Loyalty.prototype, "businessId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true, default: () => "now()" }),
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true, default: () => 'now()' }),
     __metadata("design:type", Date)
 ], Loyalty.prototype, "createDate", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true, default: () => "now()" }),
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true, default: () => 'now()' }),
     __metadata("design:type", Date)
 ], Loyalty.prototype, "lastUpdateDate", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => LoyaltyAccrual_1.LoyaltyAccrual, loyaltyAccrual => loyaltyAccrual.loyalty, { eager: true }),
+    (0, typeorm_1.OneToMany)(() => LoyaltyAccrual_1.LoyaltyAccrual, (loyaltyAccrual) => loyaltyAccrual.loyalty, {
+        eager: true,
+    }),
     __metadata("design:type", Array)
 ], Loyalty.prototype, "loyaltyAccruals", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => Promotion_1.Promotion, promotion => promotion.loyalty, { eager: true }),
+    (0, typeorm_1.OneToMany)(() => Promotion_1.Promotion, (promotion) => promotion.loyalty, { eager: true }),
     __metadata("design:type", Array)
 ], Loyalty.prototype, "promotions", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => LoyaltyRewardTier_1.LoyaltyRewardTier, loyaltyRewardTier => loyaltyRewardTier.loyalty, { eager: true }),
+    (0, typeorm_1.OneToMany)(() => LoyaltyRewardTier_1.LoyaltyRewardTier, (loyaltyRewardTier) => loyaltyRewardTier.loyalty, { eager: true }),
     __metadata("design:type", Array)
 ], Loyalty.prototype, "loyaltyRewardTiers", void 0);
 __decorate([

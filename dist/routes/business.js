@@ -64,6 +64,8 @@ const getBusiness = (request, response) => __awaiter(void 0, void 0, void 0, fun
         'business.appStoreUrl',
         'business.googlePlayStoreUrl',
         'business.reviewsUrl',
+        'business.firstImageUrl',
+        'business.secondImageUrl',
     ])
         .where('business.businessId = :businessId', { businessId: businessId })
         .getOne();
@@ -163,13 +165,14 @@ const updateBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
         response.sendStatus(404);
         return;
     }
-    const { id, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, } = request.body;
+    const { id, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, firstImageUrl, secondImageUrl, } = request.body;
     if (!businessName || !lastUpdateDate) {
         response.sendStatus(400);
         return;
     }
     console.log('businessId: ' + businessId);
-    const wasUpdated = yield (0, BusinessService_1.updateBusinessDetails)(businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl);
+    console.log('firstImageUrl:' + firstImageUrl + ', secondImageUrl:' + secondImageUrl);
+    const wasUpdated = yield (0, BusinessService_1.updateBusinessDetails)(businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, firstImageUrl, secondImageUrl);
     response.status(wasUpdated ? 203 : 500);
     response.end();
 });

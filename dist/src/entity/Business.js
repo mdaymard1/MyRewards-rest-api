@@ -13,6 +13,7 @@ exports.Business = void 0;
 const typeorm_1 = require("typeorm");
 const Loyalty_1 = require("./Loyalty");
 const Special_1 = require("./Special");
+const Customer_1 = require("./Customer");
 let Business = class Business extends typeorm_1.BaseEntity {
 };
 exports.Business = Business;
@@ -109,6 +110,14 @@ __decorate([
     __metadata("design:type", String)
 ], Business.prototype, "reviewsUrl", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], Business.prototype, "firstImageUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", Object)
+], Business.prototype, "secondImageUrl", void 0);
+__decorate([
     (0, typeorm_1.OneToOne)(() => Loyalty_1.Loyalty),
     (0, typeorm_1.JoinColumn)(),
     __metadata("design:type", Loyalty_1.Loyalty)
@@ -117,6 +126,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => Special_1.Special, (special) => special.business, { eager: true }),
     __metadata("design:type", Array)
 ], Business.prototype, "specials", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Customer_1.Customer, (customer) => customer.business, { eager: true }),
+    __metadata("design:type", Array)
+], Business.prototype, "customers", void 0);
 exports.Business = Business = __decorate([
     (0, typeorm_1.Entity)()
 ], Business);

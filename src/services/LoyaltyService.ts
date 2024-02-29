@@ -18,13 +18,216 @@ import {
   SquareTerminology,
 } from './entity/SquareWebhook';
 import { Business } from '../entity/Business';
+import { Customer } from '../entity/Customer';
 import { decryptToken } from './EncryptionService';
-import { getCatalogItemIdMapFromAccurals } from './MerchantService';
+import {
+  getCatalogItemIdMapFromAccurals,
+  createLoyaltyAccount,
+  createMerchantCustomerAccount,
+  lookupCustomerIdByPhoneNumber,
+  upsertMerchantCustomerAccount,
+} from './MerchantService';
+import { QueryFailedError } from 'typeorm';
 
 export enum LoyaltyStatusType {
   Active = 'Active',
   Inactive = 'Inactive',
 }
+
+export const enrollCustomerInLoyalty = async (
+  businessId: string,
+  token: string,
+  firstName: string,
+  lastName: string,
+  phoneNumber: string,
+  email?: string,
+) => {
+  console.log('inside enrollCustomerInLoyalty');
+
+  const existingLoyalty = await Loyalty.createQueryBuilder('loyalty')
+    .where('loyalty.businessId = :businessId', { businessId: businessId })
+    .getOne();
+
+  if (!existingLoyalty) {
+    console.log('loyalty not found');
+    return false;
+  }
+
+  // make sure it's ok to enroll in square loyalty
+  if (!existingLoyalty.enrollInSquareLoyaltyDirectly) {
+    console.log('enrollInSquareLoyaltyDirectly is false so skipping');
+    return false;
+  }
+
+  // First, upsert loyalty account in merchant system
+  let loyaltyCustomerAccountId = await createLoyaltyAccount(
+    token,
+    existingLoyalty.merchantLoyaltyId,
+    phoneNumber,
+  );
+
+  if (!loyaltyCustomerAccountId) {
+    // A null value could mean that the loyalty account already existed for this phone number
+    const customerId = await updateExistingCustomer(
+      token,
+      businessId,
+      phoneNumber,
+      firstName,
+      lastName,
+      email,
+    );
+    return customerId;
+  }
+
+  let appCustomerId = await insertCustomer(
+    businessId,
+    loyaltyCustomerAccountId,
+  );
+
+  if (appCustomerId) {
+    let merchCustomerId = await upsertMerchantCustomerAccount(
+      token,
+      loyaltyCustomerAccountId,
+      appCustomerId,
+      firstName,
+      lastName,
+      phoneNumber,
+      email,
+    );
+    return merchCustomerId;
+  }
+  return null;
+  /*
+  // First, check to see if a merchant customer account already exists for this phone number
+  let existingCustomerId = await lookupCustomerIdByPhoneNumber(
+    token,
+    phoneNumber,
+  );
+
+  if (existingCustomerId) {
+    // Next we need to create a Customer row to track this customer's points
+    let appCustomer = await upsertCustomer(businessId, existingCustomerId);
+    return existingCustomerId;
+  } else {
+    // First, create a new Customer in the merchant system if it doesn't already exist
+    let merchantCustomerId = await createMerchantCustomerAccount(
+      token,
+      firstName,
+      lastName,
+      phoneNumber,
+      email,
+    );
+    if (merchantCustomerId) {
+      // Now we create a loyalty account with the merchant using phone number
+      let loyaltyCustomerAccountId = await createLoyaltyAccount(
+        token,
+        existingLoyalty.merchantLoyaltyId,
+        phoneNumber,
+      );
+      console.log(
+        'done creating customer account: ' + loyaltyCustomerAccountId,
+      );
+      // Next we need to create a Customer row to track this customer's points
+      let appCustomer = await upsertCustomer(businessId, merchantCustomerId);
+      return loyaltyCustomerAccountId;
+    }
+  }
+  */
+  return null;
+};
+
+/*  This function handles the case when a loyalty account already exists
+    for a given phone number. We'll still try to insert our Customer and 
+    then update the merchant's customer account with our details.
+*/
+const updateExistingCustomer = async (
+  token: string,
+  businessId: string,
+  phoneNumber: string,
+  firstName: string,
+  lastName: string,
+  email?: string,
+) => {
+  console.log('inside updateExistingCustomer');
+
+  let existingCustomerId = await lookupCustomerIdByPhoneNumber(
+    token,
+    phoneNumber,
+  );
+  if (existingCustomerId) {
+    // Add the customer to our db
+    let appCustomerId = await insertCustomer(businessId, existingCustomerId);
+    // Finally, upsert the merchant's customer account
+    if (appCustomerId) {
+      upsertMerchantCustomerAccount(
+        token,
+        existingCustomerId,
+        appCustomerId,
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+      );
+      return existingCustomerId;
+    }
+  }
+  return null;
+};
+
+const insertCustomer = async (businessId: string, customerId: string) => {
+  console.log('creating customer');
+  try {
+    const customer = await AppDataSource.manager.create(Customer, {
+      businessId: businessId,
+      merchantCustomerId: customerId,
+      createdDate: new Date(),
+    });
+    await AppDataSource.manager.save(customer);
+    console.log('just created customer with id:' + customer.id);
+    return customerId;
+  } catch (error) {
+    if (
+      error instanceof QueryFailedError &&
+      error.message.includes('customer_id_UNIQUE')
+    ) {
+      console.log('Ignoring uplicate customer error');
+      return customerId;
+    } else {
+      console.log('got error when inserting customer:' + error);
+      return null;
+    }
+  }
+};
+
+const upsertCustomer = async (businessId: string, customerId: string) => {
+  console.log(
+    'inside upsertCustomer with businessId: ' +
+      businessId +
+      ', customerId: ' +
+      customerId,
+  );
+
+  let customer = await Customer.createQueryBuilder('customer')
+    .where('customer.businessId = :businessId', { businessId: businessId })
+    .andWhere('customer.merchantCustomerId = :customerId', {
+      customerId: customerId,
+    })
+    .getOne();
+
+  if (!customer) {
+    console.log('creating customer');
+    customer = await AppDataSource.manager.create(Customer, {
+      businessId: businessId,
+      merchantCustomerId: customerId,
+      createdDate: new Date(),
+    });
+    await AppDataSource.manager.save(customer);
+    console.log('just created customer with id:' + customer.id);
+  } else {
+    console.log('customer with id:' + customer.id + ' already exists');
+  }
+  return customer.id;
+};
 
 export const updateLoyaltyFromWebhook = async (
   merchantId: string,
@@ -252,6 +455,7 @@ export const createAppLoyaltyFromLoyaltyProgram = async (
     terminologyOne: loyaltyProgram.terminology?.one,
     terminologyMany: loyaltyProgram.terminology?.other,
     businessId: businessId,
+    merchantLoyaltyId: loyaltyProgram.id,
     createDate: new Date(),
   });
   await AppDataSource.manager.save(loyalty);
@@ -1342,6 +1546,7 @@ const accrualIsValid = (accrualType: string, itemName: string | undefined) => {
 module.exports = {
   createAppLoyaltyFromLoyaltyProgram,
   deleteAccrual,
+  enrollCustomerInLoyalty,
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
   updateLoyaltyFromWebhook,

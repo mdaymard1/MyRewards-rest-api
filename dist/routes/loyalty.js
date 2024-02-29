@@ -16,6 +16,48 @@ const MerchantService_1 = require("../src/services/MerchantService");
 const BusinessService_1 = require("../src/services/BusinessService");
 const EncryptionService_1 = require("../src/services/EncryptionService");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
+const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('inside enrollCustomer');
+    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    if (!businessId) {
+        response.status(401);
+        response.end();
+        return;
+    }
+    const business = yield appDataSource_1.AppDataSource.manager.findOne(Business_1.Business, {
+        where: {
+            businessId: businessId,
+        },
+    });
+    if (!business) {
+        response.status(404);
+        response.end();
+        return;
+    }
+    const { firstName, lastName, phone, email } = request.body;
+    if (!firstName || !lastName || !phone) {
+        console.log('missing fields');
+        response.status(401);
+        response.end();
+        return;
+    }
+    // let digitRegExp = /^\d+$/;
+    console.log('received input of ' +
+        firstName +
+        ' ' +
+        lastName +
+        ' +' +
+        phone +
+        ', ' +
+        email);
+    var token = '';
+    token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
+    if (token) {
+        yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phone, email);
+        response.status(201);
+        response.end();
+    }
+});
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside getLoyalty');
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
@@ -177,6 +219,7 @@ const getCurrentLoyaltyById = (loyaltyId, callback) => __awaiter(void 0, void 0,
     callback(loyalty);
 });
 module.exports = {
+    enrollCustomer,
     getLoyalty,
     updateLoyalty,
     updateLoyaltyStatus,

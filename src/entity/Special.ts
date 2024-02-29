@@ -46,7 +46,7 @@ export class Special extends BaseEntity {
   startDate: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  endDate?: Date;
+  endDate!: Date | null;
 
   @Column({ type: 'uuid', nullable: false })
   @Index()

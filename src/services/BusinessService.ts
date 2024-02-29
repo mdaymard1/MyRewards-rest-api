@@ -226,6 +226,8 @@ export const updateBusinessDetails = async (
   appStoreUrl?: string,
   googlePlayStoreUrl?: string,
   reviewsUrl?: string,
+  firstImageUrl?: string,
+  secondImageUrl?: string,
 ): Promise<boolean> => {
   console.log('inside updateBusinessDetails');
   try {
@@ -238,6 +240,10 @@ export const updateBusinessDetails = async (
     }
 
     const lastUpdate = new Date(lastUpdateDate);
+
+    console.log(
+      'firstImageUrl:' + firstImageUrl + ', secondImageUrl:' + secondImageUrl,
+    );
 
     // Now update its values
     AppDataSource.manager.update(
@@ -260,6 +266,8 @@ export const updateBusinessDetails = async (
         appStoreUrl: appStoreUrl,
         googlePlayStoreUrl: googlePlayStoreUrl,
         reviewsUrl: reviewsUrl,
+        firstImageUrl: firstImageUrl ?? null,
+        secondImageUrl: secondImageUrl ?? null,
       },
     );
     return true;

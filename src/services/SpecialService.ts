@@ -51,7 +51,7 @@ export const createSpecial = async (
   const startDate = special.startDate
     ? new Date(special.startDate)
     : new Date();
-  const endDate = special.endDate ? new Date(special.endDate) : undefined;
+  const endDate = special.endDate ? new Date(special.endDate) : null;
   const newSpecial = await AppDataSource.manager.create(Special, {
     title: special.title,
     description: special.description,
@@ -135,7 +135,7 @@ export const updateExistingSpecial = async (
   const startDate = special.startDate
     ? new Date(special.startDate)
     : new Date();
-  const endDate = special.endDate ? new Date(special.endDate) : undefined;
+  const endDate = special.endDate ? new Date(special.endDate) : null;
 
   existingSpecial.startDate = startDate;
   existingSpecial.endDate = endDate;

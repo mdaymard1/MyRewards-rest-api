@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Loyalty } from './Loyalty';
 import { Special } from './Special';
+import { Customer } from './Customer';}
 
 @Entity()
 export class Business extends BaseEntity {
@@ -83,10 +84,19 @@ export class Business extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   reviewsUrl: string;
 
+  @Column({ type: 'text', nullable: true })
+  firstImageUrl!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  secondImageUrl!: string | null;
+
   @OneToOne(() => Loyalty)
   @JoinColumn()
   loyalty: Loyalty;
 
   @OneToMany(() => Special, (special) => special.business, { eager: true })
   specials: Special[];
+
+  @OneToMany(() => Customer, (customer) => customer.business, { eager: true })
+  customers: Customer[];
 }

@@ -144,7 +144,7 @@ const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken,
     callback(business);
 });
 exports.updateBusinessEntity = updateBusinessEntity;
-const updateBusinessDetails = (businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl) => __awaiter(void 0, void 0, void 0, function* () {
+const updateBusinessDetails = (businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, firstImageUrl, secondImageUrl) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside updateBusinessDetails');
     try {
         // First make sure the business does exist
@@ -155,6 +155,7 @@ const updateBusinessDetails = (businessId, lastUpdateDate, businessName, address
             return false;
         }
         const lastUpdate = new Date(lastUpdateDate);
+        console.log('firstImageUrl:' + firstImageUrl + ', secondImageUrl:' + secondImageUrl);
         // Now update its values
         appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
             businessId: businessId,
@@ -173,6 +174,8 @@ const updateBusinessDetails = (businessId, lastUpdateDate, businessName, address
             appStoreUrl: appStoreUrl,
             googlePlayStoreUrl: googlePlayStoreUrl,
             reviewsUrl: reviewsUrl,
+            firstImageUrl: firstImageUrl !== null && firstImageUrl !== void 0 ? firstImageUrl : null,
+            secondImageUrl: secondImageUrl !== null && secondImageUrl !== void 0 ? secondImageUrl : null,
         });
         return true;
     }

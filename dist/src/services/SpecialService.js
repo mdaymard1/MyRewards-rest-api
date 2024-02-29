@@ -37,7 +37,7 @@ const createSpecial = (businessId, special, callback) => __awaiter(void 0, void 
     const startDate = special.startDate
         ? new Date(special.startDate)
         : new Date();
-    const endDate = special.endDate ? new Date(special.endDate) : undefined;
+    const endDate = special.endDate ? new Date(special.endDate) : null;
     const newSpecial = yield appDataSource_1.AppDataSource.manager.create(Special_1.Special, {
         title: special.title,
         description: special.description,
@@ -97,7 +97,7 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
     const startDate = special.startDate
         ? new Date(special.startDate)
         : new Date();
-    const endDate = special.endDate ? new Date(special.endDate) : undefined;
+    const endDate = special.endDate ? new Date(special.endDate) : null;
     existingSpecial.startDate = startDate;
     existingSpecial.endDate = endDate;
     yield appDataSource_1.AppDataSource.manager.save(existingSpecial);

@@ -68,6 +68,8 @@ const getBusiness = async (request: Request, response: Response) => {
       'business.appStoreUrl',
       'business.googlePlayStoreUrl',
       'business.reviewsUrl',
+      'business.firstImageUrl',
+      'business.secondImageUrl',
     ])
     .where('business.businessId = :businessId', { businessId: businessId })
     .getOne();
@@ -215,6 +217,8 @@ const updateBusiness = async (request: Request, response: Response) => {
     appStoreUrl,
     googlePlayStoreUrl,
     reviewsUrl,
+    firstImageUrl,
+    secondImageUrl,
   } = request.body;
 
   if (!businessName || !lastUpdateDate) {
@@ -223,6 +227,10 @@ const updateBusiness = async (request: Request, response: Response) => {
   }
 
   console.log('businessId: ' + businessId);
+
+  console.log(
+    'firstImageUrl:' + firstImageUrl + ', secondImageUrl:' + secondImageUrl,
+  );
 
   const wasUpdated: boolean = await updateBusinessDetails(
     businessId,
@@ -240,6 +248,8 @@ const updateBusiness = async (request: Request, response: Response) => {
     appStoreUrl,
     googlePlayStoreUrl,
     reviewsUrl,
+    firstImageUrl,
+    secondImageUrl,
   );
   response.status(wasUpdated ? 203 : 500);
   response.end();
