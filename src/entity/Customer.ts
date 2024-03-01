@@ -21,8 +21,17 @@ export class Customer extends BaseEntity {
   @Column({ type: 'text', nullable: false })
   merchantCustomerId: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  createdDate: Date;
+  @Column({ type: 'integer', nullable: false })
+  balance: number;
+
+  @Column({ type: 'integer', nullable: false })
+  lifetimePoints: number;
+
+  @Column({ type: 'timestamp', nullable: false })
+  enrolledAt: Date;
+
+  @Column({ type: 'boolean', nullable: false })
+  enrolledFromApp: boolean;
 
   @Column({ type: 'uuid', nullable: false })
   @Index()

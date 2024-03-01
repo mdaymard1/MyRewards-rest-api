@@ -12,6 +12,7 @@ import { Promotion } from '../entity/Promotion';
 import { AppDataSource } from '../../appDataSource';
 import {
   SquareAccrualRules,
+  SquareLoyaltyAccount,
   SquareLoyaltyProgram,
   SquareLoyaltyPromotion,
   SquareRewardTier,
@@ -27,6 +28,7 @@ import {
   upsertMerchantCustomerAccount,
 } from './MerchantService';
 import { QueryFailedError } from 'typeorm';
+import { isNativeError } from 'util/types';
 
 export enum LoyaltyStatusType {
   Active = 'Active',
@@ -81,6 +83,7 @@ export const enrollCustomerInLoyalty = async (
   let appCustomerId = await insertCustomer(
     businessId,
     loyaltyCustomerAccountId,
+    true,
   );
 
   if (appCustomerId) {
@@ -119,7 +122,11 @@ const updateExistingCustomer = async (
   );
   if (existingCustomerId) {
     // Add the customer to our db
-    let appCustomerId = await insertCustomer(businessId, existingCustomerId);
+    let appCustomerId = await insertCustomer(
+      businessId,
+      existingCustomerId,
+      true,
+    );
     // Finally, upsert the merchant's customer account
     if (appCustomerId) {
       upsertMerchantCustomerAccount(
@@ -137,13 +144,20 @@ const updateExistingCustomer = async (
   return null;
 };
 
-const insertCustomer = async (businessId: string, customerId: string) => {
+const insertCustomer = async (
+  businessId: string,
+  customerId: string,
+  enrolledFromApp: boolean,
+) => {
   console.log('creating customer');
   try {
     const customer = await AppDataSource.manager.create(Customer, {
       businessId: businessId,
       merchantCustomerId: customerId,
-      createdDate: new Date(),
+      balance: 0,
+      lifetimePoints: 0,
+      enrolledFromApp: enrolledFromApp,
+      enrolledAt: new Date(),
     });
     await AppDataSource.manager.save(customer);
     console.log('just created customer with id:' + customer.id);
@@ -162,34 +176,62 @@ const insertCustomer = async (businessId: string, customerId: string) => {
   }
 };
 
-const upsertCustomer = async (businessId: string, customerId: string) => {
+const upsertCustomerFromWebhook = async (
+  businessId: string,
+  customerId: string,
+  balance: number,
+  lifetimePoints: number,
+  enrolledAt: Date,
+  enrolledFromApp: boolean,
+) => {
   console.log(
-    'inside upsertCustomer with businessId: ' +
+    'inside upsertCustomerFromWebhook with businessId: ' +
       businessId +
       ', customerId: ' +
-      customerId,
+      customerId +
+      ', enrolledAt: ' +
+      enrolledAt,
   );
 
-  let customer = await Customer.createQueryBuilder('customer')
-    .where('customer.businessId = :businessId', { businessId: businessId })
-    .andWhere('customer.merchantCustomerId = :customerId', {
-      customerId: customerId,
-    })
-    .getOne();
+  try {
+    let customer = await Customer.createQueryBuilder('customer')
+      .where('customer.businessId = :businessId', { businessId: businessId })
+      .andWhere('customer.merchantCustomerId = :customerId', {
+        customerId: customerId,
+      })
+      .getOne();
 
-  if (!customer) {
-    console.log('creating customer');
-    customer = await AppDataSource.manager.create(Customer, {
-      businessId: businessId,
-      merchantCustomerId: customerId,
-      createdDate: new Date(),
-    });
-    await AppDataSource.manager.save(customer);
-    console.log('just created customer with id:' + customer.id);
-  } else {
-    console.log('customer with id:' + customer.id + ' already exists');
+    if (!customer) {
+      console.log('creating customer');
+      customer = await AppDataSource.manager.create(Customer, {
+        businessId: businessId,
+        merchantCustomerId: customerId,
+        balance: balance,
+        lifetimePoints: lifetimePoints,
+        enrolledAt: enrolledAt,
+        enrolledFromApp: enrolledFromApp,
+      });
+      await AppDataSource.manager.save(customer);
+      console.log('just created customer with id:' + customer.id);
+    } else {
+      console.log('customer with id:' + customer.id + ' already exists');
+      await AppDataSource.manager.update(
+        Customer,
+        {
+          id: customer.id,
+        },
+        {
+          balance: balance,
+          lifetimePoints: lifetimePoints,
+        },
+      );
+      console.log('just updated customer with id:' + customer.id);
+      return customerId;
+    }
+  } catch (error) {
+    console.log('Error while upserting customer: ' + error);
+    return null;
   }
-  return customer.id;
 };
 
 export const updateLoyaltyFromWebhook = async (
@@ -332,6 +374,71 @@ const cleanUpLoyaltyAndSaveChanges = async (
   callback(true);
 };
 
+export const updateLoyaltyAccountFromWebhook = async (
+  merchantId: string,
+  webhookLoyaltyAccount: SquareLoyaltyAccount,
+) => {
+  console.log('inside updateLoyaltyAccountFromWebhook');
+
+  const business = await Business.createQueryBuilder('business')
+    .where('business.merchantId = :merchantId', { merchantId: merchantId })
+    .getOne();
+
+  if (!business) {
+    console.log("Can't find Business for merchantId: " + merchantId);
+    return true;
+  }
+
+  let loyalty = await AppDataSource.manager.findOne(Loyalty, {
+    where: {
+      businessId: business?.businessId,
+    },
+  });
+  if (!loyalty) {
+    console.log('No loyalty found for businessId');
+    return true;
+  }
+  if (!loyalty.processLoyaltyAccountWebhookEvents) {
+    console.log(
+      'skipping webhook event since processLoyaltyAccountWebhookEvents is false',
+    );
+    return true;
+  }
+
+  if (webhookLoyaltyAccount.wasDeleted) {
+    await deleteCustomer(business.businessId, webhookLoyaltyAccount.customerId);
+    return true;
+  }
+
+  const enrolledAtValue = Date.parse(webhookLoyaltyAccount.enrolledAt);
+  let enrolledAt: Date;
+  if (!enrolledAtValue || isNaN(enrolledAtValue)) {
+    enrolledAt = new Date();
+  } else {
+    enrolledAt = new Date(enrolledAtValue);
+  }
+  const customerId = await upsertCustomerFromWebhook(
+    business.businessId,
+    webhookLoyaltyAccount.customerId,
+    webhookLoyaltyAccount.balance,
+    webhookLoyaltyAccount.lifetimePoints,
+    enrolledAt,
+    false,
+  );
+
+  return true;
+};
+
+const deleteCustomer = async (businessId: string, customerId: string) => {
+  console.log('inside deleteCustomer');
+
+  await AppDataSource.manager.delete(Customer, {
+    businessId: businessId,
+    merchantCustomerId: customerId,
+  });
+  console.log('customer deleted');
+};
+
 export const updatePromotionsFromWebhook = async (
   merchantId: string,
   webhookLoyaltyPrmotion: SquareLoyaltyPromotion,
@@ -410,62 +517,70 @@ export const createAppLoyaltyFromLoyaltyProgram = async (
     return;
   }
 
-  const loyalty = AppDataSource.manager.create(Loyalty, {
-    showLoyaltyInApp: true,
-    showPromotionsInApp: true,
-    automaticallyUpdateChangesFromMerchant: true,
-    loyaltyStatus: 'Active',
-    terminologyOne: loyaltyProgram.terminology?.one,
-    terminologyMany: loyaltyProgram.terminology?.other,
-    businessId: businessId,
-    merchantLoyaltyId: loyaltyProgram.id,
-    createDate: new Date(),
-  });
-  await AppDataSource.manager.save(loyalty);
-
-  console.log('created new loyalty with id: ' + loyalty.id);
-
-  const loyaltyId = loyalty.id;
-
-  let loyaltyUsesCatalogItems = false;
-
-  if (loyaltyProgram.accrualRules) {
-    loyaltyProgram.accrualRules.forEach(function (loyaltyAccrualRule) {
-      createAccrual(
-        loyaltyAccrualRule,
-        catalogItemNameMap,
-        loyaltyProgram.terminology!,
-        loyaltyId,
-      );
-      if (
-        loyaltyAccrualRule.accrualType == 'CATEGORY' ||
-        loyaltyAccrualRule.accrualType == 'ITEM_VARIATION'
-      )
-        loyaltyUsesCatalogItems = true;
+  try {
+    const loyalty = AppDataSource.manager.create(Loyalty, {
+      showLoyaltyInApp: true,
+      showPromotionsInApp: true,
+      automaticallyUpdateChangesFromMerchant: true,
+      enrollInSquareLoyaltyDirectly: true,
+      showLoyaltyEnrollmentInApp: true,
+      processLoyaltyAccountWebhookEvents: true,
+      loyaltyStatus: 'Active',
+      terminologyOne: loyaltyProgram.terminology?.one,
+      terminologyMany: loyaltyProgram.terminology?.other,
+      businessId: businessId,
+      merchantLoyaltyId: loyaltyProgram.id,
+      createDate: new Date(),
     });
-  }
+    await AppDataSource.manager.save(loyalty);
 
-  if (loyaltyProgram.rewardTiers) {
-    loyaltyProgram.rewardTiers.forEach(function (loyaltyRewardTier) {
-      if (loyaltyRewardTier.id && loyaltyProgram.terminology) {
-        createRewardTier(
-          loyaltyRewardTier,
+    console.log('created new loyalty with id: ' + loyalty.id);
+
+    const loyaltyId = loyalty.id;
+
+    let loyaltyUsesCatalogItems = false;
+
+    if (loyaltyProgram.accrualRules) {
+      loyaltyProgram.accrualRules.forEach(function (loyaltyAccrualRule) {
+        createAccrual(
+          loyaltyAccrualRule,
+          catalogItemNameMap,
           loyaltyProgram.terminology!,
           loyaltyId,
         );
-      }
-    });
-  }
+        if (
+          loyaltyAccrualRule.accrualType == 'CATEGORY' ||
+          loyaltyAccrualRule.accrualType == 'ITEM_VARIATION'
+        )
+          loyaltyUsesCatalogItems = true;
+      });
+    }
 
-  // var promotions: Promotion[] = [];
-  if (loyaltyPromotions) {
-    loyaltyPromotions.forEach(function (loyaltyPromotion) {
-      createPromotion(loyaltyPromotion, loyaltyId);
-    });
-  }
+    if (loyaltyProgram.rewardTiers) {
+      loyaltyProgram.rewardTiers.forEach(function (loyaltyRewardTier) {
+        if (loyaltyRewardTier.id && loyaltyProgram.terminology) {
+          createRewardTier(
+            loyaltyRewardTier,
+            loyaltyProgram.terminology!,
+            loyaltyId,
+          );
+        }
+      });
+    }
 
-  updateBusinessLoyaltyCatalogIndicator(businessId, loyaltyUsesCatalogItems);
-  callback(loyalty);
+    // var promotions: Promotion[] = [];
+    if (loyaltyPromotions) {
+      loyaltyPromotions.forEach(function (loyaltyPromotion) {
+        createPromotion(loyaltyPromotion, loyaltyId);
+      });
+    }
+
+    updateBusinessLoyaltyCatalogIndicator(businessId, loyaltyUsesCatalogItems);
+    callback(loyalty);
+  } catch (error) {
+    console.log('Error thrown while creating loyaly program: ' + error);
+    callback(undefined);
+  }
 };
 
 export const updateBusinessLoyaltyCatalogIndicator = async (
@@ -1512,6 +1627,7 @@ module.exports = {
   enrollCustomerInLoyalty,
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
+  updateLoyaltyAccountFromWebhook,
   updateLoyaltyFromWebhook,
   updatePromotionsFromWebhook,
   updateLoyaltyItems,

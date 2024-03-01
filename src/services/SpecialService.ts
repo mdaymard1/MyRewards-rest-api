@@ -4,6 +4,7 @@ import { Loyalty } from '../entity/Loyalty';
 import { Special } from '../entity/Special';
 import { SpecialItem } from '../entity/SpecialItem';
 import { Business } from '../entity/Business';
+import { getMerchantEnvironment } from './MerchantService';
 import {
   SquareCatalogVersionUpdated,
   SquareTerminology,
@@ -620,10 +621,7 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = async (
     }
   }
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
+  const env = getMerchantEnvironment();
 
   if (wereLoyaltyItemsUpdated) {
     const client = new Client({
@@ -720,10 +718,7 @@ const getCatalogItemsLastUpdated = async (
 
   const lastUpdateDateIso = lastUpdateDate.toISOString();
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
+  const env = getMerchantEnvironment();
 
   const client = new Client({
     accessToken: token,

@@ -192,6 +192,10 @@ const getLoyalty = async (request: Request, response: Response) => {
                       }
                     },
                   );
+                } else {
+                  response.status(500);
+                  response.end();
+                  return;
                 }
               },
             );

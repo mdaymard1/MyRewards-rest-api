@@ -35,9 +35,13 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Loyalty.prototype, "showLoyaltyEnrollmentInApp", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
     __metadata("design:type", Boolean)
 ], Loyalty.prototype, "enrollInSquareLoyaltyDirectly", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
+    __metadata("design:type", Boolean)
+], Loyalty.prototype, "processLoyaltyAccountWebhookEvents", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'boolean', nullable: true }),
     __metadata("design:type", Boolean)

@@ -135,6 +135,11 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
                                 }
                             });
                         }
+                        else {
+                            response.status(500);
+                            response.end();
+                            return;
+                        }
                     });
                 }
             }

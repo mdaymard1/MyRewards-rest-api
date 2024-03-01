@@ -27,8 +27,11 @@ export class Loyalty extends BaseEntity {
   @Column({ type: 'boolean', nullable: false })
   showLoyaltyEnrollmentInApp: boolean;
 
-  @Column({ type: 'boolean', nullable: false })
+  @Column({ type: 'boolean', nullable: true })
   enrollInSquareLoyaltyDirectly: boolean;
+
+  @Column({ type: 'boolean', nullable: true })
+  processLoyaltyAccountWebhookEvents: boolean;
 
   @Column({ type: 'boolean', nullable: true })
   automaticallyUpdateChangesFromMerchant: boolean;

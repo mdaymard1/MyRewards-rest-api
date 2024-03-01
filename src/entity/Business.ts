@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { Loyalty } from './Loyalty';
 import { Special } from './Special';
-import { Customer } from './Customer';}
+import { Customer } from './Customer';
 
 @Entity()
 export class Business extends BaseEntity {

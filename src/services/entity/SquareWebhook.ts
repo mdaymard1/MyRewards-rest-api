@@ -30,6 +30,20 @@ export class SquareWebhook {
       );
     }
     if (
+      (this.type == 'loyalty.account.created' ||
+        this.type == 'loyalty.account.updated' ||
+        'loyalty.account.deleted') &&
+      this.merchantId &&
+      payload.data.type == 'loyalty.account' &&
+      payload.data.object.loyalty_account
+    ) {
+      this.loyaltyAccount = new SquareLoyaltyAccount(
+        payload.data.object.loyalty_account,
+        this.type,
+      );
+    }
+
+    if (
       this.type == 'catalog.version.updated' &&
       this.merchantId &&
       payload.data.type == 'catalog' &&
@@ -45,6 +59,7 @@ export class SquareWebhook {
   type: string;
   loyaltyProgram: SquareLoyaltyProgram;
   loyaltyPromotion: SquareLoyaltyPromotion;
+  loyaltyAccount: SquareLoyaltyAccount;
   catalogVersionUpdated: SquareCatalogVersionUpdated;
 }
 
@@ -60,6 +75,36 @@ export class SquareCatalogVersionUpdated {
   catalogVersion: {
     updatedAt: string;
   };
+}
+
+export class SquareLoyaltyAccount {
+  constructor(payload: any, type: string) {
+    console.log('inside SquareLoyaltyAccount constructor');
+    this.id = payload.id;
+    this.loyaltyProgramId = payload.program_id;
+    this.balance = payload.balance;
+    this.lifetimePoints = payload.lifetime_points;
+    if (payload.mapping) {
+      this.mapping = {
+        createdAt: payload.mapping.created_at,
+        phoneNumber: payload.mapping.phone_number,
+      };
+    }
+    this.customerId = payload.customer_id;
+    this.enrolledAt = payload.enrolled_at;
+    this.wasDeleted = type == 'loyalty.account.deleted';
+  }
+  id: string;
+  balance: number;
+  lifetimePoints: number;
+  mapping: {
+    createdAt: string;
+    phoneNumber: string;
+  };
+  customerId: string;
+  enrolledAt: string;
+  loyaltyProgramId: string;
+  wasDeleted: boolean;
 }
 
 export class SquareLoyaltyPromotion {

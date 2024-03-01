@@ -18,6 +18,12 @@ import dotenv from 'dotenv';
 import { SquareAccrualRules } from './entity/SquareWebhook';
 import { LoyaltyAccrual } from '../entity/LoyaltyAccrual';
 
+export const getMerchantEnvironment = () => {
+  return process.env.NODE_ENV == 'production2222'
+    ? Environment.Production
+    : Environment.Sandbox;
+};
+
 export const createLoyaltyAccount = async (
   accessToken: string,
   loyaltyProgramId: string,
@@ -30,10 +36,7 @@ export const createLoyaltyAccount = async (
       phoneNumber,
   );
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
+  const env = getMerchantEnvironment();
 
   const client = new Client({
     squareVersion: '2024-01-18',
@@ -71,8 +74,6 @@ export const createLoyaltyAccount = async (
     return createLoyaltyAccountResponse.result.loyaltyAccount?.customerId;
   } catch (error) {
     if (error instanceof ApiError) {
-      // @ts-expect-error: unused variables
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const errors = error.result;
       const { statusCode, headers } = error;
       console.log('Got an error while creating loyalty account: ' + statusCode);
@@ -90,10 +91,7 @@ export const lookupCustomerIdByPhoneNumber = async (
 ) => {
   console.log('inside lookupCustomerByPhoneNumber');
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
+  const env = getMerchantEnvironment();
 
   const client = new Client({
     squareVersion: '2024-01-18',
@@ -128,8 +126,6 @@ export const lookupCustomerIdByPhoneNumber = async (
     return null;
   } catch (error) {
     if (error instanceof ApiError) {
-      // @ts-expect-error: unused variables
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const errors = error.result;
       const { statusCode, headers } = error;
       console.log('Got an error while creating square customer: ' + statusCode);
@@ -152,10 +148,7 @@ export const upsertMerchantCustomerAccount = async (
 ) => {
   console.log('inside upsertMerchantCustomerAccount');
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
+  const env = getMerchantEnvironment();
 
   const client = new Client({
     squareVersion: '2024-01-18',
@@ -209,13 +202,14 @@ export const getMerchantInfo = async (
 
   console.log('converted encrypted token: ' + accessToken + ' to ' + token);
   console.log('merchantId: ' + merchantId);
+  console.log('process.env.NODE_ENV: ' + process.env.NODE_ENV);
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
+  const env = getMerchantEnvironment();
+
+  console.log('env: ' + env);
 
   const client = new Client({
+    squareVersion: '2024-01-18',
     accessToken: token,
     environment: env,
   });
@@ -245,11 +239,8 @@ export const getMainLoyaltyProgramFromMerchant = async (
 
   dotenv.config();
 
-  const env =
-    process.env.NODE_ENV == 'development'
-      ? Environment.Sandbox
-      : Environment.Production;
-  console.log('looking up ProgramLoyalty in env: ' + env);
+  const env = getMerchantEnvironment();
+
   const client = new Client({
     squareVersion: '2024-01-18',
     accessToken: token,
@@ -449,6 +440,7 @@ module.exports = {
   createLoyaltyAccount,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
+  getMerchantEnvironment,
   getMainLoyaltyProgramFromMerchant,
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,

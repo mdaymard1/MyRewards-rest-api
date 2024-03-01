@@ -24,9 +24,21 @@ __decorate([
     __metadata("design:type", String)
 ], Customer.prototype, "merchantCustomerId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: true }),
+    (0, typeorm_1.Column)({ type: 'integer', nullable: false }),
+    __metadata("design:type", Number)
+], Customer.prototype, "balance", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'integer', nullable: false }),
+    __metadata("design:type", Number)
+], Customer.prototype, "lifetimePoints", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', nullable: false }),
     __metadata("design:type", Date)
-], Customer.prototype, "createdDate", void 0);
+], Customer.prototype, "enrolledAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
+    __metadata("design:type", Boolean)
+], Customer.prototype, "enrolledFromApp", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
     (0, typeorm_1.Index)(),

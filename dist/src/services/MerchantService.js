@@ -56,8 +56,6 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
     }
     catch (error) {
         if (error instanceof square_1.ApiError) {
-            // @ts-expect-error: unused variables
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const errors = error.result;
             const { statusCode, headers } = error;
             console.log('Got an error while creating loyalty account: ' + statusCode);
@@ -102,8 +100,6 @@ const lookupCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __awaiter(vo
     }
     catch (error) {
         if (error instanceof square_1.ApiError) {
-            // @ts-expect-error: unused variables
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const errors = error.result;
             const { statusCode, headers } = error;
             console.log('Got an error while creating square customer: ' + statusCode);
@@ -165,10 +161,13 @@ const getMerchantInfo = (merchantId, accessToken, callback) => __awaiter(void 0,
     token = (0, EncryptionService_1.decryptToken)(accessToken);
     console.log('converted encrypted token: ' + accessToken + ' to ' + token);
     console.log('merchantId: ' + merchantId);
+    console.log('process.env.NODE_ENV: ' + process.env.NODE_ENV);
     const env = process.env.NODE_ENV == 'development'
         ? square_1.Environment.Sandbox
         : square_1.Environment.Production;
+    console.log('env: ' + env);
     const client = new square_1.Client({
+        squareVersion: '2024-01-18',
         accessToken: token,
         environment: env,
     });

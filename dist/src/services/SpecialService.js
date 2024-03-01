@@ -465,9 +465,8 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
             });
         }
     }
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
+    const env = getMerchantEnvironment();
+
     if (wereLoyaltyItemsUpdated) {
         const client = new square_1.Client({
             accessToken: token,
@@ -527,9 +526,7 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaite
     console.log('inside getCatalogItemsLastUpdated');
     console.log('looking up catalog changes with token: ' + token);
     const lastUpdateDateIso = lastUpdateDate.toISOString();
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
+    const env = getMerchantEnvironment();
     const client = new square_1.Client({
         accessToken: token,
         environment: env,

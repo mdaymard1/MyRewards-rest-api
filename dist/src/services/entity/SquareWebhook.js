@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SquareRewardTier = exports.SquareAccrualRules = exports.SquareLoyaltyProgram = exports.SquareLoyaltyPromotion = exports.SquareCatalogVersionUpdated = exports.SquareWebhook = void 0;
+exports.SquareRewardTier = exports.SquareAccrualRules = exports.SquareLoyaltyProgram = exports.SquareLoyaltyPromotion = exports.SquareLoyaltyAccount = exports.SquareCatalogVersionUpdated = exports.SquareWebhook = void 0;
 class SquareWebhook {
     constructor(payload) {
         console.log('inside SquareWebhook constructor with type: ' + payload.data.type);
@@ -19,6 +19,14 @@ class SquareWebhook {
             payload.data.type == 'loyalty.promotion' &&
             payload.data.object.loyalty_promotion) {
             this.loyaltyPromotion = new SquareLoyaltyPromotion(payload.data.object.loyalty_promotion);
+        }
+        if ((this.type == 'loyalty.account.created' ||
+            this.type == 'loyalty.account.updated' ||
+            'loyalty.account.deleted') &&
+            this.merchantId &&
+            payload.data.type == 'loyalty_account' &&
+            payload.data.object.loyalty_account) {
+            this.loyaltyAccount = new SquareLoyaltyAccount(payload.data.object.loyalty_account, this.type);
         }
         if (this.type == 'catalog.version.updated' &&
             this.merchantId &&
@@ -41,6 +49,25 @@ class SquareCatalogVersionUpdated {
     }
 }
 exports.SquareCatalogVersionUpdated = SquareCatalogVersionUpdated;
+class SquareLoyaltyAccount {
+    constructor(payload, type) {
+        console.log('inside SquareLoyaltyAccount constructor');
+        this.id = payload.id;
+        this.loyaltyProgramId = payload.program_id;
+        this.balance = payload.balance;
+        this.lifetimePoints = payload.lifetime_points;
+        if (payload.mapping) {
+            this.mapping = {
+                createdAt: payload.mapping.created_at,
+                phoneNumber: payload.mapping.phone_number,
+            };
+        }
+        this.customerId = payload.customer_id;
+        this.enrolledAt = payload.enrolled_at;
+        this.wasDeleted = type == 'loyalty.account.deleted';
+    }
+}
+exports.SquareLoyaltyAccount = SquareLoyaltyAccount;
 class SquareLoyaltyPromotion {
     constructor(payload) {
         console.log('inside SquareLoyaltyPromotion constructor');

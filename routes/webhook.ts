@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { SquareWebhook } from '../src/services/entity/SquareWebhook';
 import {
+  updateLoyaltyAccountFromWebhook,
   updateLoyaltyFromWebhook,
   updatePromotionsFromWebhook,
 } from '../src/services/LoyaltyService';
@@ -53,6 +54,13 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
         response.end();
       },
     );
+  } else if (webhook.loyaltyAccount) {
+    const wasSuccessful = await updateLoyaltyAccountFromWebhook(
+      webhook.merchantId,
+      webhook.loyaltyAccount,
+    );
+    response.status(wasSuccessful ? 200 : 400);
+    response.end();
   } else if (webhook.catalogVersionUpdated) {
     updateSpecialsFromWebhook(
       webhook.merchantId,

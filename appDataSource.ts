@@ -26,6 +26,6 @@ export const AppDataSource = new DataSource({
   // port: 5432,
   // username: 'admin',
   // password: 'myrewards',
-  // database: 'postgres',
-  database: 'rewards',
+  database: 'postgres',
+  // database: 'rewards',
 });

@@ -44,6 +44,11 @@ const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, voi
             response.end();
         });
     }
+    else if (webhook.loyaltyAccount) {
+        const wasSuccessful = yield (0, LoyaltyService_1.updateLoyaltyAccountFromWebhook)(webhook.merchantId, webhook.loyaltyAccount);
+        response.status(wasSuccessful ? 200 : 400);
+        response.end();
+    }
     else if (webhook.catalogVersionUpdated) {
         (0, SpecialService_1.updateSpecialsFromWebhook)(webhook.merchantId, webhook.catalogVersionUpdated, function (wasSuccessful) {
             console.log('returned from updateSpecialsFromWebhook');
