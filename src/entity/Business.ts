@@ -10,6 +10,7 @@ import {
 import { Loyalty } from './Loyalty';
 import { Special } from './Special';
 import { Customer } from './Customer';
+import { EnrollmentRequest } from './EnrollmentRequest';
 
 @Entity()
 export class Business extends BaseEntity {
@@ -99,4 +100,11 @@ export class Business extends BaseEntity {
 
   @OneToMany(() => Customer, (customer) => customer.business, { eager: true })
   customers: Customer[];
+
+  @OneToMany(
+    () => EnrollmentRequest,
+    (enrollmentRequest) => enrollmentRequest.business,
+    { eager: true },
+  )
+  enrollmentRequests: EnrollmentRequest[];
 }

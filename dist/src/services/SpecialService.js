@@ -16,6 +16,7 @@ const Loyalty_1 = require("../entity/Loyalty");
 const Special_1 = require("../entity/Special");
 const SpecialItem_1 = require("../entity/SpecialItem");
 const Business_1 = require("../entity/Business");
+const Utility_1 = require("../utility/Utility");
 const square_1 = require("square");
 const LoyaltyAccrual_1 = require("../entity/LoyaltyAccrual");
 const LoyaltyService_1 = require("./LoyaltyService");
@@ -465,8 +466,7 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
             });
         }
     }
-    const env = getMerchantEnvironment();
-
+    const env = (0, Utility_1.getMerchantEnvironment)();
     if (wereLoyaltyItemsUpdated) {
         const client = new square_1.Client({
             accessToken: token,
@@ -526,7 +526,7 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaite
     console.log('inside getCatalogItemsLastUpdated');
     console.log('looking up catalog changes with token: ' + token);
     const lastUpdateDateIso = lastUpdateDate.toISOString();
-    const env = getMerchantEnvironment();
+    const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         accessToken: token,
         environment: env,

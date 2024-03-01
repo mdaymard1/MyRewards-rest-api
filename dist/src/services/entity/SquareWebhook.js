@@ -24,7 +24,7 @@ class SquareWebhook {
             this.type == 'loyalty.account.updated' ||
             'loyalty.account.deleted') &&
             this.merchantId &&
-            payload.data.type == 'loyalty_account' &&
+            payload.data.type == 'loyalty.account' &&
             payload.data.object.loyalty_account) {
             this.loyaltyAccount = new SquareLoyaltyAccount(payload.data.object.loyalty_account, this.type);
         }

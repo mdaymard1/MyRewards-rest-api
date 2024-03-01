@@ -4,7 +4,7 @@ import { Loyalty } from '../entity/Loyalty';
 import { Special } from '../entity/Special';
 import { SpecialItem } from '../entity/SpecialItem';
 import { Business } from '../entity/Business';
-import { getMerchantEnvironment } from './MerchantService';
+import { getMerchantEnvironment } from '../utility/Utility';
 import {
   SquareCatalogVersionUpdated,
   SquareTerminology,

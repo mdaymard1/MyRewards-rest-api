@@ -11,18 +11,10 @@ import {
   SearchCustomersRequest,
   UpdateCustomerRequest,
 } from 'square';
-// import { UUID } from 'crypto';
 import { decryptToken } from './EncryptionService';
-
+import { getMerchantEnvironment } from '../utility/Utility';
 import dotenv from 'dotenv';
 import { SquareAccrualRules } from './entity/SquareWebhook';
-import { LoyaltyAccrual } from '../entity/LoyaltyAccrual';
-
-export const getMerchantEnvironment = () => {
-  return process.env.NODE_ENV == 'production2222'
-    ? Environment.Production
-    : Environment.Sandbox;
-};
 
 export const createLoyaltyAccount = async (
   accessToken: string,
@@ -440,7 +432,6 @@ module.exports = {
   createLoyaltyAccount,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
-  getMerchantEnvironment,
   getMainLoyaltyProgramFromMerchant,
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,

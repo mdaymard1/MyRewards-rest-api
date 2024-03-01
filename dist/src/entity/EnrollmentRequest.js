@@ -9,55 +9,49 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Customer = void 0;
+exports.EnrollmentRequest = void 0;
 const typeorm_1 = require("typeorm");
 const Business_1 = require("./Business");
-let Customer = class Customer extends typeorm_1.BaseEntity {
+const typeorm_encrypted_1 = require("typeorm-encrypted");
+const encryption_config_1 = require("../../encryption-config");
+// @Index('customer_id_UNIQUE', ['merchantCustomerId', 'businessId'], {
+//   unique: true,
+// })
+let EnrollmentRequest = class EnrollmentRequest extends typeorm_1.BaseEntity {
 };
-exports.Customer = Customer;
+exports.EnrollmentRequest = EnrollmentRequest;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
     __metadata("design:type", String)
-], Customer.prototype, "id", void 0);
+], EnrollmentRequest.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'text', nullable: false }),
     __metadata("design:type", String)
-], Customer.prototype, "merchantCustomerId", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: false }),
-    __metadata("design:type", String)
-], Customer.prototype, "ref", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'integer', nullable: false }),
-    __metadata("design:type", Number)
-], Customer.prototype, "balance", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ type: 'integer', nullable: false }),
-    __metadata("design:type", Number)
-], Customer.prototype, "lifetimePoints", void 0);
+], EnrollmentRequest.prototype, "ref", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', nullable: false }),
     __metadata("design:type", Date)
-], Customer.prototype, "enrolledAt", void 0);
+], EnrollmentRequest.prototype, "enrollRequestedAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
-    __metadata("design:type", Boolean)
-], Customer.prototype, "enrolledFromApp", void 0);
+    (0, typeorm_1.Column)({
+        type: 'json',
+        nullable: false,
+        transformer: new typeorm_encrypted_1.JSONEncryptionTransformer(encryption_config_1.EncryptionTransformerConfig),
+    }),
+    __metadata("design:type", Object)
+], EnrollmentRequest.prototype, "details", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
-], Customer.prototype, "businessId", void 0);
+], EnrollmentRequest.prototype, "businessId", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => Business_1.Business, (business) => business.customers, {
+    (0, typeorm_1.ManyToOne)(() => Business_1.Business, (business) => business.enrollmentRequests, {
         nullable: true,
     }),
     (0, typeorm_1.JoinColumn)({ name: 'businessId' }),
     __metadata("design:type", Business_1.Business)
-], Customer.prototype, "business", void 0);
-exports.Customer = Customer = __decorate([
-    (0, typeorm_1.Index)('customer_id_UNIQUE', ['merchantCustomerId', 'businessId'], {
-        unique: true,
-    }),
+], EnrollmentRequest.prototype, "business", void 0);
+exports.EnrollmentRequest = EnrollmentRequest = __decorate([
     (0, typeorm_1.Entity)()
-], Customer);
+], EnrollmentRequest);

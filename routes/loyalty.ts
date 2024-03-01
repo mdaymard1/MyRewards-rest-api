@@ -8,14 +8,138 @@ import { getBusinessIdFromAuthToken } from '../src/services/BusinessService';
 import { decryptToken } from '../src/services/EncryptionService';
 import {
   createAppLoyaltyFromLoyaltyProgram,
+  createEnrollmentRequest,
   enrollCustomerInLoyalty,
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
   LoyaltyStatusType,
   updateLoyaltyItems,
   updateLoyaltyStatuses,
+  deleteRequestedEnrollment,
+  enrollRequestIntoLoyalty,
 } from '../src/services/LoyaltyService';
 import { LoyaltyProgram, LoyaltyPromotion } from 'square';
+
+export const enrollRequest = async (request: Request, response: Response) => {
+  console.log('inside enrollRequest');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const business = await AppDataSource.manager.findOne(Business, {
+    where: {
+      businessId: businessId,
+    },
+  });
+
+  if (!business) {
+    response.status(404);
+    response.end();
+    return;
+  }
+
+  const { enrollmentRequestId } = request.params;
+
+  var token: string | undefined = '';
+  token = decryptToken(business.merchantAccessToken);
+
+  const wasSuccessful = await enrollRequestIntoLoyalty(
+    businessId,
+    token,
+    enrollmentRequestId,
+  );
+  response.status(wasSuccessful ? 200 : 400);
+  response.end();
+};
+
+export const deleteEnrollmentRequest = async (
+  request: Request,
+  response: Response,
+) => {
+  console.log('inside deleteEnrollmentRequest');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const { enrollmentRequestId } = request.params;
+
+  let wasDeleteSuccessful = await deleteRequestedEnrollment(
+    enrollmentRequestId,
+  );
+
+  response.status(wasDeleteSuccessful ? 200 : 400);
+  response.end();
+};
+
+const requestEnrollment = async (request: Request, response: Response) => {
+  console.log('inside requestEnrollment');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const business = await AppDataSource.manager.findOne(Business, {
+    where: {
+      businessId: businessId,
+    },
+  });
+
+  if (!business) {
+    response.status(404);
+    response.end();
+    return;
+  }
+
+  const { firstName, lastName, phone, email } = request.body;
+
+  if (!firstName || !lastName || !phone) {
+    console.log('missing fields');
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  // let digitRegExp = /^\d+$/;
+
+  console.log(
+    'received input of ' +
+      firstName +
+      ' ' +
+      lastName +
+      ' ' +
+      phone +
+      ', ' +
+      email,
+  );
+
+  var token: string | undefined = '';
+  token = decryptToken(business.merchantAccessToken);
+
+  const newEnrollmentId = await createEnrollmentRequest(
+    businessId,
+    firstName,
+    lastName,
+    phone,
+    email,
+  );
+
+  response.status(newEnrollmentId ? 200 : 400);
+  response.end();
+};
 
 const enrollCustomer = async (request: Request, response: Response) => {
   console.log('inside enrollCustomer');
@@ -322,8 +446,11 @@ const getCurrentLoyaltyById = async (loyaltyId: string, callback: any) => {
 };
 
 module.exports = {
+  deleteEnrollmentRequest,
   enrollCustomer,
+  enrollRequest,
   getLoyalty,
+  requestEnrollment,
   updateLoyalty,
   updateLoyaltyStatus,
 };

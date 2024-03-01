@@ -21,6 +21,9 @@ export class Customer extends BaseEntity {
   @Column({ type: 'text', nullable: false })
   merchantCustomerId: string;
 
+  @Column({ type: 'text', nullable: false })
+  ref: string;
+
   @Column({ type: 'integer', nullable: false })
   balance: number;
 
@@ -37,7 +40,7 @@ export class Customer extends BaseEntity {
   @Index()
   businessId: string;
 
-  @ManyToOne(() => Business, (business) => business.specials, {
+  @ManyToOne(() => Business, (business) => business.customers, {
     nullable: true,
   })
   @JoinColumn({ name: 'businessId' })

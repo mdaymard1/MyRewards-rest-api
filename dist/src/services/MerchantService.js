@@ -14,8 +14,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantInfo = exports.upsertMerchantCustomerAccount = exports.lookupCustomerIdByPhoneNumber = exports.createLoyaltyAccount = void 0;
 const square_1 = require("square");
-// import { UUID } from 'crypto';
 const EncryptionService_1 = require("./EncryptionService");
+const Utility_1 = require("../utility/Utility");
 const dotenv_1 = __importDefault(require("dotenv"));
 const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
@@ -23,9 +23,7 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
         loyaltyProgramId +
         ', phoneNumber: ' +
         phoneNumber);
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
+    const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         squareVersion: '2024-01-18',
         accessToken: accessToken,
@@ -69,9 +67,7 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
 exports.createLoyaltyAccount = createLoyaltyAccount;
 const lookupCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside lookupCustomerByPhoneNumber');
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
+    const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         squareVersion: '2024-01-18',
         accessToken: accessToken,
@@ -114,9 +110,7 @@ exports.lookupCustomerIdByPhoneNumber = lookupCustomerIdByPhoneNumber;
 const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCustomerId, firstName, lastName, phone, email) => __awaiter(void 0, void 0, void 0, function* () {
     var _d, _e, _f;
     console.log('inside upsertMerchantCustomerAccount');
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
+    const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         squareVersion: '2024-01-18',
         accessToken: accessToken,
@@ -162,9 +156,7 @@ const getMerchantInfo = (merchantId, accessToken, callback) => __awaiter(void 0,
     console.log('converted encrypted token: ' + accessToken + ' to ' + token);
     console.log('merchantId: ' + merchantId);
     console.log('process.env.NODE_ENV: ' + process.env.NODE_ENV);
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
+    const env = (0, Utility_1.getMerchantEnvironment)();
     console.log('env: ' + env);
     const client = new square_1.Client({
         squareVersion: '2024-01-18',
@@ -192,10 +184,7 @@ const getMainLoyaltyProgramFromMerchant = (token, callback) => __awaiter(void 0,
     var _l, _m, _o;
     console.log('token: ' + token);
     dotenv_1.default.config();
-    const env = process.env.NODE_ENV == 'development'
-        ? square_1.Environment.Sandbox
-        : square_1.Environment.Production;
-    console.log('looking up ProgramLoyalty in env: ' + env);
+    const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         squareVersion: '2024-01-18',
         accessToken: token,

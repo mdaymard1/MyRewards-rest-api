@@ -28,12 +28,168 @@ import {
   upsertMerchantCustomerAccount,
 } from './MerchantService';
 import { QueryFailedError } from 'typeorm';
-import { isNativeError } from 'util/types';
+import { EnrollmentRequest } from '../entity/EnrollmentRequest';
+import {
+  obsfucatePhoneNumber,
+  unobsfucatePhoneNumber,
+} from '../utility/Utility';
 
 export enum LoyaltyStatusType {
   Active = 'Active',
   Inactive = 'Inactive',
 }
+
+export const enrollRequestIntoLoyalty = async (
+  businessId: string,
+  token: string,
+  enrollmentRequestId: string,
+) => {
+  console.log('inside enrollRequestIntoLoyalty');
+
+  const enrollmentRequest = await lookupEnrollmentRequestById(
+    enrollmentRequestId,
+  );
+
+  if (!enrollmentRequest) {
+    return false;
+  }
+
+  try {
+    const details = enrollmentRequest.details;
+    if (!details) {
+      return false;
+    }
+    let det = JSON.stringify(details);
+    console.log(det);
+    const firstName = details.firstName;
+    const lastName = details.lastName;
+    const email = details.email;
+    const phoneNumber = unobsfucatePhoneNumber(enrollmentRequest.ref);
+
+    let wasEnrolled = await enrollCustomerInLoyalty(
+      businessId,
+      token,
+      firstName,
+      lastName,
+      phoneNumber,
+      email,
+    );
+    if (wasEnrolled) {
+      const wasDeleted = await deleteRequestedEnrollment(enrollmentRequestId);
+      return wasDeleted;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.log('Error while enrolling request: ' + error);
+    return false;
+  }
+};
+
+export const deleteRequestedEnrollment = async (
+  enrollmentRequestId: string,
+) => {
+  console.log('inside deleteRequestedEnrollment');
+
+  try {
+    await AppDataSource.manager.delete(EnrollmentRequest, {
+      id: enrollmentRequestId,
+    });
+    console.log('enrollment request successfully deleted');
+    return true;
+  } catch (error) {
+    console.log('Error thrown while deleting enrollment request: ' + error);
+    return false;
+  }
+};
+
+export const createEnrollmentRequest = async (
+  businessId: string,
+  firstName: string,
+  lastName: string,
+  phoneNumber: string,
+  email?: string,
+) => {
+  console.log('inside enrollCustomerInLoyalty');
+
+  const ref = obsfucatePhoneNumber(phoneNumber);
+
+  // First check to see if we already have a request for this number
+  const existingEnrollmentRequest = await lookupEnrollmentRequestByReference(
+    businessId,
+    ref,
+  );
+
+  if (existingEnrollmentRequest) {
+    return existingEnrollmentRequest.id;
+  }
+  // Format details json
+
+  const details = {
+    firstName: firstName,
+    lastName: lastName,
+    email: email,
+  };
+
+  try {
+    const newEnrollmentRequest = await AppDataSource.manager.create(
+      EnrollmentRequest,
+      {
+        businessId: businessId,
+        ref: ref,
+        details: details,
+        enrollRequestedAt: new Date(),
+      },
+    );
+    await AppDataSource.manager.save(newEnrollmentRequest);
+    return newEnrollmentRequest.id;
+  } catch (error) {
+    console.log('Error thrown while creating enrollment request:' + error);
+    return null;
+  }
+};
+
+const lookupEnrollmentRequestByReference = async (
+  businessId: string,
+  number: string,
+) => {
+  console.log('inside lookupEnrollmentRequest');
+
+  try {
+    const existingRequest = await EnrollmentRequest.createQueryBuilder(
+      'enrollmentRequest',
+    )
+      .where('enrollmentRequest.businessId = :businessId', {
+        businessId: businessId,
+      })
+      .andWhere('enrollmentRequest.ref = :ref', { ref: number })
+      .getOne();
+    console.log('enrollment request was found');
+    return existingRequest;
+  } catch (error) {
+    console.log('Error looking up enrollmentRequest: ' + error);
+    return null;
+  }
+};
+
+const lookupEnrollmentRequestById = async (id: string) => {
+  console.log('inside lookupEnrollmentRequest');
+
+  try {
+    const existingRequest = await EnrollmentRequest.createQueryBuilder(
+      'enrollmentRequest',
+    )
+      .where('enrollmentRequest.id = :id', {
+        id: id,
+      })
+      .getOne();
+    console.log('enrollment request was found');
+    return existingRequest;
+  } catch (error) {
+    console.log('Error thrown while looking up enrollmentRequest: ' + error);
+    return null;
+  }
+};
 
 export const enrollCustomerInLoyalty = async (
   businessId: string,
@@ -80,9 +236,12 @@ export const enrollCustomerInLoyalty = async (
     return customerId;
   }
 
+  const ref = obsfucatePhoneNumber(phoneNumber);
+
   let appCustomerId = await insertCustomer(
     businessId,
     loyaltyCustomerAccountId,
+    ref,
     true,
   );
 
@@ -125,6 +284,7 @@ const updateExistingCustomer = async (
     let appCustomerId = await insertCustomer(
       businessId,
       existingCustomerId,
+      obsfucatePhoneNumber(phoneNumber),
       true,
     );
     // Finally, upsert the merchant's customer account
@@ -147,6 +307,7 @@ const updateExistingCustomer = async (
 const insertCustomer = async (
   businessId: string,
   customerId: string,
+  ref: string,
   enrolledFromApp: boolean,
 ) => {
   console.log('creating customer');
@@ -154,6 +315,7 @@ const insertCustomer = async (
     const customer = await AppDataSource.manager.create(Customer, {
       businessId: businessId,
       merchantCustomerId: customerId,
+      ref: ref,
       balance: 0,
       lifetimePoints: 0,
       enrolledFromApp: enrolledFromApp,
@@ -179,6 +341,7 @@ const insertCustomer = async (
 const upsertCustomerFromWebhook = async (
   businessId: string,
   customerId: string,
+  ref: string,
   balance: number,
   lifetimePoints: number,
   enrolledAt: Date,
@@ -206,6 +369,7 @@ const upsertCustomerFromWebhook = async (
       customer = await AppDataSource.manager.create(Customer, {
         businessId: businessId,
         merchantCustomerId: customerId,
+        ref: ref,
         balance: balance,
         lifetimePoints: lifetimePoints,
         enrolledAt: enrolledAt,
@@ -420,6 +584,7 @@ export const updateLoyaltyAccountFromWebhook = async (
   const customerId = await upsertCustomerFromWebhook(
     business.businessId,
     webhookLoyaltyAccount.customerId,
+    obsfucatePhoneNumber(webhookLoyaltyAccount.mapping.phoneNumber),
     webhookLoyaltyAccount.balance,
     webhookLoyaltyAccount.lifetimePoints,
     enrolledAt,
@@ -1623,8 +1788,11 @@ const accrualIsValid = (accrualType: string, itemName: string | undefined) => {
 
 module.exports = {
   createAppLoyaltyFromLoyaltyProgram,
+  createEnrollmentRequest,
   deleteAccrual,
+  deleteRequestedEnrollment,
   enrollCustomerInLoyalty,
+  enrollRequestIntoLoyalty,
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
   updateLoyaltyAccountFromWebhook,
