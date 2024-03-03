@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateAppLoyaltyAccrualsFromMerchant = exports.removeOldAccrualRules = exports.getMoneyCurrencyType = exports.rewardsRuleValue = exports.deleteAccrual = exports.updateLoyaltyItems = exports.updateLoyaltyStatuses = exports.updateAppLoyaltyFromMerchant = exports.isLoyaltyOrPromotionsOutOfDate = exports.updateBusinessLoyaltyCatalogIndicator = exports.createAppLoyaltyFromLoyaltyProgram = exports.updatePromotionsFromWebhook = exports.updateLoyaltyAccountFromWebhook = exports.updateLoyaltyFromWebhook = exports.enrollCustomerInLoyalty = exports.createEnrollmentRequest = exports.deleteRequestedEnrollment = exports.enrollRequestIntoLoyalty = exports.LoyaltyStatusType = void 0;
+exports.updateAppLoyaltyAccrualsFromMerchant = exports.removeOldAccrualRules = exports.getMoneyCurrencyType = exports.rewardsRuleValue = exports.deleteAccrual = exports.updateLoyaltyItems = exports.updateLoyaltyStatuses = exports.updateAppLoyaltyFromMerchant = exports.isLoyaltyOrPromotionsOutOfDate = exports.updateBusinessLoyaltyCatalogIndicator = exports.createAppLoyaltyFromLoyaltyProgram = exports.updatePromotionsFromWebhook = exports.updateLoyaltyAccountFromWebhook = exports.updateLoyaltyFromWebhook = exports.enrollCustomerInLoyalty = exports.createEnrollmentRequest = exports.deleteRequestedEnrollment = exports.enrollRequestIntoLoyalty = exports.getPaginatedCustomers = exports.getPaginatedEnrollmentRequests = exports.EnrollmentSourceType = exports.LoyaltyStatusType = void 0;
 const Loyalty_1 = require("../entity/Loyalty");
 const LoyaltyAccrual_1 = require("../entity/LoyaltyAccrual");
 const LoyaltyRewardTier_1 = require("../entity/LoyaltyRewardTier");
@@ -27,6 +27,40 @@ var LoyaltyStatusType;
     LoyaltyStatusType["Active"] = "Active";
     LoyaltyStatusType["Inactive"] = "Inactive";
 })(LoyaltyStatusType || (exports.LoyaltyStatusType = LoyaltyStatusType = {}));
+var EnrollmentSourceType;
+(function (EnrollmentSourceType) {
+    EnrollmentSourceType[EnrollmentSourceType["Merchant"] = 0] = "Merchant";
+    EnrollmentSourceType[EnrollmentSourceType["RewardsApp"] = 1] = "RewardsApp";
+    EnrollmentSourceType[EnrollmentSourceType["ManualFromRequest"] = 2] = "ManualFromRequest";
+})(EnrollmentSourceType || (exports.EnrollmentSourceType = EnrollmentSourceType = {}));
+const getPaginatedEnrollmentRequests = (businessId, pageNumber, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('inside getPaginatedEnrollmentRequests');
+    const take = pageSize || 10;
+    const page = pageNumber || 1;
+    const skip = (page - 1) * take;
+    const data = yield EnrollmentRequest_1.EnrollmentRequest.findAndCount({
+        where: { businessId: (0, typeorm_1.Equal)(businessId) },
+        order: { enrollRequestedAt: 'DESC' },
+        take: take,
+        skip: skip,
+    });
+    return (0, Utility_1.paginateResponse)(data, page, take);
+});
+exports.getPaginatedEnrollmentRequests = getPaginatedEnrollmentRequests;
+const getPaginatedCustomers = (businessId, pageNumber, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('inside getPaginatedCustomers');
+    const take = pageSize || 10;
+    const page = pageNumber || 1;
+    const skip = (page - 1) * take;
+    const data = yield Customer_1.Customer.findAndCount({
+        where: { businessId: (0, typeorm_1.Equal)(businessId) },
+        order: { enrolledAt: 'DESC' },
+        take: take,
+        skip: skip,
+    });
+    return (0, Utility_1.paginateResponse)(data, page, take);
+});
+exports.getPaginatedCustomers = getPaginatedCustomers;
 const enrollRequestIntoLoyalty = (businessId, token, enrollmentRequestId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside enrollRequestIntoLoyalty');
     const enrollmentRequest = yield lookupEnrollmentRequestById(enrollmentRequestId);
@@ -44,7 +78,7 @@ const enrollRequestIntoLoyalty = (businessId, token, enrollmentRequestId) => __a
         const lastName = details.lastName;
         const email = details.email;
         const phoneNumber = (0, Utility_1.unobsfucatePhoneNumber)(enrollmentRequest.ref);
-        let wasEnrolled = yield (0, exports.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phoneNumber, email);
+        let wasEnrolled = yield (0, exports.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phoneNumber, EnrollmentSourceType.ManualFromRequest, email);
         if (wasEnrolled) {
             const wasDeleted = yield (0, exports.deleteRequestedEnrollment)(enrollmentRequestId);
             return wasDeleted;
@@ -75,7 +109,7 @@ const deleteRequestedEnrollment = (enrollmentRequestId) => __awaiter(void 0, voi
 });
 exports.deleteRequestedEnrollment = deleteRequestedEnrollment;
 const createEnrollmentRequest = (businessId, firstName, lastName, phoneNumber, email) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside enrollCustomerInLoyalty');
+    console.log('inside createEnrollmentRequest');
     const ref = (0, Utility_1.obsfucatePhoneNumber)(phoneNumber);
     // First check to see if we already have a request for this number
     const existingEnrollmentRequest = yield lookupEnrollmentRequestByReference(businessId, ref);
@@ -105,7 +139,7 @@ const createEnrollmentRequest = (businessId, firstName, lastName, phoneNumber, e
 });
 exports.createEnrollmentRequest = createEnrollmentRequest;
 const lookupEnrollmentRequestByReference = (businessId, number) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside lookupEnrollmentRequest');
+    console.log('inside lookupEnrollmentRequestByReference');
     try {
         const existingRequest = yield EnrollmentRequest_1.EnrollmentRequest.createQueryBuilder('enrollmentRequest')
             .where('enrollmentRequest.businessId = :businessId', {
@@ -122,7 +156,7 @@ const lookupEnrollmentRequestByReference = (businessId, number) => __awaiter(voi
     }
 });
 const lookupEnrollmentRequestById = (id) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside lookupEnrollmentRequest');
+    console.log('inside lookupEnrollmentRequestById');
     try {
         const existingRequest = yield EnrollmentRequest_1.EnrollmentRequest.createQueryBuilder('enrollmentRequest')
             .where('enrollmentRequest.id = :id', {
@@ -137,7 +171,7 @@ const lookupEnrollmentRequestById = (id) => __awaiter(void 0, void 0, void 0, fu
         return null;
     }
 });
-const enrollCustomerInLoyalty = (businessId, token, firstName, lastName, phoneNumber, email) => __awaiter(void 0, void 0, void 0, function* () {
+const enrollCustomerInLoyalty = (businessId, token, firstName, lastName, phoneNumber, enrollmentSource, email) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside enrollCustomerInLoyalty');
     const existingLoyalty = yield Loyalty_1.Loyalty.createQueryBuilder('loyalty')
         .where('loyalty.businessId = :businessId', { businessId: businessId })
@@ -155,11 +189,11 @@ const enrollCustomerInLoyalty = (businessId, token, firstName, lastName, phoneNu
     let loyaltyCustomerAccountId = yield (0, MerchantService_1.createLoyaltyAccount)(token, existingLoyalty.merchantLoyaltyId, phoneNumber);
     if (!loyaltyCustomerAccountId) {
         // A null value could mean that the loyalty account already existed for this phone number
-        const customerId = yield updateExistingCustomer(token, businessId, phoneNumber, firstName, lastName, email);
+        const customerId = yield updateExistingCustomer(token, businessId, phoneNumber, firstName, lastName, enrollmentSource, email);
         return customerId;
     }
     const ref = (0, Utility_1.obsfucatePhoneNumber)(phoneNumber);
-    let appCustomerId = yield insertCustomer(businessId, loyaltyCustomerAccountId, ref, true);
+    let appCustomerId = yield insertCustomer(businessId, loyaltyCustomerAccountId, ref, enrollmentSource);
     if (appCustomerId) {
         let merchCustomerId = yield (0, MerchantService_1.upsertMerchantCustomerAccount)(token, loyaltyCustomerAccountId, appCustomerId, firstName, lastName, phoneNumber, email);
         return merchCustomerId;
@@ -172,12 +206,12 @@ exports.enrollCustomerInLoyalty = enrollCustomerInLoyalty;
     for a given phone number. We'll still try to insert our Customer and
     then update the merchant's customer account with our details.
 */
-const updateExistingCustomer = (token, businessId, phoneNumber, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
+const updateExistingCustomer = (token, businessId, phoneNumber, firstName, lastName, enrollmentSource, email) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside updateExistingCustomer');
     let existingCustomerId = yield (0, MerchantService_1.lookupCustomerIdByPhoneNumber)(token, phoneNumber);
     if (existingCustomerId) {
         // Add the customer to our db
-        let appCustomerId = yield insertCustomer(businessId, existingCustomerId, (0, Utility_1.obsfucatePhoneNumber)(phoneNumber), true);
+        let appCustomerId = yield insertCustomer(businessId, existingCustomerId, (0, Utility_1.obsfucatePhoneNumber)(phoneNumber), enrollmentSource);
         // Finally, upsert the merchant's customer account
         if (appCustomerId) {
             (0, MerchantService_1.upsertMerchantCustomerAccount)(token, existingCustomerId, appCustomerId, firstName, lastName, phoneNumber, email);
@@ -186,7 +220,7 @@ const updateExistingCustomer = (token, businessId, phoneNumber, firstName, lastN
     }
     return null;
 });
-const insertCustomer = (businessId, customerId, ref, enrolledFromApp) => __awaiter(void 0, void 0, void 0, function* () {
+const insertCustomer = (businessId, customerId, ref, enrollmentSource) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('creating customer');
     try {
         const customer = yield appDataSource_1.AppDataSource.manager.create(Customer_1.Customer, {
@@ -195,17 +229,17 @@ const insertCustomer = (businessId, customerId, ref, enrolledFromApp) => __await
             ref: ref,
             balance: 0,
             lifetimePoints: 0,
-            enrolledFromApp: enrolledFromApp,
+            enrollmentSource: enrollmentSource,
             enrolledAt: new Date(),
         });
         yield appDataSource_1.AppDataSource.manager.save(customer);
         console.log('just created customer with id:' + customer.id);
-        return customerId;
+        return customer.id;
     }
     catch (error) {
         if (error instanceof typeorm_1.QueryFailedError &&
             error.message.includes('customer_id_UNIQUE')) {
-            console.log('Ignoring uplicate customer error');
+            console.log('Ignoring duplicate customer error');
             return customerId;
         }
         else {
@@ -214,7 +248,7 @@ const insertCustomer = (businessId, customerId, ref, enrolledFromApp) => __await
         }
     }
 });
-const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetimePoints, enrolledAt, enrolledFromApp) => __awaiter(void 0, void 0, void 0, function* () {
+const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetimePoints, enrolledAt, enrollmentSource) => __awaiter(void 0, void 0, void 0, function* () {
     console.log('inside upsertCustomerFromWebhook with businessId: ' +
         businessId +
         ', customerId: ' +
@@ -237,7 +271,7 @@ const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetim
                 balance: balance,
                 lifetimePoints: lifetimePoints,
                 enrolledAt: enrolledAt,
-                enrolledFromApp: enrolledFromApp,
+                enrollmentSource: enrollmentSource,
             });
             yield appDataSource_1.AppDataSource.manager.save(customer);
             console.log('just created customer with id:' + customer.id);
@@ -384,7 +418,7 @@ const updateLoyaltyAccountFromWebhook = (merchantId, webhookLoyaltyAccount) => _
     else {
         enrolledAt = new Date(enrolledAtValue);
     }
-    const customerId = yield upsertCustomerFromWebhook(business.businessId, webhookLoyaltyAccount.customerId, (0, Utility_1.obsfucatePhoneNumber)(webhookLoyaltyAccount.mapping.phoneNumber), webhookLoyaltyAccount.balance, webhookLoyaltyAccount.lifetimePoints, enrolledAt, false);
+    const customerId = yield upsertCustomerFromWebhook(business.businessId, webhookLoyaltyAccount.customerId, (0, Utility_1.obsfucatePhoneNumber)(webhookLoyaltyAccount.mapping.phoneNumber), webhookLoyaltyAccount.balance, webhookLoyaltyAccount.lifetimePoints, enrolledAt, EnrollmentSourceType.Merchant);
     return true;
 });
 exports.updateLoyaltyAccountFromWebhook = updateLoyaltyAccountFromWebhook;
@@ -1251,7 +1285,10 @@ module.exports = {
     deleteAccrual: exports.deleteAccrual,
     deleteRequestedEnrollment: exports.deleteRequestedEnrollment,
     enrollCustomerInLoyalty: exports.enrollCustomerInLoyalty,
+    EnrollmentSourceType,
     enrollRequestIntoLoyalty: exports.enrollRequestIntoLoyalty,
+    getPaginatedCustomers: exports.getPaginatedCustomers,
+    getPaginatedEnrollmentRequests: exports.getPaginatedEnrollmentRequests,
     isLoyaltyOrPromotionsOutOfDate: exports.isLoyaltyOrPromotionsOutOfDate,
     updateAppLoyaltyFromMerchant: exports.updateAppLoyaltyFromMerchant,
     updateLoyaltyAccountFromWebhook: exports.updateLoyaltyAccountFromWebhook,

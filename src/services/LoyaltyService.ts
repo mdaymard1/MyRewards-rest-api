@@ -27,10 +27,11 @@ import {
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
 } from './MerchantService';
-import { QueryFailedError } from 'typeorm';
+import { Equal, QueryFailedError } from 'typeorm';
 import { EnrollmentRequest } from '../entity/EnrollmentRequest';
 import {
   obsfucatePhoneNumber,
+  paginateResponse,
   unobsfucatePhoneNumber,
 } from '../utility/Utility';
 
@@ -38,6 +39,54 @@ export enum LoyaltyStatusType {
   Active = 'Active',
   Inactive = 'Inactive',
 }
+
+export enum EnrollmentSourceType {
+  Merchant = 0,
+  RewardsApp = 1,
+  ManualFromRequest = 2,
+}
+
+export const getPaginatedEnrollmentRequests = async (
+  businessId: string,
+  pageNumber: number,
+  pageSize: number,
+) => {
+  console.log('inside getPaginatedEnrollmentRequests');
+
+  const take = pageSize || 10;
+  const page = pageNumber || 1;
+  const skip = (page - 1) * take;
+
+  const data = await EnrollmentRequest.findAndCount({
+    where: { businessId: Equal(businessId) },
+    order: { enrollRequestedAt: 'DESC' },
+    take: take,
+    skip: skip,
+  });
+
+  return paginateResponse(data, page, take);
+};
+
+export const getPaginatedCustomers = async (
+  businessId: string,
+  pageNumber?: number,
+  pageSize?: number,
+) => {
+  console.log('inside getPaginatedCustomers');
+
+  const take = pageSize || 10;
+  const page = pageNumber || 1;
+  const skip = (page - 1) * take;
+
+  const data = await Customer.findAndCount({
+    where: { businessId: Equal(businessId) },
+    order: { enrolledAt: 'DESC' },
+    take: take,
+    skip: skip,
+  });
+
+  return paginateResponse(data, page, take);
+};
 
 export const enrollRequestIntoLoyalty = async (
   businessId: string,
@@ -72,6 +121,7 @@ export const enrollRequestIntoLoyalty = async (
       firstName,
       lastName,
       phoneNumber,
+      EnrollmentSourceType.ManualFromRequest,
       email,
     );
     if (wasEnrolled) {
@@ -110,7 +160,7 @@ export const createEnrollmentRequest = async (
   phoneNumber: string,
   email?: string,
 ) => {
-  console.log('inside enrollCustomerInLoyalty');
+  console.log('inside createEnrollmentRequest');
 
   const ref = obsfucatePhoneNumber(phoneNumber);
 
@@ -153,7 +203,7 @@ const lookupEnrollmentRequestByReference = async (
   businessId: string,
   number: string,
 ) => {
-  console.log('inside lookupEnrollmentRequest');
+  console.log('inside lookupEnrollmentRequestByReference');
 
   try {
     const existingRequest = await EnrollmentRequest.createQueryBuilder(
@@ -173,7 +223,7 @@ const lookupEnrollmentRequestByReference = async (
 };
 
 const lookupEnrollmentRequestById = async (id: string) => {
-  console.log('inside lookupEnrollmentRequest');
+  console.log('inside lookupEnrollmentRequestById');
 
   try {
     const existingRequest = await EnrollmentRequest.createQueryBuilder(
@@ -197,6 +247,7 @@ export const enrollCustomerInLoyalty = async (
   firstName: string,
   lastName: string,
   phoneNumber: string,
+  enrollmentSource: EnrollmentSourceType,
   email?: string,
 ) => {
   console.log('inside enrollCustomerInLoyalty');
@@ -231,6 +282,7 @@ export const enrollCustomerInLoyalty = async (
       phoneNumber,
       firstName,
       lastName,
+      enrollmentSource,
       email,
     );
     return customerId;
@@ -242,7 +294,7 @@ export const enrollCustomerInLoyalty = async (
     businessId,
     loyaltyCustomerAccountId,
     ref,
-    true,
+    enrollmentSource,
   );
 
   if (appCustomerId) {
@@ -271,6 +323,7 @@ const updateExistingCustomer = async (
   phoneNumber: string,
   firstName: string,
   lastName: string,
+  enrollmentSource: EnrollmentSourceType,
   email?: string,
 ) => {
   console.log('inside updateExistingCustomer');
@@ -285,7 +338,7 @@ const updateExistingCustomer = async (
       businessId,
       existingCustomerId,
       obsfucatePhoneNumber(phoneNumber),
-      true,
+      enrollmentSource,
     );
     // Finally, upsert the merchant's customer account
     if (appCustomerId) {
@@ -308,7 +361,7 @@ const insertCustomer = async (
   businessId: string,
   customerId: string,
   ref: string,
-  enrolledFromApp: boolean,
+  enrollmentSource: EnrollmentSourceType,
 ) => {
   console.log('creating customer');
   try {
@@ -318,18 +371,18 @@ const insertCustomer = async (
       ref: ref,
       balance: 0,
       lifetimePoints: 0,
-      enrolledFromApp: enrolledFromApp,
+      enrollmentSource: enrollmentSource,
       enrolledAt: new Date(),
     });
     await AppDataSource.manager.save(customer);
     console.log('just created customer with id:' + customer.id);
-    return customerId;
+    return customer.id;
   } catch (error) {
     if (
       error instanceof QueryFailedError &&
       error.message.includes('customer_id_UNIQUE')
     ) {
-      console.log('Ignoring uplicate customer error');
+      console.log('Ignoring duplicate customer error');
       return customerId;
     } else {
       console.log('got error when inserting customer:' + error);
@@ -345,7 +398,7 @@ const upsertCustomerFromWebhook = async (
   balance: number,
   lifetimePoints: number,
   enrolledAt: Date,
-  enrolledFromApp: boolean,
+  enrollmentSource: EnrollmentSourceType,
 ) => {
   console.log(
     'inside upsertCustomerFromWebhook with businessId: ' +
@@ -373,7 +426,7 @@ const upsertCustomerFromWebhook = async (
         balance: balance,
         lifetimePoints: lifetimePoints,
         enrolledAt: enrolledAt,
-        enrolledFromApp: enrolledFromApp,
+        enrollmentSource: enrollmentSource,
       });
       await AppDataSource.manager.save(customer);
       console.log('just created customer with id:' + customer.id);
@@ -588,7 +641,7 @@ export const updateLoyaltyAccountFromWebhook = async (
     webhookLoyaltyAccount.balance,
     webhookLoyaltyAccount.lifetimePoints,
     enrolledAt,
-    false,
+    EnrollmentSourceType.Merchant,
   );
 
   return true;
@@ -1792,7 +1845,10 @@ module.exports = {
   deleteAccrual,
   deleteRequestedEnrollment,
   enrollCustomerInLoyalty,
+  EnrollmentSourceType,
   enrollRequestIntoLoyalty,
+  getPaginatedCustomers,
+  getPaginatedEnrollmentRequests,
   isLoyaltyOrPromotionsOutOfDate,
   updateAppLoyaltyFromMerchant,
   updateLoyaltyAccountFromWebhook,

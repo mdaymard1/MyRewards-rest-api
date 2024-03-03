@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEnrollmentRequest = exports.enrollRequest = void 0;
+exports.deleteEnrollmentRequest = exports.enrollRequest = exports.getCustomers = exports.getEnrollmentRequests = void 0;
 const appDataSource_1 = require("../appDataSource");
 const Business_1 = require("../src/entity/Business");
 const Loyalty_1 = require("../src/entity/Loyalty");
@@ -134,7 +134,7 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
     var token = '';
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     if (token) {
-        yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phone, email);
+        yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phone, LoyaltyService_1.EnrollmentSourceType.RewardsApp, email);
         response.status(201);
         response.end();
     }
@@ -308,6 +308,8 @@ module.exports = {
     deleteEnrollmentRequest: exports.deleteEnrollmentRequest,
     enrollCustomer,
     enrollRequest: exports.enrollRequest,
+    getEnrollmentRequests: exports.getEnrollmentRequests,
+    getCustomers: exports.getCustomers,
     getLoyalty,
     requestEnrollment,
     updateLoyalty,

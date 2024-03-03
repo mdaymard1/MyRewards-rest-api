@@ -1,0 +1,43 @@
+diff a/dist/routes/loyalty.js b/dist/routes/loyalty.js	(rejected hunks)
+@@ -17,6 +17,41 @@ const MerchantService_1 = require("../src/services/MerchantService");
+ const BusinessService_1 = require("../src/services/BusinessService");
+ const EncryptionService_1 = require("../src/services/EncryptionService");
+ const LoyaltyService_1 = require("../src/services/LoyaltyService");
++const getEnrollmentRequests = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
++    console.log('inside getEnrollmentRequests');
++    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
++    if (!businessId) {
++        response.status(401);
++        response.end();
++        return;
++    }
++    const { pageNumber, pageSize } = request.query;
++    const page = Number(pageNumber);
++    const size = Number(pageSize);
++    console.log("pageNumber: " + pageNumber + ", page: " + page);
++    console.log("pageSize: " + pageSize + ", size: " + size);
++    const results = yield (0, LoyaltyService_1.getPaginatedEnrollmentRequests)(businessId, page, size);
++    // console.log('results: ' + results);
++    response.send(results);
++});
++exports.getEnrollmentRequests = getEnrollmentRequests;
++const getCustomers = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
++    console.log('inside getCustomers');
++    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
++    if (!businessId) {
++        response.status(401);
++        response.end();
++        return;
++    }
++    const { pageNumber, pageSize } = request.query;
++    const page = Number(pageNumber);
++    const size = Number(pageSize);
++    console.log("pageNumber: " + pageNumber + ", page: " + page);
++    console.log("pageSize: " + pageSize + ", size: " + size);
++    const results = yield (0, LoyaltyService_1.getPaginatedCustomers)(businessId, page, size);
++    response.send(results);
++});
++exports.getCustomers = getCustomers;
+ const enrollRequest = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+     console.log('inside enrollRequest ');
+     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);

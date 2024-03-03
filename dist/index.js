@@ -75,6 +75,8 @@ app.put('/business', businessRoute.updateBusiness);
 app.get('/loyalty', loyaltyRoute.getLoyalty);
 app.post('/loyalty/enroll', loyaltyRoute.enrollCustomer);
 app.delete('/loyalty/requestEnrollment/:enrollmentRequestId', loyaltyRoute.deleteEnrollmentRequest);
+app.get('/loyalty/enrollmentRequests', loyaltyRoute.getEnrollmentRequests);
+app.get('/loyalty/customers', loyaltyRoute.getCustomers);
 app.post('/loyalty/requestEnrollment', loyaltyRoute.requestEnrollment);
 app.post('/loyalty/enrollRequest/:enrollmentRequestId', loyaltyRoute.enrollRequest);
 app.post('/loyalty/:loyaltyId', loyaltyRoute.updateLoyalty);
@@ -85,7 +87,7 @@ app.post('/special', specialRoute.createNewSpecial);
 app.post('/special/:specialId', specialRoute.updateSpecial);
 app.delete('/special/:specialId', specialRoute.deleteSpecial);
 app.listen(port, () => {
-    console.log(`Horror movie app is running on port ${port}.`);
+    console.log(`My Rewards app is running on port ${port}.`);
 });
 // app.listen({ port: port, host: host }, () => {
 //   console.log(`Horror movie app is running on port ${port}.`);

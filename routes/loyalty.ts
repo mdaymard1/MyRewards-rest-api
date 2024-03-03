@@ -17,8 +17,63 @@ import {
   updateLoyaltyStatuses,
   deleteRequestedEnrollment,
   enrollRequestIntoLoyalty,
+  getPaginatedCustomers,
+  getPaginatedEnrollmentRequests,
+  EnrollmentSourceType,
 } from '../src/services/LoyaltyService';
 import { LoyaltyProgram, LoyaltyPromotion } from 'square';
+
+export const getEnrollmentRequests = async (
+  request: Request,
+  response: Response,
+) => {
+  console.log('inside getEnrollmentRequests');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const { pageNumber, pageSize } = request.query;
+
+  const page = Number(pageNumber);
+  const size = Number(pageSize);
+
+  console.log("pageNumber: " + pageNumber + ", page: " + page);
+  console.log("pageSize: " + pageSize + ", size: " + size);
+
+  const results = await getPaginatedEnrollmentRequests(businessId, page, size);
+  // console.log('results: ' + results);
+  response.send(results);
+};
+
+export const getCustomers = async (
+  request: Request,
+  response: Response,
+) => {
+  console.log('inside getCustomers');
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+  const { pageNumber, pageSize } = request.query;
+
+  const page = Number(pageNumber);
+  const size = Number(pageSize);
+
+  console.log("pageNumber: " + pageNumber + ", page: " + page);
+  console.log("pageSize: " + pageSize + ", size: " + size);
+
+  const results = await getPaginatedCustomers(businessId, page, size);
+  response.send(results);
+};
 
 export const enrollRequest = async (request: Request, response: Response) => {
   console.log('inside enrollRequest ');
@@ -196,6 +251,7 @@ const enrollCustomer = async (request: Request, response: Response) => {
       firstName,
       lastName,
       phone,
+      EnrollmentSourceType.RewardsApp,
       email,
     );
     response.status(201);
@@ -449,6 +505,8 @@ module.exports = {
   deleteEnrollmentRequest,
   enrollCustomer,
   enrollRequest,
+  getEnrollmentRequests,
+  getCustomers,
   getLoyalty,
   requestEnrollment,
   updateLoyalty,

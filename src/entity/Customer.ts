@@ -33,8 +33,8 @@ export class Customer extends BaseEntity {
   @Column({ type: 'timestamp', nullable: false })
   enrolledAt: Date;
 
-  @Column({ type: 'boolean', nullable: false })
-  enrolledFromApp: boolean;
+  @Column({ type: 'integer', nullable: true })
+  enrollmentSource: number;
 
   @Column({ type: 'uuid', nullable: false })
   @Index()

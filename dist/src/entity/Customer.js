@@ -40,9 +40,9 @@ __decorate([
     __metadata("design:type", Date)
 ], Customer.prototype, "enrolledAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'boolean', nullable: false }),
-    __metadata("design:type", Boolean)
-], Customer.prototype, "enrolledFromApp", void 0);
+    (0, typeorm_1.Column)({ type: 'integer', nullable: true }),
+    __metadata("design:type", Number)
+], Customer.prototype, "enrollmentSource", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
     (0, typeorm_1.Index)(),
