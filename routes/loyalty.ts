@@ -21,7 +21,7 @@ import {
 import { LoyaltyProgram, LoyaltyPromotion } from 'square';
 
 export const enrollRequest = async (request: Request, response: Response) => {
-  console.log('inside enrollRequest');
+  console.log('inside enrollRequest ');
 
   const businessId = getBusinessIdFromAuthToken(request);
 
