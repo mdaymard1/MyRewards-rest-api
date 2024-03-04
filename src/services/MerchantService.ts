@@ -185,7 +185,6 @@ export const upsertMerchantCustomerAccount = async (
 export const getMerchantInfo = async (
   merchantId: string,
   accessToken: string,
-  callback: any,
 ) => {
   console.log('inside getMerchantInfo');
 
@@ -213,15 +212,43 @@ export const getMerchantInfo = async (
       console.log(
         'returning merchant for id: ' + merchantResponse?.result?.merchant?.id,
       );
-      callback(merchantResponse?.result?.merchant);
+      return merchantResponse.result.merchant;
     } else {
-      callback(undefined);
+      return undefined;
     }
   } catch (err) {
     console.log('merchantsApi.retrieveMerchant returned an error: ' + err);
-    callback(undefined);
+    return undefined;
   }
 };
+
+export const getMerchantLocations = async (merchantId: string, accessToken: string) => {
+  console.log('inside getMerchantLocations');
+
+  var token: string | undefined = '';
+  token = decryptToken(accessToken);
+
+  const env = getMerchantEnvironment();
+
+  console.log('env: ' + env);
+
+  const client = new Client({
+    squareVersion: '2024-01-18',
+    accessToken: token,
+    environment: env,
+  });
+
+  const { locationsApi } = client;
+
+  try {
+    const listLocationsResponse = await locationsApi.listLocations();
+    return listLocationsResponse.result.locations;
+  } catch (error) {
+    console.log('locationsApi.listLocations returned an error: ' + error);
+    return undefined;
+  }
+
+}
 
 export const getMainLoyaltyProgramFromMerchant = async (
   token: string,
@@ -432,6 +459,7 @@ module.exports = {
   createLoyaltyAccount,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
+  getMerchantLocations,
   getMainLoyaltyProgramFromMerchant,
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,

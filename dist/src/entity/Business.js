@@ -14,6 +14,7 @@ const typeorm_1 = require("typeorm");
 const Loyalty_1 = require("./Loyalty");
 const Special_1 = require("./Special");
 const Customer_1 = require("./Customer");
+const Location_1 = require("./Location");
 const EnrollmentRequest_1 = require("./EnrollmentRequest");
 let Business = class Business extends typeorm_1.BaseEntity {
 };
@@ -131,6 +132,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => Customer_1.Customer, (customer) => customer.business, { eager: true }),
     __metadata("design:type", Array)
 ], Business.prototype, "customers", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Location_1.Location, (location) => location.business, { eager: true }),
+    __metadata("design:type", Array)
+], Business.prototype, "locations", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => EnrollmentRequest_1.EnrollmentRequest, (enrollmentRequest) => enrollmentRequest.business, { eager: true }),
     __metadata("design:type", Array)

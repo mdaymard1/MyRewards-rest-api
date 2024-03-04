@@ -14,10 +14,11 @@ const LoyaltyService_1 = require("./LoyaltyService");
 const EncryptionService_1 = require("./EncryptionService");
 const MerchantService_1 = require("./MerchantService");
 const Business_1 = require("../entity/Business");
+const Location_1 = require("../entity/Location");
 const appDataSource_1 = require("../../appDataSource");
 function getBusinessIdFromAuthToken(request) {
     if (request.headers.authorization) {
-        const authValues = request.headers.authorization.split(' ');
+        const authValues = request.headers.authorization.split(" ");
         if (authValues.length == 2) {
             const encryptedBusinessIdToken = authValues[1];
             return (0, EncryptionService_1.decryptToken)(encryptedBusinessIdToken);
@@ -27,80 +28,82 @@ function getBusinessIdFromAuthToken(request) {
 }
 exports.getBusinessIdFromAuthToken = getBusinessIdFromAuthToken;
 const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('creating new business');
+    console.log("creating new business");
     try {
         (0, exports.createBusinessFromMerchantInfo)(name, merchantId, accessToken, refreshToken, expirationDate, function (newBusiness) {
             if (newBusiness) {
-                var token = '';
+                var token = "";
                 token = (0, EncryptionService_1.decryptToken)(newBusiness.merchantAccessToken);
                 if (token) {
                     (0, MerchantService_1.getMainLoyaltyProgramFromMerchant)(token, function (loyaltyProgram, promotions, accrualType, catalogItemNameMap) {
-                        console.log('got back program: ' +
+                        console.log("got back program: " +
                             (loyaltyProgram === null || loyaltyProgram === void 0 ? void 0 : loyaltyProgram.id) +
-                            ', promo count: ' +
+                            ", promo count: " +
                             (promotions === null || promotions === void 0 ? void 0 : promotions.length) +
-                            ', accrualType: ' +
+                            ", accrualType: " +
                             accrualType +
-                            ', catalogItemNameMap count: ' +
+                            ", catalogItemNameMap count: " +
                             (catalogItemNameMap === null || catalogItemNameMap === void 0 ? void 0 : catalogItemNameMap.size));
                         if (loyaltyProgram) {
                             (0, LoyaltyService_1.createAppLoyaltyFromLoyaltyProgram)(newBusiness.businessId, loyaltyProgram, promotions, catalogItemNameMap, function (newLoyalty) {
                                 if (!newLoyalty) {
-                                    console.log('Failed to create app loyalty');
+                                    console.log("Failed to create app loyalty");
                                 }
                                 callback(newBusiness);
                             });
                         }
                         else {
                             // If no merchant loyalty is found, we should probably check app loyalty and remove it
-                            console.log('No loyalty program found');
+                            console.log("No loyalty program found");
                             callback(newBusiness);
                         }
                     });
                 }
                 else {
                     //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
-                    console.log('No valid token found in newBusiness');
+                    console.log("No valid token found in newBusiness");
                     callback(newBusiness);
                 }
             }
             else {
-                console.log('Failed to create new business 2');
+                console.log("Failed to create new business 2");
                 callback(undefined);
             }
         });
     }
     catch (err) {
-        console.log('createNewBusinessWithLoyalty encountered an error: ' + err);
+        console.log("createNewBusinessWithLoyalty encountered an error: " + err);
         callback(undefined);
     }
 });
 exports.createNewBusinessWithLoyalty = createNewBusinessWithLoyalty;
 const createBusinessFromMerchantInfo = (name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside createBusinessFromMerchantInfo');
+    var _a;
+    console.log("inside createBusinessFromMerchantInfo");
     // First, we need to make sure the tokens are valid, so we'll get the latest merchant info first
-    (0, MerchantService_1.getMerchantInfo)(merchantId, accessToken, function (merchant) {
-        var _a;
-        if (merchant) {
-            console.log('got merchant, calling createBusinessEntity');
-            var merchantName = (_a = merchant.businessName) !== null && _a !== void 0 ? _a : undefined;
-            createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate, function (business) {
-                console.log('returned from createBusinessEntity with business: ' + business);
-                callback(business);
-                return;
-            });
+    const merchant = yield (0, MerchantService_1.getMerchantInfo)(merchantId, accessToken);
+    if (merchant) {
+        console.log("got merchant, calling createBusinessEntity");
+        var merchantName = (_a = merchant.businessName) !== null && _a !== void 0 ? _a : undefined;
+        const business = yield createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate);
+        console.log("returned from createBusinessEntity with business: " + business);
+        if (business) {
+            const wereLocationsCreated = yield createBusinessLocations(business.businessId, merchantId, accessToken);
+            console.log("creation of business locations result: " + wereLocationsCreated);
         }
-        else {
-            console.log('returing empty business');
-            callback(undefined);
-        }
-    });
+        callback(business);
+        return;
+    }
+    else {
+        console.log("returing empty business");
+        callback(undefined);
+    }
 });
 exports.createBusinessFromMerchantInfo = createBusinessFromMerchantInfo;
-const createBusinessEntity = (merchantId, merchantName, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const createBusinessEntity = (merchantId, merchantName, accessToken, refreshToken, expirationDate) => __awaiter(void 0, void 0, void 0, function* () {
     const business = appDataSource_1.AppDataSource.manager.create(Business_1.Business, {
-        name: merchantName !== null && merchantName !== void 0 ? merchantName : 'unknown',
-        businessName: merchantName !== null && merchantName !== void 0 ? merchantName : 'unknown',
+        name: merchantName !== null && merchantName !== void 0 ? merchantName : "unknown",
+        businessName: merchantName !== null && merchantName !== void 0 ? merchantName : "unknown",
         merchantId: merchantId,
         merchantAccessToken: accessToken,
         merchantRefreshToken: refreshToken,
@@ -111,11 +114,66 @@ const createBusinessEntity = (merchantId, merchantName, accessToken, refreshToke
         lastUpdateDate: new Date(),
     });
     yield appDataSource_1.AppDataSource.manager.save(business);
-    console.log('just created business with id: ' + business.businessId);
-    callback(business);
-    // updateBusinessWithBusinessIdToken(businessRepository, business.businessId, merchantId, function(wasSuccessful: boolean) {
-    //   callback(wasSuccessful ? business : undefined);
-    // })
+    console.log("just created business with id: " + business.businessId);
+    return business;
+});
+const createBusinessLocations = (businessId, merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b, _c, _d, _e, _f, _g, _h;
+    const merchantLocations = yield (0, MerchantService_1.getMerchantLocations)(merchantId, accessToken);
+    if (!merchantLocations || merchantLocations.length == 0) {
+        return false;
+    }
+    for (var merchantLocation of merchantLocations) {
+        var hours;
+        if ((_b = merchantLocation.businessHours) === null || _b === void 0 ? void 0 : _b.periods) {
+            var jsonPeriods = [];
+            for (var period of merchantLocation.businessHours.periods) {
+                if (period.dayOfWeek && period.startLocalTime && period.endLocalTime) {
+                    var periodJson = {
+                        dayOfWeek: period.dayOfWeek,
+                        startLocalTime: period.startLocalTime,
+                        endLocalTime: period.endLocalTime,
+                    };
+                    jsonPeriods.push(periodJson);
+                }
+            }
+            hours = jsonPeriods;
+        }
+        else {
+            hours = undefined;
+        }
+        insertBusinessLocation(businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_c = merchantLocation.address) === null || _c === void 0 ? void 0 : _c.addressLine1, (_d = merchantLocation.address) === null || _d === void 0 ? void 0 : _d.addressLine2, (_e = merchantLocation.address) === null || _e === void 0 ? void 0 : _e.locality, (_f = merchantLocation.address) === null || _f === void 0 ? void 0 : _f.administrativeDistrictLevel1, (_g = merchantLocation.address) === null || _g === void 0 ? void 0 : _g.postalCode, (_h = merchantLocation.address) === null || _h === void 0 ? void 0 : _h.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail);
+    }
+});
+const insertBusinessLocation = (businessId, merchantLocationId, status, name, businessName, description, addressLine1, addressLine2, city, state, zipCode, country, phoneNumber, hoursOfOperation, businessEmail) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside insertBusinessLocation");
+    try {
+        const location = appDataSource_1.AppDataSource.manager.create(Location_1.Location, {
+            businessId: businessId,
+            merchantLocationId: merchantLocationId,
+            status: status,
+            name: name !== null && name !== void 0 ? name : undefined,
+            businessName: businessName !== null && businessName !== void 0 ? businessName : undefined,
+            description: description !== null && description !== void 0 ? description : undefined,
+            addressLine1: addressLine1 !== null && addressLine1 !== void 0 ? addressLine1 : undefined,
+            addressLine2: addressLine2 !== null && addressLine2 !== void 0 ? addressLine2 : undefined,
+            city: city !== null && city !== void 0 ? city : undefined,
+            state: state !== null && state !== void 0 ? state : undefined,
+            zipCode: zipCode !== null && zipCode !== void 0 ? zipCode : undefined,
+            country: country !== null && country !== void 0 ? country : undefined,
+            phoneNumber: phoneNumber !== null && phoneNumber !== void 0 ? phoneNumber : undefined,
+            hoursOfOperation: hoursOfOperation,
+            businessEmail: businessEmail !== null && businessEmail !== void 0 ? businessEmail : undefined,
+            showThisLocationInApp: false,
+        });
+        yield appDataSource_1.AppDataSource.manager.save(location);
+        console.log("just created business location with id: " + location.merchantLocationId);
+        return location;
+    }
+    catch (error) {
+        console.log("Errow thrown while creating business location: " + error);
+        return null;
+    }
 });
 // const updateBusinessWithBusinessIdToken = async (businessRepository: Repository<Business>, businessId: string, merchantId: string, callback: any) => {
 //   // Create business token
@@ -140,22 +198,22 @@ const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken,
         merchantRefreshToken: refreshToken,
         accessTokenExpirationDate: expirationDate,
     });
-    console.log('just updated business with id: ' + business.businessId);
+    console.log("just updated business with id: " + business.businessId);
     callback(business);
 });
 exports.updateBusinessEntity = updateBusinessEntity;
 const updateBusinessDetails = (businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, firstImageUrl, secondImageUrl) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside updateBusinessDetails');
+    console.log("inside updateBusinessDetails");
     try {
         // First make sure the business does exist
-        const business = yield Business_1.Business.createQueryBuilder('business')
-            .where('business.businessId = :businessId', { businessId: businessId })
+        const business = yield Business_1.Business.createQueryBuilder("business")
+            .where("business.businessId = :businessId", { businessId: businessId })
             .getOne();
         if (!business) {
             return false;
         }
         const lastUpdate = new Date(lastUpdateDate);
-        console.log('firstImageUrl:' + firstImageUrl + ', secondImageUrl:' + secondImageUrl);
+        console.log("firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl);
         // Now update its values
         appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
             businessId: businessId,
@@ -180,16 +238,16 @@ const updateBusinessDetails = (businessId, lastUpdateDate, businessName, address
         return true;
     }
     catch (err) {
-        console.log('Error returned while getting business by id: ' + err);
+        console.log("Error returned while getting business by id: " + err);
         return false;
     }
 });
 exports.updateBusinessDetails = updateBusinessDetails;
 const findBusinessByMerchantId = (merchantId, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside findBusinessByMerchantId');
+    console.log("inside findBusinessByMerchantId");
     try {
-        const business = yield Business_1.Business.createQueryBuilder('business')
-            .where('business.merchantId = :merchantId', { merchantId: merchantId })
+        const business = yield Business_1.Business.createQueryBuilder("business")
+            .where("business.merchantId = :merchantId", { merchantId: merchantId })
             .getOne();
         callback(business);
     }
