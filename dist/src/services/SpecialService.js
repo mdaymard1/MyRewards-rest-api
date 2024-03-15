@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateSpecialsFromWebhook = exports.deleteExistingSpecial = exports.updateExistingSpecial = exports.createSpecial = exports.getAllSpecials = void 0;
+exports.updateSpecialsFromWebhook = exports.deleteExistingSpecial = exports.updateExistingSpecial = exports.createSpecial = exports.getAllSpecials = exports.getSpecialsForLocation = void 0;
 const appDataSource_1 = require("../../appDataSource");
 const EncryptionService_1 = require("./EncryptionService");
 const Loyalty_1 = require("../entity/Loyalty");
@@ -22,8 +22,30 @@ const LoyaltyAccrual_1 = require("../entity/LoyaltyAccrual");
 const LoyaltyService_1 = require("./LoyaltyService");
 const MerchantService_1 = require("./MerchantService");
 // import superAgent from 'superagent';
+const getSpecialsForLocation = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getAllSpecials");
+    const special = yield Special_1.Special.createQueryBuilder("special")
+        .leftJoinAndSelect("special.items", "special_item")
+        .select([
+        "special.title",
+        "special.description",
+        "special.showItemDetails",
+        "special.showItemPhotos",
+        "special.showItemPrices",
+        "special_item.name",
+        "special_item.itemDescription",
+        "special_item.itemPriceRange",
+        "special_item.imageUrl",
+    ])
+        .where("special.businessId = :businessId", { businessId: businessId })
+        .orderBy("special.sortOrder")
+        .addOrderBy("special_item.sortOrder")
+        .getMany();
+    return special;
+});
+exports.getSpecialsForLocation = getSpecialsForLocation;
 const getAllSpecials = (businessId, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside getAllSpecials');
+    console.log("inside getAllSpecials");
     const specials = yield appDataSource_1.AppDataSource.manager.find(Special_1.Special, {
         where: {
             businessId: businessId,
@@ -34,7 +56,7 @@ const getAllSpecials = (businessId, callback) => __awaiter(void 0, void 0, void 
 exports.getAllSpecials = getAllSpecials;
 const createSpecial = (businessId, special, callback) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
-    console.log('inside createSpecial');
+    console.log("inside createSpecial");
     const startDate = special.startDate
         ? new Date(special.startDate)
         : new Date();
@@ -50,7 +72,7 @@ const createSpecial = (businessId, special, callback) => __awaiter(void 0, void 
         businessId: businessId,
     });
     yield appDataSource_1.AppDataSource.manager.save(newSpecial);
-    console.log('just created new special with id: ' + newSpecial.id);
+    console.log("just created new special with id: " + newSpecial.id);
     let sortOrder = 1;
     if (special.items) {
         createSpecialItems(newSpecial, special.items, function (wasSuccessful) {
@@ -64,12 +86,12 @@ const createSpecial = (businessId, special, callback) => __awaiter(void 0, void 
 });
 exports.createSpecial = createSpecial;
 const updateBusinessSpecialCatalogIndicator = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
-    const totalCatalogReferences = yield SpecialItem_1.SpecialItem.createQueryBuilder('specialItem')
-        .leftJoinAndSelect('specialItem.special', 'special')
-        .where('special.businessId = :id', { id: businessId })
-        .andWhere('specialItem.isManuallyEntered = false')
+    const totalCatalogReferences = yield SpecialItem_1.SpecialItem.createQueryBuilder("specialItem")
+        .leftJoinAndSelect("specialItem.special", "special")
+        .where("special.businessId = :id", { id: businessId })
+        .andWhere("specialItem.isManuallyEntered = false")
         .getCount();
-    console.log('updateBusinessSpecialCatalogIndicator got count of ' +
+    console.log("updateBusinessSpecialCatalogIndicator got count of " +
         totalCatalogReferences);
     yield appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
         businessId: businessId,
@@ -79,14 +101,14 @@ const updateBusinessSpecialCatalogIndicator = (businessId) => __awaiter(void 0, 
     });
 });
 const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside updateExistingSpecial');
+    console.log("inside updateExistingSpecial");
     const existingSpecial = yield appDataSource_1.AppDataSource.manager.findOne(Special_1.Special, {
         where: {
             id: specialId,
         },
     });
     if (!existingSpecial) {
-        console.log('special not found');
+        console.log("special not found");
         callback(false);
         return;
     }
@@ -106,7 +128,7 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
     // Replace each item base on matching index
     for (var i = 0; i < existingSpecial.items.length; i++) {
         if (i < special.items.length) {
-            console.log('updating existing item from input special, index: ' + i);
+            console.log("updating existing item from input special, index: " + i);
             yield appDataSource_1.AppDataSource.manager.update(SpecialItem_1.SpecialItem, {
                 id: existingSpecial.items[i].id,
             }, {
@@ -124,7 +146,7 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
     if (special.items.length > existingSpecial.items.length) {
         // Create any additional items
         for (var i = existingSpecial.items.length; i < special.items.length; i++) {
-            console.log('creating item from input special, index: ' + i);
+            console.log("creating item from input special, index: " + i);
             const newSpecialItem = yield appDataSource_1.AppDataSource.manager.create(SpecialItem_1.SpecialItem, {
                 specialId: existingSpecial.id,
                 sortOrder: i + 1,
@@ -142,7 +164,7 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
     else if (special.items.length < existingSpecial.items.length) {
         // Remove remaining items
         for (var i = special.items.length; i < existingSpecial.items.length; i++) {
-            console.log('deleting existing item, index: ' + i);
+            console.log("deleting existing item, index: " + i);
             yield appDataSource_1.AppDataSource.manager.delete(SpecialItem_1.SpecialItem, existingSpecial.items[i].id);
         }
     }
@@ -151,7 +173,7 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
 });
 exports.updateExistingSpecial = updateExistingSpecial;
 const deleteExistingSpecial = (specialId, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside deleteExistingSpecial');
+    console.log("inside deleteExistingSpecial");
     yield appDataSource_1.AppDataSource.manager.delete(Special_1.Special, {
         id: specialId,
     });
@@ -178,9 +200,9 @@ const createSpecialItems = (special, specialItems, callback) => __awaiter(void 0
     callback(true);
 });
 const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside updateSpecialsFromWebhook');
-    const business = yield Business_1.Business.createQueryBuilder('business')
-        .where('business.merchantId = :merchantId', { merchantId: merchantId })
+    console.log("inside updateSpecialsFromWebhook");
+    const business = yield Business_1.Business.createQueryBuilder("business")
+        .where("business.merchantId = :merchantId", { merchantId: merchantId })
         .getOne();
     if (!business) {
         console.log("Can't find Business for merchantId: " + merchantId);
@@ -189,7 +211,7 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
     }
     // See if we need to update catalog items
     if (!business.loyaltyUsesCatalogItems && !business.specialsUseCatalogItems) {
-        console.log('catalog update is not required for specials or loyalty');
+        console.log("catalog update is not required for specials or loyalty");
         callback(false);
         return;
     }
@@ -207,13 +229,13 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
     }
     const diffInTime = accessTokenExpirationDate.getTime() - new Date().getTime();
     const diffInDays = diffInTime / (1000 * 3600 * 24);
-    console.log('number of days till token expires');
+    console.log("number of days till token expires");
     if (diffInDays < 8) {
         const accessToken = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
         const refreshToken = (0, EncryptionService_1.decryptToken)(business.merchantRefreshToken);
-        console.log('accessToken: ' + accessToken + ', refreshToken: ' + refreshToken);
+        console.log("accessToken: " + accessToken + ", refreshToken: " + refreshToken);
         if (!refreshToken) {
-            console.log('could not decrypt refresh token');
+            console.log("could not decrypt refresh token");
             callback(true);
             return;
         }
@@ -229,7 +251,7 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
                 merchantRefreshToken: newRefreshToken,
                 accessTokenExpirationDate: newRefreshDate,
             });
-            console.log('Just updated tokens in business');
+            console.log("Just updated tokens in business");
         }
         else {
             callback(true);
@@ -247,7 +269,7 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
         }
         else if (business.specialsUseCatalogItems) {
             updateSpecialsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates[0], function (wasSuccessful) {
-                console.log('returned from updateSpecialsFromCatalogChangesIfNeeded');
+                console.log("returned from updateSpecialsFromCatalogChangesIfNeeded");
                 callback(true);
             });
         }
@@ -256,68 +278,68 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
 exports.updateSpecialsFromWebhook = updateSpecialsFromWebhook;
 const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
     var _d, _e, _f;
-    console.log('inside requestNewTokens');
-    console.log('refreshToken: ' + refreshToken);
+    console.log("inside requestNewTokens");
+    console.log("refreshToken: " + refreshToken);
     try {
         const requestBody = {
             refresh_token: refreshToken,
-            redirect_uri: 'https://myredirectendpoint.com/callback',
-            grant_type: 'refresh_token',
-            code_verifier: 'PCOQi8CHfaRU3Q8NlKLNvu2AiKOd0wKneQdb8vUiF4U',
-            client_id: 'sq0idp-UKXXq5VxNXSDxNAV1manlQ',
+            redirect_uri: "https://myredirectendpoint.com/callback",
+            grant_type: "refresh_token",
+            code_verifier: "PCOQi8CHfaRU3Q8NlKLNvu2AiKOd0wKneQdb8vUiF4U",
+            client_id: "sq0idp-UKXXq5VxNXSDxNAV1manlQ",
         };
-        const superAgent = require('superagent');
+        const superAgent = require("superagent");
         const result = yield superAgent
-            .post('https://connect.squareup.com/oauth2/token')
-            .set('Content-Type', 'application/json')
+            .post("https://connect.squareup.com/oauth2/token")
+            .set("Content-Type", "application/json")
             .send(requestBody);
-        console.log('got response from server. result: ' + result + ', body: ' + (result === null || result === void 0 ? void 0 : result.body));
-        console.log('result.access_token: ' + ((_d = result === null || result === void 0 ? void 0 : result.body) === null || _d === void 0 ? void 0 : _d.access_token));
-        console.log('result.errors: ' + ((_e = result === null || result === void 0 ? void 0 : result.body) === null || _e === void 0 ? void 0 : _e.errors));
+        console.log("got response from server. result: " + result + ", body: " + (result === null || result === void 0 ? void 0 : result.body));
+        console.log("result.access_token: " + ((_d = result === null || result === void 0 ? void 0 : result.body) === null || _d === void 0 ? void 0 : _d.access_token));
+        console.log("result.errors: " + ((_e = result === null || result === void 0 ? void 0 : result.body) === null || _e === void 0 ? void 0 : _e.errors));
         const errors = (_f = result === null || result === void 0 ? void 0 : result.body) === null || _f === void 0 ? void 0 : _f.errors;
         if (errors) {
-            console.log('errors returned when requesting new token: ' + errors);
+            console.log("errors returned when requesting new token: " + errors);
             return undefined;
         }
         const newAccessToken = result === null || result === void 0 ? void 0 : result.body.access_token;
         const newRefreshToken = result === null || result === void 0 ? void 0 : result.body.refresh_token;
         const newRefreshDate = result === null || result === void 0 ? void 0 : result.body.expires_at;
         if (!newAccessToken || !newRefreshToken || !newRefreshDate) {
-            console.log('tokens not returned when requesting new token');
+            console.log("tokens not returned when requesting new token");
             return undefined;
         }
         const encryptedAccessToken = (0, EncryptionService_1.encryptToken)(newAccessToken);
         const encryptedRefreshToken = (0, EncryptionService_1.encryptToken)(newRefreshToken);
         const refreshDate = new Date(newRefreshDate);
-        console.log('returning new access token: ' +
+        console.log("returning new access token: " +
             newAccessToken +
-            ', new refresh token: ' +
+            ", new refresh token: " +
             newRefreshToken +
-            ', new expiration date:' +
+            ", new expiration date:" +
             refreshDate);
         return [encryptedAccessToken, encryptedRefreshToken, refreshDate];
     }
     catch (err) {
-        console.log('Error while requesting new token: ' + err);
+        console.log("Error while requesting new token: " + err);
         return undefined;
     }
 });
 const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callback) => __awaiter(void 0, void 0, void 0, function* () {
     var _g, _h, _j, _k, _l, _m, _o;
-    console.log('inside updateSpecialsFromCatalogChangesIfNeeded');
+    console.log("inside updateSpecialsFromCatalogChangesIfNeeded");
     let itemIds = [];
     // Create array of item ids to search for
     catalogMap.forEach(function (key, value) {
         itemIds.push(value);
-        console.log('adding key to search list: ' + key + ', value: ' + value);
+        console.log("adding key to search list: " + key + ", value: " + value);
     });
     if (itemIds.length > 0) {
         // get all special items matching the catalog items that just changed
-        const itemSpecials = yield SpecialItem_1.SpecialItem.createQueryBuilder('specialItem')
-            .where('specialItem.itemId IN (:...ids)', { ids: itemIds })
+        const itemSpecials = yield SpecialItem_1.SpecialItem.createQueryBuilder("specialItem")
+            .where("specialItem.itemId IN (:...ids)", { ids: itemIds })
             .getMany();
         if (itemSpecials && itemSpecials.length > 0) {
-            console.log('some items have change: ' + itemSpecials.length);
+            console.log("some items have change: " + itemSpecials.length);
             for (var itemSpecial of itemSpecials) {
                 const changedItem = catalogMap.get(itemSpecial.itemId);
                 if (changedItem) {
@@ -327,7 +349,7 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callba
                         });
                     }
                     else {
-                        console.log('updating existing item from input special, index: ' +
+                        console.log("updating existing item from input special, index: " +
                             changedItem.itemData.name);
                         // Determine price from variants
                         let priceRange;
@@ -338,11 +360,11 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callba
                         let maxCurrencyCurrency;
                         if (changedItem.itemData.variations) {
                             for (var variation of changedItem.itemData.variations) {
-                                if (variation.type == 'ITEM_VARIATION' &&
+                                if (variation.type == "ITEM_VARIATION" &&
                                     ((_h = (_g = variation.itemVariationData) === null || _g === void 0 ? void 0 : _g.priceMoney) === null || _h === void 0 ? void 0 : _h.amount)) {
                                     const amount = (_k = (_j = variation.itemVariationData) === null || _j === void 0 ? void 0 : _j.priceMoney) === null || _k === void 0 ? void 0 : _k.amount;
-                                    console.log('item amount: ' + amount);
-                                    const currency = (_o = (_m = (_l = variation.itemVariationData) === null || _l === void 0 ? void 0 : _l.priceMoney) === null || _m === void 0 ? void 0 : _m.currency) !== null && _o !== void 0 ? _o : 'USD';
+                                    console.log("item amount: " + amount);
+                                    const currency = (_o = (_m = (_l = variation.itemVariationData) === null || _l === void 0 ? void 0 : _l.priceMoney) === null || _m === void 0 ? void 0 : _m.currency) !== null && _o !== void 0 ? _o : "USD";
                                     if (amount && currency) {
                                         const adjustedAmount = Number(amount) / 100.0;
                                         if (!minCurrencyAmount) {
@@ -374,7 +396,7 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callba
                                 const currencyType = (0, LoyaltyService_1.getMoneyCurrencyType)(minCurrencyCurrency);
                                 if (currencyType) {
                                     const formattedPrice = minCurrencyAmount.toLocaleString(currencyType, {
-                                        style: 'currency',
+                                        style: "currency",
                                         currency: minCurrencyCurrency,
                                         maximumFractionDigits: 2,
                                     });
@@ -387,22 +409,22 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callba
                                 const maxCurrencyType = (0, LoyaltyService_1.getMoneyCurrencyType)(maxCurrencyCurrency);
                                 if (minCurrencyType && maxCurrencyType) {
                                     const formattedMinPrice = minCurrencyAmount.toLocaleString(minCurrencyType, {
-                                        style: 'currency',
+                                        style: "currency",
                                         currency: minCurrencyCurrency,
                                         maximumFractionDigits: 2,
                                     });
                                     const formattedMaxPrice = maxCurrencyAmount.toLocaleString(maxCurrencyType, {
-                                        style: 'currency',
+                                        style: "currency",
                                         currency: maxCurrencyCurrency,
                                         maximumFractionDigits: 2,
                                     });
-                                    priceRange = formattedMinPrice + ' - ' + formattedMaxPrice;
+                                    priceRange = formattedMinPrice + " - " + formattedMaxPrice;
                                     priceCurrency = maxCurrencyCurrency;
                                 }
                             }
                         }
-                        console.log('priceRange: ' + priceRange);
-                        console.log('priceCurrency: ' + priceCurrency);
+                        console.log("priceRange: " + priceRange);
+                        console.log("priceCurrency: " + priceCurrency);
                         // Check if image url has changed
                         let firstImageUrl = undefined;
                         let imageWasDeleted = false;
@@ -413,14 +435,14 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callba
                                     !imageObject.isDeleted &&
                                     imageObject.imageData) {
                                     firstImageUrl = imageObject.imageData.url;
-                                    console.log('found image for specialItemId: ' +
+                                    console.log("found image for specialItemId: " +
                                         changedItem.id +
-                                        ', url: ' +
+                                        ", url: " +
                                         firstImageUrl);
                                 }
                             }
                         }
-                        console.log('firstImageUrl: ' + firstImageUrl);
+                        console.log("firstImageUrl: " + firstImageUrl);
                         yield appDataSource_1.AppDataSource.manager.update(SpecialItem_1.SpecialItem, {
                             id: itemSpecial.id,
                         }, {
@@ -449,15 +471,15 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
     }
     else {
         // get all loyalty accrual and their categories or variant ids
-        const accruals = yield LoyaltyAccrual_1.LoyaltyAccrual.createQueryBuilder('loyaltyAccrual')
+        const accruals = yield LoyaltyAccrual_1.LoyaltyAccrual.createQueryBuilder("loyaltyAccrual")
             .where("loyaltyAccrual.accrualType = 'CATEGORY' OR loyaltyAccrual.accrualType = 'ITEM_VARIATION'")
             .getMany();
         if (accruals) {
             accruals.forEach((accrual) => {
-                const catalogId = accrual.accrualType == 'CATEGORY'
+                const catalogId = accrual.accrualType == "CATEGORY"
                     ? accrual.categoryId
                     : accrual.variantId;
-                console.log('checking catalogMap for catalogId: ' + catalogId);
+                console.log("checking catalogMap for catalogId: " + catalogId);
                 const catalogItem = catalogIdMapAndVariantStates[0].get(catalogId);
                 if (catalogItem) {
                     wereLoyaltyItemsUpdated = true;
@@ -473,12 +495,12 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
             environment: env,
         });
         const { loyaltyApi } = client;
-        let loyaltyProgramResponse = yield loyaltyApi.retrieveLoyaltyProgram('main');
-        console.log('response: ' + (loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result));
+        let loyaltyProgramResponse = yield loyaltyApi.retrieveLoyaltyProgram("main");
+        console.log("response: " + (loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result));
         const loyaltyProgram = (_p = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _p === void 0 ? void 0 : _p.program;
         if (loyaltyProgram) {
             (0, MerchantService_1.getCatalogItemIdMapFromAccurals)(token, (_q = loyaltyProgram.accrualRules) !== null && _q !== void 0 ? _q : [], function (catalogItemNameMap) {
-                console.log('Catalog items used by loyalty have changes, so updating loyalty');
+                console.log("Catalog items used by loyalty have changes, so updating loyalty");
                 updateLoyaltyWithLatestChanges(businessId, loyaltyProgram, catalogItemNameMap, function (wasSuccessful) {
                     callback(true);
                 });
@@ -489,7 +511,7 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
         }
     }
     else {
-        console.log('No catalog items have changed since last update');
+        console.log("No catalog items have changed since last update");
         callback(true);
     }
 });
@@ -505,12 +527,12 @@ const updateLoyaltyWithLatestChanges = (businessId, loyaltyProgram, catalogItemN
             (0, LoyaltyService_1.removeOldAccrualRules)(loyalty.loyaltyAccruals, loyaltyProgram);
             let loyaltyUsesCatalogItems = false;
             for (var loyaltyAccrualRule of loyaltyProgram.accrualRules) {
-                if (loyaltyAccrualRule.accrualType == 'CATEGORY' ||
-                    loyaltyAccrualRule.accrualType == 'ITEM_VARIATION')
+                if (loyaltyAccrualRule.accrualType == "CATEGORY" ||
+                    loyaltyAccrualRule.accrualType == "ITEM_VARIATION")
                     loyaltyUsesCatalogItems = true;
             }
             (0, LoyaltyService_1.updateBusinessLoyaltyCatalogIndicator)(businessId, loyaltyUsesCatalogItems);
-            console.log('sending callback');
+            console.log("sending callback");
             callback(true);
         }
         else {
@@ -523,8 +545,8 @@ const updateLoyaltyWithLatestChanges = (businessId, loyaltyProgram, catalogItemN
 });
 const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaiter(void 0, void 0, void 0, function* () {
     var _r, _s, _t, _u;
-    console.log('inside getCatalogItemsLastUpdated');
-    console.log('looking up catalog changes with token: ' + token);
+    console.log("inside getCatalogItemsLastUpdated");
+    console.log("looking up catalog changes with token: " + token);
     const lastUpdateDateIso = lastUpdateDate.toISOString();
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
@@ -532,62 +554,62 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaite
         environment: env,
     });
     const body = {
-        objectTypes: ['ITEM', 'CATEGORY'],
+        objectTypes: ["ITEM", "CATEGORY"],
         beginTime: lastUpdateDateIso,
         includeDeletedObjects: true,
         includeRelatedObjects: true,
     };
     const { catalogApi } = client;
-    console.log('Getting catalog changes since ' + lastUpdateDateIso);
+    console.log("Getting catalog changes since " + lastUpdateDateIso);
     const catalogResults = yield catalogApi.searchCatalogObjects(body);
     let catalogMap = new Map();
     let wereVariantsMission = false;
     if (catalogResults.result.objects) {
         for (var object of catalogResults.result.objects) {
-            if (object.type == 'CATEGORY') {
+            if (object.type == "CATEGORY") {
                 catalogMap.set(object.id, object);
-                console.log('got type: ' +
+                console.log("got type: " +
                     object.type +
-                    ', id: ' +
+                    ", id: " +
                     object.id +
-                    ', isDeleted: ' +
+                    ", isDeleted: " +
                     object.isDeleted +
-                    ', category name: ' +
+                    ", category name: " +
                     ((_r = object.categoryData) === null || _r === void 0 ? void 0 : _r.name));
             }
-            else if (object.type == 'ITEM') {
+            else if (object.type == "ITEM") {
                 catalogMap.set(object.id, object);
                 if ((_s = object.itemData) === null || _s === void 0 ? void 0 : _s.variations) {
                     for (var variant of object.itemData.variations) {
                         catalogMap.set(variant.id, object);
-                        console.log('got type: ' +
+                        console.log("got type: " +
                             object.type +
-                            ', id: ' +
+                            ", id: " +
                             object.id +
-                            ', isDeleted: ' +
+                            ", isDeleted: " +
                             object.isDeleted +
-                            ', item name: ' +
+                            ", item name: " +
                             ((_t = object.itemData) === null || _t === void 0 ? void 0 : _t.name));
                     }
                 }
                 else {
                     wereVariantsMission = true;
-                    console.log('variant was missing from ITEM in searchCatalogObjects results');
+                    console.log("variant was missing from ITEM in searchCatalogObjects results");
                 }
             }
         }
     }
     if (catalogResults.result.relatedObjects) {
         for (var relatedObject of catalogResults.result.relatedObjects) {
-            if (relatedObject.type == 'IMAGE') {
+            if (relatedObject.type == "IMAGE") {
                 catalogMap.set(relatedObject.id, relatedObject);
-                console.log('got related type: ' +
+                console.log("got related type: " +
                     relatedObject.type +
-                    ', id: ' +
+                    ", id: " +
                     relatedObject.id +
-                    ', isDeleted: ' +
+                    ", isDeleted: " +
                     relatedObject.isDeleted +
-                    ', category name: ' +
+                    ", category name: " +
                     ((_u = relatedObject.imageData) === null || _u === void 0 ? void 0 : _u.url));
             }
         }
@@ -598,6 +620,7 @@ module.exports = {
     deleteExistingSpecial: exports.deleteExistingSpecial,
     getAllSpecials: exports.getAllSpecials,
     createSpecial: exports.createSpecial,
+    getSpecialsForLocation: exports.getSpecialsForLocation,
     updateExistingSpecial: exports.updateExistingSpecial,
     updateSpecialsFromWebhook: exports.updateSpecialsFromWebhook,
 };

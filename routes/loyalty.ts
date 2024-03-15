@@ -1,11 +1,11 @@
-import { EntityManager } from 'typeorm';
-import { Request, Response } from 'express';
-import { AppDataSource } from '../appDataSource';
-import { Business } from '../src/entity/Business';
-import { Loyalty } from '../src/entity/Loyalty';
-import { getMainLoyaltyProgramFromMerchant } from '../src/services/MerchantService';
-import { getBusinessIdFromAuthToken } from '../src/services/BusinessService';
-import { decryptToken } from '../src/services/EncryptionService';
+import { EntityManager } from "typeorm";
+import { Request, Response } from "express";
+import { AppDataSource } from "../appDataSource";
+import { Business } from "../src/entity/Business";
+import { Loyalty } from "../src/entity/Loyalty";
+import { getMainLoyaltyProgramFromMerchant } from "../src/services/MerchantService";
+import { getBusinessIdFromAuthToken } from "../src/services/BusinessService";
+import { decryptToken } from "../src/services/EncryptionService";
 import {
   createAppLoyaltyFromLoyaltyProgram,
   createEnrollmentRequest,
@@ -20,14 +20,14 @@ import {
   getPaginatedCustomers,
   getPaginatedEnrollmentRequests,
   EnrollmentSourceType,
-} from '../src/services/LoyaltyService';
-import { LoyaltyProgram, LoyaltyPromotion } from 'square';
+} from "../src/services/LoyaltyService";
+import { LoyaltyProgram, LoyaltyPromotion } from "square";
 
 export const getEnrollmentRequests = async (
   request: Request,
-  response: Response,
+  response: Response
 ) => {
-  console.log('inside getEnrollmentRequests');
+  console.log("inside getEnrollmentRequests");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -50,11 +50,8 @@ export const getEnrollmentRequests = async (
   response.send(results);
 };
 
-export const getCustomers = async (
-  request: Request,
-  response: Response,
-) => {
-  console.log('inside getCustomers');
+export const getCustomers = async (request: Request, response: Response) => {
+  console.log("inside getCustomers");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -76,7 +73,7 @@ export const getCustomers = async (
 };
 
 export const enrollRequest = async (request: Request, response: Response) => {
-  console.log('inside enrollRequest ');
+  console.log("inside enrollRequest ");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -100,23 +97,28 @@ export const enrollRequest = async (request: Request, response: Response) => {
 
   const { enrollmentRequestId } = request.params;
 
-  var token: string | undefined = '';
+  var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
 
-  const wasSuccessful = await enrollRequestIntoLoyalty(
-    businessId,
-    token,
-    enrollmentRequestId,
-  );
-  response.status(wasSuccessful ? 200 : 400);
-  response.end();
+  if (token) {
+    const wasSuccessful = await enrollRequestIntoLoyalty(
+      businessId,
+      token,
+      enrollmentRequestId
+    );
+    response.status(wasSuccessful ? 200 : 400);
+    response.end();
+  } else {
+    response.status(400);
+    response.end();
+  }
 };
 
 export const deleteEnrollmentRequest = async (
   request: Request,
-  response: Response,
+  response: Response
 ) => {
-  console.log('inside deleteEnrollmentRequest');
+  console.log("inside deleteEnrollmentRequest");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -129,7 +131,7 @@ export const deleteEnrollmentRequest = async (
   const { enrollmentRequestId } = request.params;
 
   let wasDeleteSuccessful = await deleteRequestedEnrollment(
-    enrollmentRequestId,
+    enrollmentRequestId
   );
 
   response.status(wasDeleteSuccessful ? 200 : 400);
@@ -137,7 +139,7 @@ export const deleteEnrollmentRequest = async (
 };
 
 const requestEnrollment = async (request: Request, response: Response) => {
-  console.log('inside requestEnrollment');
+  console.log("inside requestEnrollment");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -162,7 +164,7 @@ const requestEnrollment = async (request: Request, response: Response) => {
   const { firstName, lastName, phone, email } = request.body;
 
   if (!firstName || !lastName || !phone) {
-    console.log('missing fields');
+    console.log("missing fields");
     response.status(401);
     response.end();
     return;
@@ -171,17 +173,17 @@ const requestEnrollment = async (request: Request, response: Response) => {
   // let digitRegExp = /^\d+$/;
 
   console.log(
-    'received input of ' +
+    "received input of " +
       firstName +
-      ' ' +
+      " " +
       lastName +
-      ' ' +
+      " " +
       phone +
-      ', ' +
-      email,
+      ", " +
+      email
   );
 
-  var token: string | undefined = '';
+  var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
 
   const newEnrollmentId = await createEnrollmentRequest(
@@ -189,7 +191,7 @@ const requestEnrollment = async (request: Request, response: Response) => {
     firstName,
     lastName,
     phone,
-    email,
+    email
   );
 
   response.status(newEnrollmentId ? 200 : 400);
@@ -197,7 +199,7 @@ const requestEnrollment = async (request: Request, response: Response) => {
 };
 
 const enrollCustomer = async (request: Request, response: Response) => {
-  console.log('inside enrollCustomer');
+  console.log("inside enrollCustomer");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -222,7 +224,7 @@ const enrollCustomer = async (request: Request, response: Response) => {
   const { firstName, lastName, phone, email } = request.body;
 
   if (!firstName || !lastName || !phone) {
-    console.log('missing fields');
+    console.log("missing fields");
     response.status(401);
     response.end();
     return;
@@ -231,17 +233,17 @@ const enrollCustomer = async (request: Request, response: Response) => {
   // let digitRegExp = /^\d+$/;
 
   console.log(
-    'received input of ' +
+    "received input of " +
       firstName +
-      ' ' +
+      " " +
       lastName +
-      ' +' +
+      " +" +
       phone +
-      ', ' +
-      email,
+      ", " +
+      email
   );
 
-  var token: string | undefined = '';
+  var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
 
   if (token) {
@@ -252,7 +254,7 @@ const enrollCustomer = async (request: Request, response: Response) => {
       lastName,
       phone,
       EnrollmentSourceType.RewardsApp,
-      email,
+      email
     );
     response.status(201);
     response.end();
@@ -260,7 +262,7 @@ const enrollCustomer = async (request: Request, response: Response) => {
 };
 
 const getLoyalty = async (request: Request, response: Response) => {
-  console.log('inside getLoyalty');
+  console.log("inside getLoyalty");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -289,7 +291,7 @@ const getLoyalty = async (request: Request, response: Response) => {
     },
   });
 
-  var token: string | undefined = '';
+  var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
   if (token) {
     getMainLoyaltyProgramFromMerchant(
@@ -298,17 +300,17 @@ const getLoyalty = async (request: Request, response: Response) => {
         loyaltyProgram: LoyaltyProgram,
         promotions: LoyaltyPromotion[],
         accrualType: string,
-        catalogItemNameMap: Map<string, string>,
+        catalogItemNameMap: Map<string, string>
       ) {
         console.log(
-          'got back program: ' +
+          "got back program: " +
             loyaltyProgram?.id +
-            ', promo count: ' +
+            ", promo count: " +
             promotions?.length +
-            ', accrualType: ' +
+            ", accrualType: " +
             accrualType +
-            ', categoryIdMap count: ' +
-            catalogItemNameMap?.size,
+            ", categoryIdMap count: " +
+            catalogItemNameMap?.size
         );
 
         if (loyaltyProgram) {
@@ -317,21 +319,21 @@ const getLoyalty = async (request: Request, response: Response) => {
               isLoyaltyOrPromotionsOutOfDate(
                 loyalty,
                 loyaltyProgram,
-                promotions,
+                promotions
               )
             ) {
-              console.log('loyalty is out of date');
+              console.log("loyalty is out of date");
               updateAppLoyaltyFromMerchant(
                 loyalty,
                 loyaltyProgram,
                 promotions,
                 catalogItemNameMap,
                 function (updatedloyalty: Loyalty) {
-                  console.log('done updating loyalty');
+                  console.log("done updating loyalty");
                   if (updatedloyalty) {
                     //Get a refreshed loyalty
                     console.log(
-                      'loyalty updated, now getting refreshed version',
+                      "loyalty updated, now getting refreshed version"
                     );
                     getCurrentLoyaltyById(
                       updatedloyalty.id,
@@ -343,13 +345,13 @@ const getLoyalty = async (request: Request, response: Response) => {
                           response.end();
                           return;
                         }
-                      },
+                      }
                     );
                   }
-                },
+                }
               );
             } else {
-              console.log('loyalty is not out of date');
+              console.log("loyalty is not out of date");
               response.send(loyalty);
             }
           } else {
@@ -370,14 +372,14 @@ const getLoyalty = async (request: Request, response: Response) => {
                         response.end();
                         return;
                       }
-                    },
+                    }
                   );
                 } else {
                   response.status(500);
                   response.end();
                   return;
                 }
-              },
+              }
             );
           }
         } else {
@@ -385,7 +387,7 @@ const getLoyalty = async (request: Request, response: Response) => {
           response.status(404);
           response.end();
         }
-      },
+      }
     );
   } else {
     //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
@@ -405,10 +407,10 @@ const updateLoyalty = async (request: Request, response: Response) => {
   const { loyaltyId } = request.params;
 
   const businessId = getBusinessIdFromAuthToken(request);
-  console.log('businessId: ' + businessId + ', + loyaltyId ' + loyaltyId);
+  console.log("businessId: " + businessId + ", + loyaltyId " + loyaltyId);
 
   if (!businessId || !loyaltyId) {
-    console.log('missing input');
+    console.log("missing input");
     response.status(400);
     response.end();
     return;
@@ -431,7 +433,7 @@ const updateLoyalty = async (request: Request, response: Response) => {
     function (wasSuccessful: boolean) {
       response.status(wasSuccessful ? 204 : 404);
       response.end();
-    },
+    }
   );
 };
 
@@ -442,7 +444,7 @@ const updateLoyaltyStatus = async (request: Request, response: Response) => {
 
   const businessId = getBusinessIdFromAuthToken(request);
 
-  console.log('businessId: ' + businessId + ', + loyaltyId' + loyaltyId);
+  console.log("businessId: " + businessId + ", + loyaltyId" + loyaltyId);
 
   const {
     showLoyaltyInApp,
@@ -452,17 +454,17 @@ const updateLoyaltyStatus = async (request: Request, response: Response) => {
   } = request.body;
 
   if (!businessId || !loyaltyStatus) {
-    console.log('missing input');
+    console.log("missing input");
     response.status(400);
     response.end();
     return;
   }
   if (
-    typeof showLoyaltyInApp != 'boolean' ||
-    typeof showPromotionsInApp != 'boolean' ||
-    typeof automaticallyUpdateChangesFromMerchant != 'boolean'
+    typeof showLoyaltyInApp != "boolean" ||
+    typeof showPromotionsInApp != "boolean" ||
+    typeof automaticallyUpdateChangesFromMerchant != "boolean"
   ) {
-    console.log('input fields not boolean');
+    console.log("input fields not boolean");
     response.status(400);
     response.end();
     return;
@@ -484,7 +486,7 @@ const updateLoyaltyStatus = async (request: Request, response: Response) => {
     function (wasSuccessful: boolean) {
       response.status(wasSuccessful ? 204 : 500);
       response.end();
-    },
+    }
   );
 };
 

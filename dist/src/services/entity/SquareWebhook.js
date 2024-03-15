@@ -1,46 +1,59 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SquareRewardTier = exports.SquareAccrualRules = exports.SquareLoyaltyProgram = exports.SquareLoyaltyPromotion = exports.SquareLoyaltyAccount = exports.SquareCatalogVersionUpdated = exports.SquareWebhook = void 0;
+exports.SquareRewardTier = exports.SquareAccrualRules = exports.SquareLoyaltyProgram = exports.SquareLoyaltyPromotion = exports.SquareLoyaltyAccount = exports.SquareCatalogVersionUpdated = exports.SquareLocationUpdate = exports.SquareWebhook = void 0;
 class SquareWebhook {
     constructor(payload) {
-        console.log('inside SquareWebhook constructor with type: ' + payload.data.type);
+        console.log("inside SquareWebhook constructor with type: " + payload.data.type);
         this.type = payload.type;
         this.merchantId = payload.merchant_id;
-        if ((this.type == 'loyalty.program.updated' ||
-            this.type == 'loyalty.program.created') &&
+        if ((this.type == "loyalty.program.updated" ||
+            this.type == "loyalty.program.created") &&
             this.merchantId &&
-            payload.data.type == 'loyalty.program' &&
+            payload.data.type == "loyalty.program" &&
             payload.data.object.loyalty_program) {
             this.loyaltyProgram = new SquareLoyaltyProgram(payload.data.object.loyalty_program);
         }
-        if ((this.type == 'loyalty.promotion.created' ||
-            this.type == 'loyalty.promotion.updated') &&
+        if ((this.type == "loyalty.promotion.created" ||
+            this.type == "loyalty.promotion.updated") &&
             this.merchantId &&
-            payload.data.type == 'loyalty.promotion' &&
+            payload.data.type == "loyalty.promotion" &&
             payload.data.object.loyalty_promotion) {
             this.loyaltyPromotion = new SquareLoyaltyPromotion(payload.data.object.loyalty_promotion);
         }
-        if ((this.type == 'loyalty.account.created' ||
-            this.type == 'loyalty.account.updated' ||
-            'loyalty.account.deleted') &&
+        if ((this.type == "loyalty.account.created" ||
+            this.type == "loyalty.account.updated" ||
+            "loyalty.account.deleted") &&
             this.merchantId &&
-            payload.data.type == 'loyalty.account' &&
+            payload.data.type == "loyalty.account" &&
             payload.data.object.loyalty_account) {
             this.loyaltyAccount = new SquareLoyaltyAccount(payload.data.object.loyalty_account, this.type);
         }
-        if (this.type == 'catalog.version.updated' &&
+        if ((this.type == "location.updated" || this.type == "location.created") &&
             this.merchantId &&
-            payload.data.type == 'catalog' &&
+            payload.data.type == "Location") {
+            this.location = new SquareLocationUpdate(payload.data, this.type);
+        }
+        if (this.type == "catalog.version.updated" &&
+            this.merchantId &&
+            payload.data.type == "catalog" &&
             payload.data.object.catalog_version) {
             this.catalogVersionUpdated = new SquareCatalogVersionUpdated(payload.data.object.catalog_version);
         }
-        console.log('SquareWebhook initialized');
+        console.log("SquareWebhook initialized");
     }
 }
 exports.SquareWebhook = SquareWebhook;
+class SquareLocationUpdate {
+    constructor(payload, type) {
+        console.log("inside SquareLocationUpdate constructor");
+        this.type = type == "location.created" ? "create" : "update";
+        this.locationId = payload.id;
+    }
+}
+exports.SquareLocationUpdate = SquareLocationUpdate;
 class SquareCatalogVersionUpdated {
     constructor(payload) {
-        console.log('inside SquareCatalogVersionUpdated constructor');
+        console.log("inside SquareCatalogVersionUpdated constructor");
         if (payload.updated_at) {
             this.catalogVersion = {
                 updatedAt: payload.updated_at,
@@ -51,7 +64,7 @@ class SquareCatalogVersionUpdated {
 exports.SquareCatalogVersionUpdated = SquareCatalogVersionUpdated;
 class SquareLoyaltyAccount {
     constructor(payload, type) {
-        console.log('inside SquareLoyaltyAccount constructor');
+        console.log("inside SquareLoyaltyAccount constructor");
         this.id = payload.id;
         this.loyaltyProgramId = payload.program_id;
         this.balance = payload.balance;
@@ -64,13 +77,13 @@ class SquareLoyaltyAccount {
         }
         this.customerId = payload.customer_id;
         this.enrolledAt = payload.enrolled_at;
-        this.wasDeleted = type == 'loyalty.account.deleted';
+        this.wasDeleted = type == "loyalty.account.deleted";
     }
 }
 exports.SquareLoyaltyAccount = SquareLoyaltyAccount;
 class SquareLoyaltyPromotion {
     constructor(payload) {
-        console.log('inside SquareLoyaltyPromotion constructor');
+        console.log("inside SquareLoyaltyPromotion constructor");
         this.id = payload.id;
         this.name = payload.name;
         this.status = payload.status;
@@ -87,18 +100,18 @@ exports.SquareLoyaltyPromotion = SquareLoyaltyPromotion;
 class SquareLoyaltyProgram {
     constructor(payload) {
         var _a, _b;
-        console.log('inside SquareLoyaltyProgram constructor');
+        console.log("inside SquareLoyaltyProgram constructor");
         this.id = payload.id;
         this.status = payload.status;
         if (payload.accrual_rules) {
             this.accrualRules = [];
-            console.log('creating accrual rules');
+            console.log("creating accrual rules");
             for (var accrual of payload.accrual_rules) {
                 (_a = this.accrualRules) === null || _a === void 0 ? void 0 : _a.push(new SquareAccrualRules(accrual));
             }
         }
         if (payload.reward_tiers) {
-            console.log('creating reward tiers');
+            console.log("creating reward tiers");
             this.rewardTiers = [];
             for (var rewardTier of payload.reward_tiers) {
                 (_b = this.rewardTiers) === null || _b === void 0 ? void 0 : _b.push(new SquareRewardTier(rewardTier));
@@ -122,7 +135,7 @@ exports.SquareLoyaltyProgram = SquareLoyaltyProgram;
 class SquareAccrualRules {
     constructor(payload) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
-        console.log('inside SquareAccrualRules constructor');
+        console.log("inside SquareAccrualRules constructor");
         this.accrualType = payload.accrual_type;
         this.points = payload.points;
         if (payload.spend_data && ((_a = payload.spend_data) === null || _a === void 0 ? void 0 : _a.amount_money)) {
@@ -158,7 +171,7 @@ class SquareAccrualRules {
 exports.SquareAccrualRules = SquareAccrualRules;
 class SquareRewardTier {
     constructor(payload) {
-        console.log('inside SquareRewardTier constructor');
+        console.log("inside SquareRewardTier constructor");
         this.id = payload.id;
         this.name = payload.name;
         this.points = payload.points;

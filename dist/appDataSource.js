@@ -10,13 +10,13 @@ const typeorm_1 = require("typeorm");
  */
 exports.AppDataSource = new typeorm_1.DataSource({
     // @ts-ignore - string does not match DataSourceOptions["type"] type
-    type: 'postgres',
+    type: "postgres",
     host: process.env.DBHOST,
-    port: parseInt(process.env.DBPORT || '5432'),
+    port: parseInt(process.env.DBPORT || "5432"),
     username: process.env.USERNAME,
     password: process.env.PASSWORD,
     // database: process.env.DATABASE,
-    entities: ['dist/src/entity/*.{js,ts}'],
+    entities: ["dist/src/entity/*.{js,ts}"],
     // migrations,
     logging: true,
     synchronize: true,
@@ -28,6 +28,6 @@ exports.AppDataSource = new typeorm_1.DataSource({
     // port: 5432,
     // username: 'admin',
     // password: 'myrewards',
-    // database: 'postgres',
-    database: 'rewards',
+    // database: "postgres",
+    database: "rewards",
 });

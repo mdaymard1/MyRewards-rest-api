@@ -18,7 +18,7 @@ const BusinessService_1 = require("../src/services/BusinessService");
 const EncryptionService_1 = require("../src/services/EncryptionService");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
 const getEnrollmentRequests = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside getEnrollmentRequests');
+    console.log("inside getEnrollmentRequests");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -36,7 +36,7 @@ const getEnrollmentRequests = (request, response) => __awaiter(void 0, void 0, v
 });
 exports.getEnrollmentRequests = getEnrollmentRequests;
 const getCustomers = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside getCustomers');
+    console.log("inside getCustomers");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -53,7 +53,7 @@ const getCustomers = (request, response) => __awaiter(void 0, void 0, void 0, fu
 });
 exports.getCustomers = getCustomers;
 const enrollRequest = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside enrollRequest ');
+    console.log("inside enrollRequest ");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -71,15 +71,21 @@ const enrollRequest = (request, response) => __awaiter(void 0, void 0, void 0, f
         return;
     }
     const { enrollmentRequestId } = request.params;
-    var token = '';
+    var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
-    const wasSuccessful = yield (0, LoyaltyService_1.enrollRequestIntoLoyalty)(businessId, token, enrollmentRequestId);
-    response.status(wasSuccessful ? 200 : 400);
-    response.end();
+    if (token) {
+        const wasSuccessful = yield (0, LoyaltyService_1.enrollRequestIntoLoyalty)(businessId, token, enrollmentRequestId);
+        response.status(wasSuccessful ? 200 : 400);
+        response.end();
+    }
+    else {
+        response.status(400);
+        response.end();
+    }
 });
 exports.enrollRequest = enrollRequest;
 const deleteEnrollmentRequest = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside deleteEnrollmentRequest');
+    console.log("inside deleteEnrollmentRequest");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -93,7 +99,7 @@ const deleteEnrollmentRequest = (request, response) => __awaiter(void 0, void 0,
 });
 exports.deleteEnrollmentRequest = deleteEnrollmentRequest;
 const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside requestEnrollment');
+    console.log("inside requestEnrollment");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -112,28 +118,28 @@ const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 
     }
     const { firstName, lastName, phone, email } = request.body;
     if (!firstName || !lastName || !phone) {
-        console.log('missing fields');
+        console.log("missing fields");
         response.status(401);
         response.end();
         return;
     }
     // let digitRegExp = /^\d+$/;
-    console.log('received input of ' +
+    console.log("received input of " +
         firstName +
-        ' ' +
+        " " +
         lastName +
-        ' ' +
+        " " +
         phone +
-        ', ' +
+        ", " +
         email);
-    var token = '';
+    var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     const newEnrollmentId = yield (0, LoyaltyService_1.createEnrollmentRequest)(businessId, firstName, lastName, phone, email);
     response.status(newEnrollmentId ? 200 : 400);
     response.end();
 });
 const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside enrollCustomer');
+    console.log("inside enrollCustomer");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -152,21 +158,21 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
     }
     const { firstName, lastName, phone, email } = request.body;
     if (!firstName || !lastName || !phone) {
-        console.log('missing fields');
+        console.log("missing fields");
         response.status(401);
         response.end();
         return;
     }
     // let digitRegExp = /^\d+$/;
-    console.log('received input of ' +
+    console.log("received input of " +
         firstName +
-        ' ' +
+        " " +
         lastName +
-        ' +' +
+        " +" +
         phone +
-        ', ' +
+        ", " +
         email);
-    var token = '';
+    var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     if (token) {
         yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phone, LoyaltyService_1.EnrollmentSourceType.RewardsApp, email);
@@ -175,7 +181,7 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
     }
 });
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('inside getLoyalty');
+    console.log("inside getLoyalty");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
@@ -198,27 +204,27 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
             businessId: businessId,
         },
     });
-    var token = '';
+    var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     if (token) {
         (0, MerchantService_1.getMainLoyaltyProgramFromMerchant)(token, function (loyaltyProgram, promotions, accrualType, catalogItemNameMap) {
-            console.log('got back program: ' +
+            console.log("got back program: " +
                 (loyaltyProgram === null || loyaltyProgram === void 0 ? void 0 : loyaltyProgram.id) +
-                ', promo count: ' +
+                ", promo count: " +
                 (promotions === null || promotions === void 0 ? void 0 : promotions.length) +
-                ', accrualType: ' +
+                ", accrualType: " +
                 accrualType +
-                ', categoryIdMap count: ' +
+                ", categoryIdMap count: " +
                 (catalogItemNameMap === null || catalogItemNameMap === void 0 ? void 0 : catalogItemNameMap.size));
             if (loyaltyProgram) {
                 if (loyalty) {
                     if ((0, LoyaltyService_1.isLoyaltyOrPromotionsOutOfDate)(loyalty, loyaltyProgram, promotions)) {
-                        console.log('loyalty is out of date');
+                        console.log("loyalty is out of date");
                         (0, LoyaltyService_1.updateAppLoyaltyFromMerchant)(loyalty, loyaltyProgram, promotions, catalogItemNameMap, function (updatedloyalty) {
-                            console.log('done updating loyalty');
+                            console.log("done updating loyalty");
                             if (updatedloyalty) {
                                 //Get a refreshed loyalty
-                                console.log('loyalty updated, now getting refreshed version');
+                                console.log("loyalty updated, now getting refreshed version");
                                 getCurrentLoyaltyById(updatedloyalty.id, function (refreshedLoyalty) {
                                     if (refreshedLoyalty) {
                                         response.send(refreshedLoyalty);
@@ -233,7 +239,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
                         });
                     }
                     else {
-                        console.log('loyalty is not out of date');
+                        console.log("loyalty is not out of date");
                         response.send(loyalty);
                     }
                 }
@@ -280,9 +286,9 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
 const updateLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { loyaltyId } = request.params;
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    console.log('businessId: ' + businessId + ', + loyaltyId ' + loyaltyId);
+    console.log("businessId: " + businessId + ", + loyaltyId " + loyaltyId);
     if (!businessId || !loyaltyId) {
-        console.log('missing input');
+        console.log("missing input");
         response.status(400);
         response.end();
         return;
@@ -302,18 +308,18 @@ const updateLoyaltyStatus = (request, response) => __awaiter(void 0, void 0, voi
     const { loyaltyId } = request.params;
     // console.log("showLoyaltyInApp: " + showLoyaltyInApp);
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    console.log('businessId: ' + businessId + ', + loyaltyId' + loyaltyId);
+    console.log("businessId: " + businessId + ", + loyaltyId" + loyaltyId);
     const { showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, } = request.body;
     if (!businessId || !loyaltyStatus) {
-        console.log('missing input');
+        console.log("missing input");
         response.status(400);
         response.end();
         return;
     }
-    if (typeof showLoyaltyInApp != 'boolean' ||
-        typeof showPromotionsInApp != 'boolean' ||
-        typeof automaticallyUpdateChangesFromMerchant != 'boolean') {
-        console.log('input fields not boolean');
+    if (typeof showLoyaltyInApp != "boolean" ||
+        typeof showPromotionsInApp != "boolean" ||
+        typeof automaticallyUpdateChangesFromMerchant != "boolean") {
+        console.log("input fields not boolean");
         response.status(400);
         response.end();
         return;

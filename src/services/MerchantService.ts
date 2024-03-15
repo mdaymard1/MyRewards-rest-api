@@ -10,36 +10,36 @@ import {
   LoyaltyProgramAccrualRule,
   SearchCustomersRequest,
   UpdateCustomerRequest,
-} from 'square';
-import { decryptToken } from './EncryptionService';
-import { getMerchantEnvironment } from '../utility/Utility';
-import dotenv from 'dotenv';
-import { SquareAccrualRules } from './entity/SquareWebhook';
+} from "square";
+import { decryptToken } from "./EncryptionService";
+import { getMerchantEnvironment } from "../utility/Utility";
+import dotenv from "dotenv";
+import { SquareAccrualRules } from "./entity/SquareWebhook";
 
 export const createLoyaltyAccount = async (
   accessToken: string,
   loyaltyProgramId: string,
-  phoneNumber: string,
+  phoneNumber: string
 ) => {
   console.log(
-    'inside createLoyaltyAccount with loyaltyProgramId: ' +
+    "inside createLoyaltyAccount with loyaltyProgramId: " +
       loyaltyProgramId +
-      ', phoneNumber: ' +
-      phoneNumber,
+      ", phoneNumber: " +
+      phoneNumber
   );
 
   const env = getMerchantEnvironment();
 
   const client = new Client({
-    squareVersion: '2024-01-18',
+    squareVersion: "2024-01-18",
     accessToken: accessToken,
     environment: env,
   });
 
-  const crypto = require('crypto');
+  const crypto = require("crypto");
 
   let idempotencyKey = crypto.randomUUID();
-  console.log('idempotencyKey: ' + idempotencyKey);
+  console.log("idempotencyKey: " + idempotencyKey);
   const createLoyaltyBody: CreateLoyaltyAccountRequest = {
     loyaltyAccount: {
       programId: loyaltyProgramId,
@@ -53,14 +53,14 @@ export const createLoyaltyAccount = async (
 
   try {
     let createLoyaltyAccountResponse = await loyaltyApi.createLoyaltyAccount(
-      createLoyaltyBody,
+      createLoyaltyBody
     );
     if (createLoyaltyAccountResponse) {
       console.log(
-        'just created loyalty account in square. Loyalty account id: ' +
+        "just created loyalty account in square. Loyalty account id: " +
           createLoyaltyAccountResponse.result.loyaltyAccount?.id +
-          ', customerId: ' +
-          createLoyaltyAccountResponse.result.loyaltyAccount?.customerId,
+          ", customerId: " +
+          createLoyaltyAccountResponse.result.loyaltyAccount?.customerId
       );
     }
     return createLoyaltyAccountResponse.result.loyaltyAccount?.customerId;
@@ -68,9 +68,9 @@ export const createLoyaltyAccount = async (
     if (error instanceof ApiError) {
       const errors = error.result;
       const { statusCode, headers } = error;
-      console.log('Got an error while creating loyalty account: ' + statusCode);
+      console.log("Got an error while creating loyalty account: " + statusCode);
       if (error.errors && error.errors.length > 0) {
-        console.log('error: ' + error.errors[0].detail);
+        console.log("error: " + error.errors[0].detail);
       }
     }
     return null;
@@ -79,14 +79,14 @@ export const createLoyaltyAccount = async (
 
 export const lookupCustomerIdByPhoneNumber = async (
   accessToken: string,
-  phoneNumber: string,
+  phoneNumber: string
 ) => {
-  console.log('inside lookupCustomerByPhoneNumber');
+  console.log("inside lookupCustomerByPhoneNumber");
 
   const env = getMerchantEnvironment();
 
   const client = new Client({
-    squareVersion: '2024-01-18',
+    squareVersion: "2024-01-18",
     accessToken: accessToken,
     environment: env,
   });
@@ -109,20 +109,20 @@ export const lookupCustomerIdByPhoneNumber = async (
       searchCustomerResponse.result.customers.length > 0
     ) {
       console.log(
-        'found customer with id of ' +
-          searchCustomerResponse.result.customers[0].id,
+        "found customer with id of " +
+          searchCustomerResponse.result.customers[0].id
       );
       return searchCustomerResponse.result.customers[0].id;
     }
-    console.log('customer not found');
+    console.log("customer not found");
     return null;
   } catch (error) {
     if (error instanceof ApiError) {
       const errors = error.result;
       const { statusCode, headers } = error;
-      console.log('Got an error while creating square customer: ' + statusCode);
+      console.log("Got an error while creating square customer: " + statusCode);
       if (error.errors && error.errors.length > 0) {
-        console.log('error: ' + error.errors[0].detail);
+        console.log("error: " + error.errors[0].detail);
       }
     }
     return null;
@@ -136,14 +136,14 @@ export const upsertMerchantCustomerAccount = async (
   firstName: string,
   lastName: string,
   phone: string,
-  email?: string,
+  email?: string
 ) => {
-  console.log('inside upsertMerchantCustomerAccount');
+  console.log("inside upsertMerchantCustomerAccount");
 
   const env = getMerchantEnvironment();
 
   const client = new Client({
-    squareVersion: '2024-01-18',
+    squareVersion: "2024-01-18",
     accessToken: accessToken,
     environment: env,
   });
@@ -151,12 +151,12 @@ export const upsertMerchantCustomerAccount = async (
 
   try {
     let retrieveCustomerResponse = await customersApi.retrieveCustomer(
-      merchantCustomerId,
+      merchantCustomerId
     );
     let existingCustomer = retrieveCustomerResponse.result.customer;
     // Only update fields that are missing
     if (existingCustomer) {
-      console.log('found customer account. updating...');
+      console.log("found customer account. updating...");
       const body: UpdateCustomerRequest = {
         givenName: existingCustomer.givenName ?? firstName,
         familyName: existingCustomer.familyName ?? lastName,
@@ -165,42 +165,42 @@ export const upsertMerchantCustomerAccount = async (
       };
       let updateCustomerResponse = await customersApi.updateCustomer(
         merchantCustomerId,
-        body,
+        body
       );
       return existingCustomer.id;
     } else {
-      console.log('customer not returned in response');
+      console.log("customer not returned in response");
     }
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.errors && error.errors.length > 0) {
-        console.log('error: ' + error.errors[0].detail);
+        console.log("error: " + error.errors[0].detail);
       }
     } else {
-      console.log('some unexpected error: ' + error);
+      console.log("some unexpected error: " + error);
     }
   }
 };
 
 export const getMerchantInfo = async (
   merchantId: string,
-  accessToken: string,
+  accessToken: string
 ) => {
-  console.log('inside getMerchantInfo');
+  console.log("inside getMerchantInfo");
 
-  var token: string | undefined = '';
+  var token: string | undefined = "";
   token = decryptToken(accessToken);
 
-  console.log('converted encrypted token: ' + accessToken + ' to ' + token);
-  console.log('merchantId: ' + merchantId);
-  console.log('process.env.NODE_ENV: ' + process.env.NODE_ENV);
+  console.log("converted encrypted token: " + accessToken + " to " + token);
+  console.log("merchantId: " + merchantId);
+  console.log("process.env.NODE_ENV: " + process.env.NODE_ENV);
 
   const env = getMerchantEnvironment();
 
-  console.log('env: ' + env);
+  console.log("env: " + env);
 
   const client = new Client({
-    squareVersion: '2024-01-18',
+    squareVersion: "2024-01-18",
     accessToken: token,
     environment: env,
   });
@@ -210,30 +210,33 @@ export const getMerchantInfo = async (
     const merchantResponse = await merchantsApi.retrieveMerchant(merchantId);
     if (merchantResponse?.result?.merchant) {
       console.log(
-        'returning merchant for id: ' + merchantResponse?.result?.merchant?.id,
+        "returning merchant for id: " + merchantResponse?.result?.merchant?.id
       );
       return merchantResponse.result.merchant;
     } else {
       return undefined;
     }
   } catch (err) {
-    console.log('merchantsApi.retrieveMerchant returned an error: ' + err);
+    console.log("merchantsApi.retrieveMerchant returned an error: " + err);
     return undefined;
   }
 };
 
-export const getMerchantLocations = async (merchantId: string, accessToken: string) => {
-  console.log('inside getMerchantLocations');
+export const getMerchantLocations = async (
+  merchantId: string,
+  accessToken: string
+) => {
+  console.log("inside getMerchantLocations");
 
-  var token: string | undefined = '';
+  var token: string | undefined = "";
   token = decryptToken(accessToken);
 
   const env = getMerchantEnvironment();
 
-  console.log('env: ' + env);
+  console.log("env: " + env);
 
   const client = new Client({
-    squareVersion: '2024-01-18',
+    squareVersion: "2024-01-18",
     accessToken: token,
     environment: env,
   });
@@ -244,24 +247,55 @@ export const getMerchantLocations = async (merchantId: string, accessToken: stri
     const listLocationsResponse = await locationsApi.listLocations();
     return listLocationsResponse.result.locations;
   } catch (error) {
-    console.log('locationsApi.listLocations returned an error: ' + error);
+    console.log("locationsApi.listLocations returned an error: " + error);
     return undefined;
   }
+};
 
-}
+export const getMerchantLocation = async (
+  merchantLocationId: string,
+  accessToken: string
+) => {
+  console.log("inside getMerchantLocation");
+
+  const env = getMerchantEnvironment();
+
+  console.log("env: " + env);
+
+  const client = new Client({
+    squareVersion: "2024-01-18",
+    accessToken: accessToken,
+    environment: env,
+  });
+
+  const { locationsApi } = client;
+
+  try {
+    const listLocationsResponse = await locationsApi.retrieveLocation(
+      merchantLocationId
+    );
+    console.log(
+      "Returning location with id: " + listLocationsResponse.result.location?.id
+    );
+    return listLocationsResponse.result.location;
+  } catch (error) {
+    console.log("locationsApi.retrieveLocation returned an error: " + error);
+    return undefined;
+  }
+};
 
 export const getMainLoyaltyProgramFromMerchant = async (
   token: string,
-  callback: any,
+  callback: any
 ) => {
-  console.log('token: ' + token);
+  console.log("token: " + token);
 
   dotenv.config();
 
   const env = getMerchantEnvironment();
 
   const client = new Client({
-    squareVersion: '2024-01-18',
+    squareVersion: "2024-01-18",
     accessToken: token,
     environment: env,
   });
@@ -270,9 +304,9 @@ export const getMainLoyaltyProgramFromMerchant = async (
 
   try {
     let loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
-      'main',
+      "main"
     );
-    console.log('response: ' + loyaltyProgramResponse?.result);
+    console.log("response: " + loyaltyProgramResponse?.result);
 
     const program = loyaltyProgramResponse?.result?.program;
 
@@ -280,15 +314,15 @@ export const getMainLoyaltyProgramFromMerchant = async (
       callback(undefined);
       return;
     }
-    console.log('program id: ' + program.id);
+    console.log("program id: " + program.id);
 
     var promotions: LoyaltyPromotion[] = [];
 
     let promotionsResponse = await loyaltyApi.listLoyaltyPromotions(
       program.id!,
-      'ACTIVE',
+      "ACTIVE"
     );
-    console.log('response: ' + promotionsResponse?.result);
+    console.log("response: " + promotionsResponse?.result);
 
     if (!promotionsResponse) {
       callback(undefined);
@@ -299,14 +333,14 @@ export const getMainLoyaltyProgramFromMerchant = async (
     }
     let scheduledPromotionsResponse = await loyaltyApi.listLoyaltyPromotions(
       program.id!,
-      'SCHEDULED',
+      "SCHEDULED"
     );
     console.log(
-      'scheduledPromotionsResponse: ' + scheduledPromotionsResponse?.result,
+      "scheduledPromotionsResponse: " + scheduledPromotionsResponse?.result
     );
     if (scheduledPromotionsResponse.result?.loyaltyPromotions) {
       scheduledPromotionsResponse.result!.loyaltyPromotions.forEach(function (
-        promo,
+        promo
       ) {
         promotions.push(promo);
       });
@@ -314,7 +348,7 @@ export const getMainLoyaltyProgramFromMerchant = async (
 
     var categoryIds: String[] = [];
     // var categoryNameMap = new Map<string, string>();
-    var accrualType = '';
+    var accrualType = "";
     // Loop through each tier to determine its type
 
     if (program.accrualRules) {
@@ -324,7 +358,7 @@ export const getMainLoyaltyProgramFromMerchant = async (
         function (catalogItemNameMap: Map<string, string>) {
           callback(program, promotions, accrualType, catalogItemNameMap);
           return;
-        },
+        }
       );
     } else {
       callback(program, promotions, accrualType, new Map<string, string>());
@@ -338,8 +372,8 @@ export const getMainLoyaltyProgramFromMerchant = async (
       });
     } else {
       console.log(
-        'Unexpected error occurred while getting loyalty program: ',
-        error,
+        "Unexpected error occurred while getting loyalty program: ",
+        error
       );
     }
     callback(undefined);
@@ -349,52 +383,52 @@ export const getMainLoyaltyProgramFromMerchant = async (
 export const getCatalogItemIdMapFromAccurals = async (
   token: string,
   accrualRules: LoyaltyProgramAccrualRule[] | SquareAccrualRules[],
-  callback: any,
+  callback: any
 ) => {
-  console.log('inside getCatalogItemIdMapFromAccurals');
+  console.log("inside getCatalogItemIdMapFromAccurals");
 
   var catalogItemIds: String[] = [];
   var itemNameMap = new Map<string, string>();
   var variantItemMap = new Map<string, string>();
 
-  console.log('accrualRules size: ' + accrualRules.length);
+  console.log("accrualRules size: " + accrualRules.length);
 
   // Loop through each accrual rule to determine its type
   for (var accrualRule of accrualRules) {
     console.log(
       accrualRule.accrualType +
-        ', categoryId: ' +
-        accrualRule.categoryData?.categoryId,
+        ", categoryId: " +
+        accrualRule.categoryData?.categoryId
     );
     if (
-      accrualRule.accrualType == 'CATEGORY' &&
+      accrualRule.accrualType == "CATEGORY" &&
       accrualRule.categoryData?.categoryId
     ) {
       catalogItemIds.push(accrualRule.categoryData!.categoryId);
       console.log(
-        'adding categoryId: ' +
+        "adding categoryId: " +
           accrualRule.categoryData.categoryId +
-          ' to lookup list',
+          " to lookup list"
       );
     } else if (
-      accrualRule.accrualType == 'ITEM_VARIATION' &&
+      accrualRule.accrualType == "ITEM_VARIATION" &&
       accrualRule.itemVariationData?.itemVariationId
     ) {
       catalogItemIds.push(accrualRule.itemVariationData.itemVariationId);
       variantItemMap.set(
         accrualRule.itemVariationData.itemVariationId,
-        accrualRule.itemVariationData.itemVariationId,
+        accrualRule.itemVariationData.itemVariationId
       );
       console.log(
-        'adding itemId: ' +
+        "adding itemId: " +
           accrualRule.itemVariationData.itemVariationId +
-          ' to lookup list',
+          " to lookup list"
       );
     }
   }
 
   if (catalogItemIds.length > 0) {
-    console.log('Fetching items from catalog to get item names');
+    console.log("Fetching items from catalog to get item names");
     const client = new Client({
       accessToken: token,
       environment: Environment.Sandbox,
@@ -415,24 +449,24 @@ export const getCatalogItemIdMapFromAccurals = async (
     if (categoryResults?.result?.objects) {
       categoryResults?.result?.objects.forEach(function (catalogObject) {
         if (
-          catalogObject.type == 'CATEGORY' &&
+          catalogObject.type == "CATEGORY" &&
           catalogObject.categoryData?.name
         ) {
           console.log(
-            'received a category back: ' + catalogObject.categoryData.name,
+            "received a category back: " + catalogObject.categoryData.name
           );
 
           itemNameMap.set(catalogObject.id, catalogObject.categoryData.name);
         }
       });
     }
-    console.log('searching related objects for variantIds');
+    console.log("searching related objects for variantIds");
     // Items are returned in relatedObjects, so we must loop thru its variants
     // to look for a match on variant id and then take it's parent (item) name
     if (categoryResults.result.relatedObjects) {
       for (var relatedObject of categoryResults.result.relatedObjects) {
         if (
-          relatedObject.type == 'ITEM' &&
+          relatedObject.type == "ITEM" &&
           relatedObject.itemData?.variations
         ) {
           for (var variant of relatedObject.itemData.variations) {
@@ -440,7 +474,7 @@ export const getCatalogItemIdMapFromAccurals = async (
             if (variantFromMap) {
               if (relatedObject.itemData.name) {
                 console.log(
-                  'received an item back: ' + relatedObject.itemData.name,
+                  "received an item back: " + relatedObject.itemData.name
                 );
                 itemNameMap.set(variant.id, relatedObject.itemData.name);
               }
@@ -459,6 +493,7 @@ module.exports = {
   createLoyaltyAccount,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
+  getMerchantLocation,
   getMerchantLocations,
   getMainLoyaltyProgramFromMerchant,
   lookupCustomerIdByPhoneNumber,

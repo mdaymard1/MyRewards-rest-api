@@ -16,35 +16,35 @@ let Customer = class Customer extends typeorm_1.BaseEntity {
 };
 exports.Customer = Customer;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
+    (0, typeorm_1.PrimaryGeneratedColumn)("uuid"),
     __metadata("design:type", String)
 ], Customer.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: false }),
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
     __metadata("design:type", String)
 ], Customer.prototype, "merchantCustomerId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: false }),
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
     __metadata("design:type", String)
 ], Customer.prototype, "ref", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'integer', nullable: false }),
+    (0, typeorm_1.Column)({ type: "integer", nullable: true }),
     __metadata("design:type", Number)
 ], Customer.prototype, "balance", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'integer', nullable: false }),
+    (0, typeorm_1.Column)({ type: "integer", nullable: true }),
     __metadata("design:type", Number)
 ], Customer.prototype, "lifetimePoints", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: false }),
+    (0, typeorm_1.Column)({ type: "timestamp", nullable: true }),
     __metadata("design:type", Date)
 ], Customer.prototype, "enrolledAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'integer', nullable: true }),
+    (0, typeorm_1.Column)({ type: "integer", nullable: true }),
     __metadata("design:type", Number)
 ], Customer.prototype, "enrollmentSource", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
 ], Customer.prototype, "businessId", void 0);
@@ -52,11 +52,11 @@ __decorate([
     (0, typeorm_1.ManyToOne)(() => Business_1.Business, (business) => business.customers, {
         nullable: true,
     }),
-    (0, typeorm_1.JoinColumn)({ name: 'businessId' }),
+    (0, typeorm_1.JoinColumn)({ name: "businessId" }),
     __metadata("design:type", Business_1.Business)
 ], Customer.prototype, "business", void 0);
 exports.Customer = Customer = __decorate([
-    (0, typeorm_1.Index)('customer_id_UNIQUE', ['merchantCustomerId', 'businessId'], {
+    (0, typeorm_1.Index)("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
         unique: true,
     }),
     (0, typeorm_1.Entity)()

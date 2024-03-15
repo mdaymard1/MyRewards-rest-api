@@ -1,15 +1,201 @@
-import { Request, Response } from 'express';
-import { AppDataSource } from '../appDataSource';
-import { Business } from '../src/entity/Business';
+import { Request, Response } from "express";
+import { AppDataSource } from "../appDataSource";
+import { Business } from "../src/entity/Business";
+import { Location } from "../src/entity/Location";
 import {
   createNewBusinessWithLoyalty,
   findBusinessByMerchantId,
   updateBusinessEntity,
   getBusinessIdFromAuthToken,
   updateBusinessDetails,
-} from '../src/services/BusinessService';
+  updateLocationSettingsAndImages,
+  getActiveLocationsForBusinessId,
+  searchBusiness,
+} from "../src/services/BusinessService";
 
-import crypto from 'crypto';
+import crypto from "crypto";
+import { getLoyaltyForLocation } from "../src/services/LoyaltyService";
+import { getSpecialsForLocation } from "../src/services/SpecialService";
+
+const getLocationDetails = async (request: Request, response: Response) => {
+  console.log("inside getLocationDetails");
+
+  const { locationId } = request.params;
+
+  if (!locationId) {
+    console.log("missing locationid");
+    response.status(404);
+    response.end();
+    return;
+  }
+
+  const location = await Location.createQueryBuilder("location")
+    .where("location.id = :locationId", { locationId: locationId })
+    .getOne();
+
+  if (!location) {
+    console.log("Can't find location for id: " + locationId);
+    return false;
+  }
+
+  var loyalty: any | undefined;
+  if (location.showLoyaltyInApp || location.showPromotionsInApp) {
+    loyalty = await getLoyaltyForLocation(location.businessId);
+  }
+
+  var specials = await getSpecialsForLocation(location.businessId);
+
+  var result = {
+    loyalty: loyalty,
+    specials: specials,
+  };
+
+  response.send(result);
+
+  // if (loyalty) {
+  //   response.send(loyalty);
+  // }
+  response.end();
+};
+
+const search = async (request: Request, response: Response) => {
+  console.log("inside getLocations");
+
+  const { latitude, longitude, pageNumber, pageSize } = request.query;
+
+  console.log("latitude:" + latitude + ", longitude: " + longitude);
+
+  if (!latitude || !longitude) {
+    console.log("missing coordinates");
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  if (!isLatitude(latitude)) {
+    console.log("invalid latitude");
+    response.status(400);
+    response.end();
+  }
+  if (!isLongitude(longitude)) {
+    console.log("invalid longitude");
+    response.status(400);
+    response.end();
+  }
+
+  const page = Number(pageNumber);
+  const size = Number(pageSize);
+  const lat = Number(latitude);
+  const long = Number(longitude);
+
+  const results = await searchBusiness(lat, long, page, size);
+  if (results) {
+    console.log("results:" + results);
+    response.send(results);
+  } else {
+    response.status(400);
+  }
+  response.end();
+};
+
+function isLatitude(lat: any) {
+  return isFinite(lat) && Math.abs(lat) <= 90;
+}
+
+function isLongitude(lng: any) {
+  return isFinite(lng) && Math.abs(lng) <= 180;
+}
+
+const getLocations = async (request: Request, response: Response) => {
+  console.log("inside getLocations");
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(400);
+    return;
+  }
+
+  const { pageNumber, pageSize } = request.query;
+
+  const page = Number(pageNumber);
+  const size = Number(pageSize);
+
+  console.log("pageNumber: " + pageNumber + ", page: " + page);
+  console.log("pageSize: " + pageSize + ", size: " + size);
+
+  const locations = await getActiveLocationsForBusinessId(
+    businessId,
+    page,
+    size
+  );
+
+  if (locations) {
+    response.send(locations);
+  } else {
+    response.status(400);
+    response.end();
+  }
+};
+
+const updateLocation = async (request: Request, response: Response) => {
+  console.log("inside updateLocation");
+
+  const businessId = getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  const { locationId } = request.params;
+
+  if (!locationId) {
+    console.log("missing locationid");
+    response.status(404);
+    response.end();
+    return;
+  }
+
+  const {
+    showThisLocationInApp,
+    showLoyaltyInApp,
+    showPromotionsInApp,
+    firstImageUrl,
+    secondImageUrl,
+  } = request.body;
+
+  // var isBoolean = require("node-boolify").isBoolean;
+
+  // const isBoolean = val => typeof val === 'boolean';
+  if (
+    !isBoolean(showLoyaltyInApp) ||
+    !isBoolean(showThisLocationInApp) ||
+    !isBoolean(showPromotionsInApp)
+  ) {
+    console.log("missing fields");
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const wasUpdated = await updateLocationSettingsAndImages(
+    locationId,
+    showThisLocationInApp,
+    showLoyaltyInApp,
+    showPromotionsInApp,
+    firstImageUrl,
+    secondImageUrl
+  );
+
+  response.status(wasUpdated ? 200 : 400);
+  response.end();
+};
+
+function isBoolean(val: any) {
+  return val === false || val === true || val instanceof Boolean;
+}
 
 const getBusiness = async (request: Request, response: Response) => {
   // const key = 'f7fbba6e0636f890e56fbbf3283e524c';
@@ -51,27 +237,27 @@ const getBusiness = async (request: Request, response: Response) => {
   //   },
   // });
 
-  const business = await Business.createQueryBuilder('business')
+  const business = await Business.createQueryBuilder("business")
     .select([
-      'business.businessId',
-      'business.lastUpdateDate',
-      'business.businessName',
-      'business.addressLine1',
-      'business.addressLine2',
-      'business.city',
-      'business.state',
-      'business.zipCode',
-      'business.phone',
-      'business.hoursOfOperation',
-      'business.businessDescription',
-      'business.websiteUrl',
-      'business.appStoreUrl',
-      'business.googlePlayStoreUrl',
-      'business.reviewsUrl',
-      'business.firstImageUrl',
-      'business.secondImageUrl',
+      "business.businessId",
+      "business.lastUpdateDate",
+      "business.businessName",
+      "business.addressLine1",
+      "business.addressLine2",
+      "business.city",
+      "business.state",
+      "business.zipCode",
+      "business.phone",
+      "business.hoursOfOperation",
+      "business.businessDescription",
+      "business.websiteUrl",
+      "business.appStoreUrl",
+      "business.googlePlayStoreUrl",
+      "business.reviewsUrl",
+      "business.firstImageUrl",
+      "business.secondImageUrl",
     ])
-    .where('business.businessId = :businessId', { businessId: businessId })
+    .where("business.businessId = :businessId", { businessId: businessId })
     .getOne();
 
   if (!business) {
@@ -83,7 +269,7 @@ const getBusiness = async (request: Request, response: Response) => {
 };
 
 const createBusiness = async (request: Request, response: Response) => {
-  console.log('inside createBusiness');
+  console.log("inside createBusiness");
 
   const { merchantId, accessToken, refreshToken, expirationDate } =
     request.body;
@@ -93,12 +279,12 @@ const createBusiness = async (request: Request, response: Response) => {
 
   businessId = getBusinessIdFromAuthToken(request);
 
-  console.log('businessId: ' + businessId);
-  console.log('accessToken: ' + accessToken);
-  console.log('refreshToken: ' + refreshToken);
+  console.log("businessId: " + businessId);
+  console.log("accessToken: " + accessToken);
+  console.log("refreshToken: " + refreshToken);
 
   var date: Date | undefined;
-  console.log('expirationDate: ' + expirationDate);
+  console.log("expirationDate: " + expirationDate);
   if (expirationDate) {
     date = new Date(expirationDate);
   }
@@ -110,7 +296,7 @@ const createBusiness = async (request: Request, response: Response) => {
       },
     });
     if (business) {
-      console.log('found business');
+      console.log("found business");
       // Business found, so update it with the latest tokens and exp date
       updateBusinessEntity(
         businessId,
@@ -129,7 +315,7 @@ const createBusiness = async (request: Request, response: Response) => {
             response.sendStatus(500);
             return;
           }
-        },
+        }
       );
     } else {
       // This should never happen where an auth token is passed with business id, but no corresponding business is found
@@ -143,7 +329,7 @@ const createBusiness = async (request: Request, response: Response) => {
       merchantId,
       function (business: Business | undefined) {
         if (business) {
-          console.log('Found business for merchantId');
+          console.log("Found business for merchantId");
           updateBusinessEntity(
             business.businessId,
             merchantId,
@@ -161,7 +347,7 @@ const createBusiness = async (request: Request, response: Response) => {
                 response.sendStatus(500);
                 return;
               }
-            },
+            }
           );
         } else {
           createNewBusinessWithLoyalty(
@@ -180,10 +366,10 @@ const createBusiness = async (request: Request, response: Response) => {
                 response.sendStatus(500);
                 // return;
               }
-            },
+            }
           );
         }
-      },
+      }
     );
   } else {
     // No businessId or merchantId passed, so we can't look anything up to create or update a business
@@ -192,7 +378,7 @@ const createBusiness = async (request: Request, response: Response) => {
 };
 
 const updateBusiness = async (request: Request, response: Response) => {
-  console.log('inside updateBusiness');
+  console.log("inside updateBusiness");
 
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -226,10 +412,10 @@ const updateBusiness = async (request: Request, response: Response) => {
     return;
   }
 
-  console.log('businessId: ' + businessId);
+  console.log("businessId: " + businessId);
 
   console.log(
-    'firstImageUrl:' + firstImageUrl + ', secondImageUrl:' + secondImageUrl,
+    "firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl
   );
 
   const wasUpdated: boolean = await updateBusinessDetails(
@@ -249,14 +435,18 @@ const updateBusiness = async (request: Request, response: Response) => {
     googlePlayStoreUrl,
     reviewsUrl,
     firstImageUrl,
-    secondImageUrl,
+    secondImageUrl
   );
   response.status(wasUpdated ? 203 : 500);
   response.end();
 };
 
 module.exports = {
-  getBusiness,
   createBusiness,
+  getBusiness,
+  getLocationDetails,
+  getLocations,
   updateBusiness,
+  updateLocation,
+  search,
 };

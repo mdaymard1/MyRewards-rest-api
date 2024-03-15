@@ -5,6 +5,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  Point,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Business } from "./Business";
@@ -13,6 +14,14 @@ import { Business } from "./Business";
 export class Location extends BaseEntity {
   @PrimaryGeneratedColumn("uuid")
   id: string;
+
+  @Column({
+    type: "geography",
+    spatialFeatureType: "Point",
+    srid: 4326,
+    nullable: true,
+  })
+  locationPoint: Point;
 
   @Column({ type: "text", nullable: false })
   merchantLocationId: string;
@@ -48,9 +57,14 @@ export class Location extends BaseEntity {
   phoneNumber: string;
 
   @Column({ type: "simple-json", nullable: true })
-  hoursOfOperation?: [
-    { dayOfWeek: string; startLocalTime: string; endLocalTime: string }
-  ];
+  hoursOfOperation?: {
+    dayOfWeek: string;
+    startLocalTime: string;
+    endLocalTime: string;
+  }[];
+
+  @Column({ type: "text", nullable: true })
+  timezone: string;
 
   @Column({ type: "text", nullable: true })
   businessEmail: string;
@@ -58,8 +72,29 @@ export class Location extends BaseEntity {
   @Column({ type: "text", nullable: false })
   status: string;
 
+  @Column({ type: "boolean", nullable: true })
+  isLoyaltyActive: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  showLoyaltyInApp: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  showPromotionsInApp: boolean;
+
   @Column({ type: "boolean", nullable: false })
   showThisLocationInApp: boolean;
+
+  @Column({ type: "text", nullable: true })
+  firstImageUrl!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  secondImageUrl!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  logoUrl!: string | null;
+
+  @Column({ type: "text", nullable: true })
+  fullFormatLogoUrl!: string | null;
 
   @Column({ type: "uuid", nullable: false })
   @Index()

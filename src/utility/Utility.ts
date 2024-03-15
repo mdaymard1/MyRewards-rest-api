@@ -1,15 +1,15 @@
-import dotenv from 'dotenv';
-import { Environment } from 'square';
+import dotenv from "dotenv";
+import { Environment } from "square";
 
 export const getMerchantEnvironment = () => {
-  return process.env.NODE_ENV == 'production2222'
+  return process.env.NODE_ENV == "production2222"
     ? Environment.Production
     : Environment.Sandbox;
 };
 
 export const obsfucatePhoneNumber = (phoneNumber: string) => {
-  let maskedPhoneNumber = phoneNumber.replace('+', '');
-  let reversedNumber = '';
+  let maskedPhoneNumber = phoneNumber.replace("+", "");
+  let reversedNumber = "";
   for (let char of maskedPhoneNumber) {
     reversedNumber = char + reversedNumber;
   }
@@ -17,11 +17,11 @@ export const obsfucatePhoneNumber = (phoneNumber: string) => {
 };
 
 export const unobsfucatePhoneNumber = (obsfucatedNumber: string) => {
-  let reversedNumber = '';
+  let reversedNumber = "";
   for (let char of obsfucatedNumber) {
     reversedNumber = char + reversedNumber;
   }
-  return '+' + reversedNumber;
+  return "+" + reversedNumber;
 };
 
 export function paginateResponse(data: any, page: number, limit: number) {
@@ -29,10 +29,67 @@ export function paginateResponse(data: any, page: number, limit: number) {
   const lastPage = Math.ceil(total / limit);
   const nextPage = page + 1 > lastPage ? null : page + 1;
   const prevPage = page - 1 < 1 ? null : page - 1;
+  console.log(
+    "inside paginateResponse with data: " +
+      data +
+      ", page:" +
+      page +
+      ", limit: " +
+      limit
+  );
+  console.log(
+    "total: " +
+      total +
+      ", nextPage: " +
+      nextPage +
+      ", prevPage: " +
+      prevPage +
+      ", lastPage: " +
+      lastPage
+  );
   return {
-    statusCode: 'success',
+    statusCode: "success",
     data: [...result],
     count: total,
+    currentPage: page,
+    nextPage: nextPage,
+    prevPage: prevPage,
+    lastPage: lastPage,
+  };
+}
+
+export function paginateResponseWithoutTotal(
+  data: any,
+  page: number,
+  limit: number
+) {
+  const [result, total] = data;
+  const lastPage = Math.ceil(total / limit);
+  const nextPage = page + 1 > lastPage ? null : page + 1;
+  const prevPage = page - 1 < 1 ? null : page - 1;
+  console.log(
+    "inside paginateResponse with data: " +
+      data +
+      ", page:" +
+      page +
+      ", limit: " +
+      limit
+  );
+  console.log(
+    "total: " +
+      total +
+      ", nextPage: " +
+      nextPage +
+      ", prevPage: " +
+      prevPage +
+      ", lastPage: " +
+      lastPage
+  );
+  return {
+    statusCode: "success",
+    // data: [...result],
+    data: data,
+    // count: total,
     currentPage: page,
     nextPage: nextPage,
     prevPage: prevPage,
@@ -44,5 +101,6 @@ module.exports = {
   obsfucatePhoneNumber,
   getMerchantEnvironment,
   paginateResponse,
+  paginateResponseWithoutTotal,
   unobsfucatePhoneNumber,
 };

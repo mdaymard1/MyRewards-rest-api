@@ -20,6 +20,15 @@ __decorate([
     __metadata("design:type", String)
 ], Location.prototype, "id", void 0);
 __decorate([
+    (0, typeorm_1.Column)({
+        type: "geography",
+        spatialFeatureType: "Point",
+        srid: 4326,
+        nullable: true,
+    }),
+    __metadata("design:type", Object)
+], Location.prototype, "locationPoint", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: "text", nullable: false }),
     __metadata("design:type", String)
 ], Location.prototype, "merchantLocationId", void 0);
@@ -70,15 +79,47 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ type: "text", nullable: true }),
     __metadata("design:type", String)
+], Location.prototype, "timezone", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", String)
 ], Location.prototype, "businessEmail", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "text", nullable: false }),
     __metadata("design:type", String)
 ], Location.prototype, "status", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Location.prototype, "isLoyaltyActive", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Location.prototype, "showLoyaltyInApp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Location.prototype, "showPromotionsInApp", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: "boolean", nullable: false }),
     __metadata("design:type", Boolean)
 ], Location.prototype, "showThisLocationInApp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", Object)
+], Location.prototype, "firstImageUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", Object)
+], Location.prototype, "secondImageUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", Object)
+], Location.prototype, "logoUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", Object)
+], Location.prototype, "fullFormatLogoUrl", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "uuid", nullable: false }),
     (0, typeorm_1.Index)(),

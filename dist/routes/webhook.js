@@ -12,28 +12,29 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const SquareWebhook_1 = require("../src/services/entity/SquareWebhook");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
 const SpecialService_1 = require("../src/services/SpecialService");
+const BusinessService_1 = require("../src/services/BusinessService");
 const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { body } = request;
     const webhook = new SquareWebhook_1.SquareWebhook(body);
-    console.log('webhook type: ' + webhook.type + ' for merchant: ' + webhook.merchantId);
+    console.log("webhook type: " + webhook.type + " for merchant: " + webhook.merchantId);
     const callbackBody = JSON.stringify(request.body);
-    console.log('callbackBody: ' + callbackBody);
+    console.log("callbackBody: " + callbackBody);
     if (!webhook) {
-        console.log('webhook payload was empty');
+        console.log("webhook payload was empty");
         response.status(200);
         response.end();
         return;
     }
     if (!webhook.merchantId) {
-        console.log('webhook merchantId missing');
+        console.log("webhook merchantId missing");
         response.status(200);
         response.end();
         return;
     }
-    console.log('payload is valid.');
+    console.log("payload is valid.");
     if (webhook.loyaltyProgram) {
         (0, LoyaltyService_1.updateLoyaltyFromWebhook)(webhook.merchantId, webhook.loyaltyProgram, function (wasSuccessful) {
-            console.log('handleSquareWebhook completed successfully');
+            console.log("handleSquareWebhook completed successfully");
             response.status(200);
             response.end();
         });
@@ -51,14 +52,20 @@ const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, voi
     }
     else if (webhook.catalogVersionUpdated) {
         (0, SpecialService_1.updateSpecialsFromWebhook)(webhook.merchantId, webhook.catalogVersionUpdated, function (wasSuccessful) {
-            console.log('returned from updateSpecialsFromWebhook');
+            console.log("returned from updateSpecialsFromWebhook");
             response.status(200);
             response.end();
         });
     }
+    else if (webhook.location) {
+        const status = yield (0, BusinessService_1.updateBusinessLocationFromWebhook)(webhook.merchantId, webhook.location.locationId, webhook.location.type);
+        console.log("returned from updateBusinessLocationFromWebhook with status of " + status);
+        response.status(200);
+        response.end();
+    }
     else {
         // We're not interested in this event
-        console.log('webhook event skipped');
+        console.log("webhook event skipped");
         response.status(200);
         response.end();
     }
