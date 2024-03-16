@@ -48,7 +48,7 @@ const getLocationDetails = (request, response) => __awaiter(void 0, void 0, void
 });
 const search = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLocations");
-    const { latitude, longitude, pageNumber, pageSize } = request.query;
+    const { searchTerm, latitude, longitude, pageNumber, pageSize } = request.query;
     console.log("latitude:" + latitude + ", longitude: " + longitude);
     if (!latitude || !longitude) {
         console.log("missing coordinates");
@@ -70,7 +70,9 @@ const search = (request, response) => __awaiter(void 0, void 0, void 0, function
     const size = Number(pageSize);
     const lat = Number(latitude);
     const long = Number(longitude);
-    const results = yield (0, BusinessService_1.searchBusiness)(lat, long, page, size);
+    const searchPhrase = searchTerm;
+    console.log("searchTerm: " + searchTerm + ", searchPhrase: " + searchPhrase);
+    const results = yield (0, BusinessService_1.searchBusiness)(lat, long, page, size, searchPhrase);
     if (results) {
         console.log("results:" + results);
         response.send(results);

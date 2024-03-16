@@ -29,17 +29,18 @@ function getBusinessIdFromAuthToken(request) {
     return undefined;
 }
 exports.getBusinessIdFromAuthToken = getBusinessIdFromAuthToken;
-const searchBusiness = (latitude, longitude, pageNumber, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
+const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside searchBusiness");
     const limit = pageSize || 10;
     const page = pageNumber || 1;
     const offset = (page - 1) * limit;
+    var selectClause = `SELECT "id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", "businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance FROM location WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+    if (searchTerm) {
+        selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";
+    }
+    selectClause += " ORDER BY distance LIMIT ";
     // try {
-    const data = yield Location_1.Location.query(`SELECT "id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", "businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${latitude}, ${longitude} )::geography, "locationPoint"::geography) / 1600 AS distance FROM location WHERE "status" = 'ACTIVE' AND "showThisLocationInApp" = true ORDER BY distance LIMIT ` +
-        limit +
-        " offset " +
-        offset +
-        ";");
+    const data = yield Location_1.Location.query(selectClause + limit + " offset " + offset + ";");
     // return data;
     return (0, Utility_1.paginateResponseWithoutTotal)(data, page, limit);
     // return paginateResponse(data, page, limit);
@@ -335,7 +336,8 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
     locationPoint = {
         type: "Point",
         coordinates: [
-            37.72638, -122.47649,
+            -122.465683, 37.7407,
+            // 37.7407, -122.465683,
             // -122.47649, 37.72638,
             // merchantLocation.coordinates?.longitude,
             // merchantLocation.coordinates?.latitude,
@@ -358,7 +360,9 @@ const updateBusinessLocation = (businessId, merchantLocationId, status, name, bu
     console.log("inside updateBusinessLocation with merchantLocationId: " +
         merchantLocationId +
         ", businessId: " +
-        businessId);
+        businessId +
+        ", locationPoint: " +
+        (locationPoint === null || locationPoint === void 0 ? void 0 : locationPoint.coordinates));
     try {
         const result = yield appDataSource_1.AppDataSource.manager.update(Location_1.Location, {
             businessId: businessId,

@@ -43,7 +43,8 @@ export const searchBusiness = async (
   latitude: number,
   longitude: number,
   pageNumber: number,
-  pageSize: number
+  pageSize: number,
+  searchTerm?: string
 ) => {
   console.log("inside searchBusiness");
 
@@ -51,13 +52,16 @@ export const searchBusiness = async (
   const page = pageNumber || 1;
   const offset = (page - 1) * limit;
 
+  var selectClause = `SELECT "id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", "businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance FROM location WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+
+  if (searchTerm) {
+    selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";
+  }
+  selectClause += " ORDER BY distance LIMIT ";
+
   // try {
   const data = await Location.query(
-    `SELECT "id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", "businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${latitude}, ${longitude} )::geography, "locationPoint"::geography) / 1600 AS distance FROM location WHERE "status" = 'ACTIVE' AND "showThisLocationInApp" = true ORDER BY distance LIMIT ` +
-      limit +
-      " offset " +
-      offset +
-      ";"
+    selectClause + limit + " offset " + offset + ";"
   );
   // return data;
   return paginateResponseWithoutTotal(data, page, limit);
@@ -492,7 +496,8 @@ export const updateBusinessLocationFromWebhook = async (
   locationPoint = {
     type: "Point",
     coordinates: [
-      37.72638, -122.47649,
+      -122.465683, 37.7407,
+      // 37.7407, -122.465683,
       // -122.47649, 37.72638,
       // merchantLocation.coordinates?.longitude,
       // merchantLocation.coordinates?.latitude,
@@ -579,7 +584,9 @@ const updateBusinessLocation = async (
     "inside updateBusinessLocation with merchantLocationId: " +
       merchantLocationId +
       ", businessId: " +
-      businessId
+      businessId +
+      ", locationPoint: " +
+      locationPoint?.coordinates
   );
 
   try {
