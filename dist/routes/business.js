@@ -311,6 +311,7 @@ module.exports = {
     getBusiness,
     getLocationDetails,
     getLocations,
+    requestCustomerVerification,
     updateBusiness,
     updateLocation,
     search,
