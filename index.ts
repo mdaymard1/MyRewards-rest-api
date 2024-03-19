@@ -30,6 +30,7 @@ const host = process.env.HOST;
 console.log("index.ts using port: " + port + ", host: " + host);
 
 var businessRoute = require("./routes/business");
+var customerlRoute = require("./routes/customer");
 var loyaltyRoute = require("./routes/loyalty");
 var webhookRoute = require("./routes/webhook");
 var specialRoute = require("./routes/special");
@@ -57,6 +58,9 @@ app.get("/business", businessRoute.getBusiness);
 app.post("/business", businessRoute.createBusiness);
 app.put("/business", businessRoute.updateBusiness);
 app.get("/business/search", businessRoute.search);
+
+app.post("/customer/requestVerification", customerlRoute.requestVerification);
+app.post("/customer/verifyCode", customerlRoute.verifyCode);
 
 app.get("/locations", businessRoute.getLocations);
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);
