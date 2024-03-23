@@ -30,37 +30,26 @@ const host = process.env.HOST;
 console.log("index.ts using port: " + port + ", host: " + host);
 
 var businessRoute = require("./routes/business");
-var customerlRoute = require("./routes/customer");
+var userRoute = require("./routes/user");
 var loyaltyRoute = require("./routes/loyalty");
 var webhookRoute = require("./routes/webhook");
 var specialRoute = require("./routes/special");
 
 app.use(logger("dev"));
-// app.use(express.json());
 app.use(json());
-
-// app.use(bodyParser.urlencoded(
-//   { extended: false }
-// ));
-// app.use(bodyParser.json());
 app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public')));
-
-// typeorm.createConnection()
-//   .then(() => {
-//     console.log('Connected to database');
-//   })
-//   .catch((error: any) => {
-//     console.log('Error connecting to database:', error);
-//   });
 
 app.get("/business", businessRoute.getBusiness);
 app.post("/business", businessRoute.createBusiness);
 app.put("/business", businessRoute.updateBusiness);
 app.get("/business/search", businessRoute.search);
 
-app.post("/customer/requestVerification", customerlRoute.requestVerification);
-app.post("/customer/verifyCode", customerlRoute.verifyCode);
+app.get("/user/:userId/loyalty", userRoute.getLoyalty);
+app.post(
+  "/user/requestVerification",
+  userRoute.requestUserPhoneNumberVerification
+);
+app.post("/user/verifyCode", userRoute.verifyUserCode);
 
 app.get("/locations", businessRoute.getLocations);
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);

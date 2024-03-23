@@ -5,10 +5,11 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { SpecialItem } from "./SpecialItem";
 import { Business } from "./Business";
+import { AppUser } from "./AppUser";
 
 @Index("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
   unique: true,
@@ -37,12 +38,25 @@ export class Customer extends BaseEntity {
   enrollmentSource: number;
 
   @Column({ type: "uuid", nullable: true })
+  locationId: string;
+
+  @Column({ type: "uuid", nullable: true })
   @Index()
   businessId: string;
+
+  @Column({ type: "uuid", nullable: true })
+  @Index()
+  appUserId: string;
 
   @ManyToOne(() => Business, (business) => business.customers, {
     nullable: true,
   })
   @JoinColumn({ name: "businessId" })
   business: Business;
+
+  @OneToOne(() => AppUser, (appUser) => appUser.customer, {
+    nullable: true,
+  })
+  @JoinColumn({ name: "appUserId" })
+  appUser: AppUser;
 }

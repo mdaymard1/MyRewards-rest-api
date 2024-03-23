@@ -133,9 +133,9 @@ export const upsertMerchantCustomerAccount = async (
   accessToken: string,
   merchantCustomerId: string,
   appCustomerId: string,
-  firstName: string,
-  lastName: string,
   phone: string,
+  firstName: string,
+  lastName?: string,
   email?: string
 ) => {
   console.log("inside upsertMerchantCustomerAccount");

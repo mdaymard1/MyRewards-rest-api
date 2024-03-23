@@ -21,27 +21,36 @@ let EnrollmentRequest = class EnrollmentRequest extends typeorm_1.BaseEntity {
 };
 exports.EnrollmentRequest = EnrollmentRequest;
 __decorate([
-    (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
+    (0, typeorm_1.PrimaryGeneratedColumn)("uuid"),
     __metadata("design:type", String)
 ], EnrollmentRequest.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'text', nullable: false }),
+    (0, typeorm_1.Column)({ type: "text", nullable: false }),
     __metadata("design:type", String)
 ], EnrollmentRequest.prototype, "ref", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'timestamp', nullable: false }),
+    (0, typeorm_1.Column)({ type: "timestamp", nullable: false }),
     __metadata("design:type", Date)
 ], EnrollmentRequest.prototype, "enrollRequestedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({
-        type: 'json',
+        type: "json",
         nullable: false,
         transformer: new typeorm_encrypted_1.JSONEncryptionTransformer(encryption_config_1.EncryptionTransformerConfig),
     }),
     __metadata("design:type", Object)
 ], EnrollmentRequest.prototype, "details", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'uuid', nullable: false }),
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    __metadata("design:type", String)
+], EnrollmentRequest.prototype, "locationId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    (0, typeorm_1.Index)(),
+    __metadata("design:type", String)
+], EnrollmentRequest.prototype, "appUserid", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "uuid", nullable: false }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
 ], EnrollmentRequest.prototype, "businessId", void 0);
@@ -49,7 +58,7 @@ __decorate([
     (0, typeorm_1.ManyToOne)(() => Business_1.Business, (business) => business.enrollmentRequests, {
         nullable: true,
     }),
-    (0, typeorm_1.JoinColumn)({ name: 'businessId' }),
+    (0, typeorm_1.JoinColumn)({ name: "businessId" }),
     __metadata("design:type", Business_1.Business)
 ], EnrollmentRequest.prototype, "business", void 0);
 exports.EnrollmentRequest = EnrollmentRequest = __decorate([

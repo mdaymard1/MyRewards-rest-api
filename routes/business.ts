@@ -61,7 +61,7 @@ const getLocationDetails = async (request: Request, response: Response) => {
 const search = async (request: Request, response: Response) => {
   console.log("inside getLocations");
 
-  const { searchTerm, latitude, longitude, pageNumber, pageSize } =
+  const { searchTerm, latitude, longitude, pageNumber, pageSize, appUserId } =
     request.query;
 
   console.log("latitude:" + latitude + ", longitude: " + longitude);
@@ -89,10 +89,25 @@ const search = async (request: Request, response: Response) => {
   const lat = Number(latitude);
   const long = Number(longitude);
   const searchPhrase: string | undefined = searchTerm as string;
+  const userId: string | undefined = appUserId as string;
 
-  console.log("searchTerm: " + searchTerm + ", searchPhrase: " + searchPhrase);
+  console.log(
+    "searchTerm: " +
+      searchTerm +
+      ", searchPhrase: " +
+      searchPhrase +
+      ", appUserId: " +
+      userId
+  );
 
-  const results = await searchBusiness(lat, long, page, size, searchPhrase);
+  const results = await searchBusiness(
+    lat,
+    long,
+    page,
+    size,
+    searchPhrase,
+    userId
+  );
   if (results) {
     console.log("results:" + results);
     response.send(results);
@@ -450,7 +465,6 @@ module.exports = {
   getBusiness,
   getLocationDetails,
   getLocations,
-  requestCustomerVerification,
   updateBusiness,
   updateLocation,
   search,

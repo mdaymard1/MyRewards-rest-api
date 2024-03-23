@@ -71,10 +71,16 @@ const enrollRequest = (request, response) => __awaiter(void 0, void 0, void 0, f
         return;
     }
     const { enrollmentRequestId } = request.params;
+    const { locationId } = request.query;
+    if (!locationId) {
+        response.status(404);
+        response.end();
+        return;
+    }
     var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     if (token) {
-        const wasSuccessful = yield (0, LoyaltyService_1.enrollRequestIntoLoyalty)(businessId, token, enrollmentRequestId);
+        const wasSuccessful = yield (0, LoyaltyService_1.enrollRequestIntoLoyalty)(businessId, token, enrollmentRequestId, locationId);
         response.status(wasSuccessful ? 200 : 400);
         response.end();
     }
@@ -116,8 +122,8 @@ const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 
         response.end();
         return;
     }
-    const { firstName, lastName, phone, email } = request.body;
-    if (!firstName || !lastName || !phone) {
+    const { appUserId, locationId, firstName, lastName, phone, email } = request.body;
+    if (!appUserId || !locationId || !firstName || !phone) {
         console.log("missing fields");
         response.status(401);
         response.end();
@@ -125,17 +131,22 @@ const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 
     }
     // let digitRegExp = /^\d+$/;
     console.log("received input of " +
+        "appUserId: " +
+        appUserId +
+        " locationId: " +
+        locationId +
+        " firstName: " +
         firstName +
-        " " +
+        " lastName: " +
         lastName +
-        " " +
-        phone +
-        ", " +
-        email);
+        " email" +
+        email +
+        " phone: " +
+        phone);
     var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
-    const newEnrollmentId = yield (0, LoyaltyService_1.createEnrollmentRequest)(businessId, firstName, lastName, phone, email);
-    response.status(newEnrollmentId ? 200 : 400);
+    const newEnrollmentId = yield (0, LoyaltyService_1.createEnrollmentRequest)(businessId, locationId, appUserId, firstName, lastName, phone, email);
+    response.status(newEnrollmentId ? 201 : 400);
     response.end();
 });
 const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
@@ -156,15 +167,12 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
         response.end();
         return;
     }
-    const { firstName, lastName, phone, email } = request.body;
-    if (!firstName || !lastName || !phone) {
-        console.log("missing fields");
-        response.status(401);
-        response.end();
-        return;
-    }
-    // let digitRegExp = /^\d+$/;
+    const { appUserId, locationId, firstName, lastName, phone, email } = request.body;
     console.log("received input of " +
+        appUserId +
+        " " +
+        locationId +
+        " " +
         firstName +
         " " +
         lastName +
@@ -172,10 +180,17 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
         phone +
         ", " +
         email);
+    if (!appUserId || !locationId || !firstName || !phone) {
+        console.log("missing fields");
+        response.status(400);
+        response.end();
+        return;
+    }
+    // let digitRegExp = /^\d+$/;
     var token = "";
     token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     if (token) {
-        yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, token, firstName, lastName, phone, LoyaltyService_1.EnrollmentSourceType.RewardsApp, email);
+        yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, appUserId, token, LoyaltyService_1.EnrollmentSourceType.RewardsApp, locationId, phone, firstName, lastName, email);
         response.status(201);
         response.end();
     }

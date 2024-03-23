@@ -10,8 +10,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const BusinessService_1 = require("../src/services/BusinessService");
-const CustomerService_1 = require("../src/services/CustomerService");
-const requestCustomerPhoneNumberVerification = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+const UserService_1 = require("../src/services/UserService");
+const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getLoyalty");
+    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    if (!businessId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const userLoyalty = yield (0, UserService_1.getUserLoyaltyDetails)(businessId, userId);
+    if (userLoyalty) {
+        response.send(userLoyalty);
+    }
+    else {
+        response.status(400);
+    }
+    response.end();
+});
+const requestUserPhoneNumberVerification = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside requestCustomerPhoneNumberVerification");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
@@ -22,7 +45,7 @@ const requestCustomerPhoneNumberVerification = (request, response) => __awaiter(
     const { countryCode, phoneNumber } = request.body;
     console.log("countryCode: " + countryCode + ", phoneNumber: " + phoneNumber);
     //   await sendSMSVerification(countryCode, phoneNumber, businessId);
-    const status = yield (0, CustomerService_1.sendSMSVerification)(countryCode, phoneNumber, businessId);
+    const status = yield (0, UserService_1.sendSMSVerification)(countryCode, phoneNumber, businessId);
     if (status && status == "pending") {
         response.status(200);
     }
@@ -31,7 +54,7 @@ const requestCustomerPhoneNumberVerification = (request, response) => __awaiter(
     }
     response.end();
 });
-const verifyCustomerCode = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+const verifyUserCode = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside verifyCode");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
@@ -46,9 +69,12 @@ const verifyCustomerCode = (request, response) => __awaiter(void 0, void 0, void
         phoneNumber +
         ", code: " +
         code);
-    const status = yield (0, CustomerService_1.verifyCodeIsValid)(countryCode, phoneNumber, businessId, code);
-    if (status && status == "approved") {
-        response.status(200);
+    const appUser = yield (0, UserService_1.verifyCodeIsValid)(countryCode, phoneNumber, businessId, code);
+    if (appUser) {
+        const appUserIdResponse = {
+            appuserId: appUser.id,
+        };
+        response.send(appUserIdResponse);
     }
     else {
         response.status(400);
@@ -56,6 +82,7 @@ const verifyCustomerCode = (request, response) => __awaiter(void 0, void 0, void
     response.end();
 });
 module.exports = {
-    requestCustomerPhoneNumberVerification,
-    verifyCustomerCode,
+    getLoyalty,
+    requestUserPhoneNumberVerification,
+    verifyUserCode,
 };

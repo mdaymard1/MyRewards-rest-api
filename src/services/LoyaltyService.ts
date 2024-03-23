@@ -28,6 +28,7 @@ import {
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
 } from "./MerchantService";
+import { updateUserWithDetails } from "./UserService";
 import { Equal, QueryFailedError } from "typeorm";
 import { EnrollmentRequest } from "../entity/EnrollmentRequest";
 import {
@@ -35,6 +36,7 @@ import {
   paginateResponse,
   unobsfucatePhoneNumber,
 } from "../utility/Utility";
+import { enrollRequest } from "../../routes/loyalty";
 
 export enum LoyaltyStatusType {
   Active = "Active",
@@ -138,7 +140,8 @@ export interface EnrollmentRequestDetails {
 export const enrollRequestIntoLoyalty = async (
   businessId: string,
   token: string,
-  enrollmentRequestId: string
+  enrollmentRequestId: string,
+  locationId: string
 ) => {
   console.log("inside enrollRequestIntoLoyalty");
 
@@ -166,11 +169,13 @@ export const enrollRequestIntoLoyalty = async (
 
     let wasEnrolled = await enrollCustomerInLoyalty(
       businessId,
+      enrollmentRequest.appUserid,
       token,
+      EnrollmentSourceType.ManualFromRequest,
+      locationId,
+      phoneNumber,
       firstName,
       lastName,
-      phoneNumber,
-      EnrollmentSourceType.ManualFromRequest,
       email
     );
     if (wasEnrolled) {
@@ -204,6 +209,8 @@ export const deleteRequestedEnrollment = async (
 
 export const createEnrollmentRequest = async (
   businessId: string,
+  locationId: string,
+  appUserId: string,
   firstName: string,
   lastName: string,
   phoneNumber: string,
@@ -222,8 +229,8 @@ export const createEnrollmentRequest = async (
   if (existingEnrollmentRequest) {
     return existingEnrollmentRequest.id;
   }
-  // Format details json
 
+  // Format details json
   const details = {
     firstName: firstName,
     lastName: lastName,
@@ -235,6 +242,8 @@ export const createEnrollmentRequest = async (
       EnrollmentRequest,
       {
         businessId: businessId,
+        locationId: locationId,
+        appUserid: appUserId,
         ref: ref,
         details: details,
         enrollRequestedAt: new Date(),
@@ -292,14 +301,18 @@ const lookupEnrollmentRequestById = async (id: string) => {
 
 export const enrollCustomerInLoyalty = async (
   businessId: string,
+  appUserId: string,
   token: string,
-  firstName: string,
-  lastName: string,
-  phoneNumber: string,
   enrollmentSource: EnrollmentSourceType,
+  locationId: string,
+  phoneNumber: string,
+  firstName: string,
+  lastName?: string,
   email?: string
 ) => {
-  console.log("inside enrollCustomerInLoyalty");
+  console.log(
+    "inside enrollCustomerInLoyalty with phoneNumber: " + phoneNumber
+  );
 
   const existingLoyalty = await Loyalty.createQueryBuilder("loyalty")
     .where("loyalty.businessId = :businessId", { businessId: businessId })
@@ -323,43 +336,51 @@ export const enrollCustomerInLoyalty = async (
     phoneNumber
   );
 
+  const ref = obsfucatePhoneNumber(phoneNumber);
+
   if (!loyaltyCustomerAccountId) {
     // A null value could mean that the loyalty account already existed for this phone number
     const customerId = await updateExistingCustomer(
       token,
+      enrollmentSource,
       businessId,
+      appUserId,
+      locationId,
       phoneNumber,
       firstName,
       lastName,
-      enrollmentSource,
       email
     );
+    const status = await updateUserWithDetails(ref, firstName, lastName, email);
+    // Ignoring any errors from the update for now
     return customerId;
   }
 
-  const ref = obsfucatePhoneNumber(phoneNumber);
-
   let appCustomerId = await insertCustomer(
     businessId,
+    appUserId,
     loyaltyCustomerAccountId,
     ref,
-    enrollmentSource
+    enrollmentSource,
+    locationId
   );
 
+  var merchCustomerId: string | undefined;
   if (appCustomerId) {
-    let merchCustomerId = await upsertMerchantCustomerAccount(
+    merchCustomerId = await upsertMerchantCustomerAccount(
       token,
       loyaltyCustomerAccountId,
       appCustomerId,
+      phoneNumber,
       firstName,
       lastName,
-      phoneNumber,
       email
     );
-    return merchCustomerId;
   }
-  return null;
-  return null;
+
+  const status = await updateUserWithDetails(ref, firstName, lastName, email);
+
+  return merchCustomerId;
 };
 
 /*  This function handles the case when a loyalty account already exists
@@ -368,11 +389,13 @@ export const enrollCustomerInLoyalty = async (
 */
 const updateExistingCustomer = async (
   token: string,
+  enrollmentSource: EnrollmentSourceType,
   businessId: string,
+  appUserId: string,
+  locationId: string,
   phoneNumber: string,
   firstName: string,
-  lastName: string,
-  enrollmentSource: EnrollmentSourceType,
+  lastName?: string,
   email?: string
 ) => {
   console.log("inside updateExistingCustomer");
@@ -385,9 +408,11 @@ const updateExistingCustomer = async (
     // Add the customer to our db
     let appCustomerId = await insertCustomer(
       businessId,
+      appUserId,
       existingCustomerId,
       obsfucatePhoneNumber(phoneNumber),
-      enrollmentSource
+      enrollmentSource,
+      locationId
     );
     // Finally, upsert the merchant's customer account
     if (appCustomerId) {
@@ -395,9 +420,9 @@ const updateExistingCustomer = async (
         token,
         existingCustomerId,
         appCustomerId,
+        phoneNumber,
         firstName,
         lastName,
-        phoneNumber,
         email
       );
       return existingCustomerId;
@@ -408,19 +433,23 @@ const updateExistingCustomer = async (
 
 const insertCustomer = async (
   businessId: string,
-  customerId: string,
+  appUserId: string,
+  merchantCustomerId: string,
   ref: string,
-  enrollmentSource: EnrollmentSourceType
+  enrollmentSource: EnrollmentSourceType,
+  locationId: string
 ) => {
   console.log("creating customer");
   try {
     const customer = await AppDataSource.manager.create(Customer, {
       businessId: businessId,
-      merchantCustomerId: customerId,
+      appUserId: appUserId,
+      merchantCustomerId: merchantCustomerId,
       ref: ref,
       balance: 0,
       lifetimePoints: 0,
       enrollmentSource: enrollmentSource,
+      locationId: locationId,
       enrolledAt: new Date(),
     });
     await AppDataSource.manager.save(customer);
@@ -432,7 +461,7 @@ const insertCustomer = async (
       error.message.includes("customer_id_UNIQUE")
     ) {
       console.log("Ignoring duplicate customer error");
-      return customerId;
+      return merchantCustomerId;
     } else {
       console.log("got error when inserting customer:" + error);
       return null;

@@ -44,7 +44,8 @@ export const searchBusiness = async (
   longitude: number,
   pageNumber: number,
   pageSize: number,
-  searchTerm?: string
+  searchTerm?: string,
+  appUserId?: string
 ) => {
   console.log("inside searchBusiness");
 
@@ -52,7 +53,14 @@ export const searchBusiness = async (
   const page = pageNumber || 1;
   const offset = (page - 1) * limit;
 
-  var selectClause = `SELECT "id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", "businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance FROM location WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+  const customerJoinClause = appUserId
+    ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from app_user where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from app_user where id = '${appUserId}')`
+    : "";
+
+  const customerSelectClause = appUserId
+    ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
+    : "";
+  var selectClause = `SELECT location."id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
 
   if (searchTerm) {
     selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";

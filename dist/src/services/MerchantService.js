@@ -107,7 +107,7 @@ const lookupCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __awaiter(vo
     }
 });
 exports.lookupCustomerIdByPhoneNumber = lookupCustomerIdByPhoneNumber;
-const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCustomerId, firstName, lastName, phone, email) => __awaiter(void 0, void 0, void 0, function* () {
+const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCustomerId, phone, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
     var _d, _e, _f;
     console.log("inside upsertMerchantCustomerAccount");
     const env = (0, Utility_1.getMerchantEnvironment)();

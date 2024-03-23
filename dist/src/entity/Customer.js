@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Customer = void 0;
 const typeorm_1 = require("typeorm");
 const Business_1 = require("./Business");
+const AppUser_1 = require("./AppUser");
 let Customer = class Customer extends typeorm_1.BaseEntity {
 };
 exports.Customer = Customer;
@@ -45,9 +46,18 @@ __decorate([
 ], Customer.prototype, "enrollmentSource", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    __metadata("design:type", String)
+], Customer.prototype, "locationId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
     (0, typeorm_1.Index)(),
     __metadata("design:type", String)
 ], Customer.prototype, "businessId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    (0, typeorm_1.Index)(),
+    __metadata("design:type", String)
+], Customer.prototype, "appUserId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Business_1.Business, (business) => business.customers, {
         nullable: true,
@@ -55,6 +65,13 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: "businessId" }),
     __metadata("design:type", Business_1.Business)
 ], Customer.prototype, "business", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => AppUser_1.AppUser, (appUser) => appUser.customer, {
+        nullable: true,
+    }),
+    (0, typeorm_1.JoinColumn)({ name: "appUserId" }),
+    __metadata("design:type", AppUser_1.AppUser)
+], Customer.prototype, "appUser", void 0);
 exports.Customer = Customer = __decorate([
     (0, typeorm_1.Index)("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
         unique: true,

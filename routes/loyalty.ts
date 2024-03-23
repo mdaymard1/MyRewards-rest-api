@@ -96,6 +96,13 @@ export const enrollRequest = async (request: Request, response: Response) => {
   }
 
   const { enrollmentRequestId } = request.params;
+  const { locationId } = request.query;
+
+  if (!locationId) {
+    response.status(404);
+    response.end();
+    return;
+  }
 
   var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
@@ -104,7 +111,8 @@ export const enrollRequest = async (request: Request, response: Response) => {
     const wasSuccessful = await enrollRequestIntoLoyalty(
       businessId,
       token,
-      enrollmentRequestId
+      enrollmentRequestId,
+      locationId as string
     );
     response.status(wasSuccessful ? 200 : 400);
     response.end();
@@ -161,9 +169,10 @@ const requestEnrollment = async (request: Request, response: Response) => {
     return;
   }
 
-  const { firstName, lastName, phone, email } = request.body;
+  const { appUserId, locationId, firstName, lastName, phone, email } =
+    request.body;
 
-  if (!firstName || !lastName || !phone) {
+  if (!appUserId || !locationId || !firstName || !phone) {
     console.log("missing fields");
     response.status(401);
     response.end();
@@ -174,13 +183,18 @@ const requestEnrollment = async (request: Request, response: Response) => {
 
   console.log(
     "received input of " +
+      "appUserId: " +
+      appUserId +
+      " locationId: " +
+      locationId +
+      " firstName: " +
       firstName +
-      " " +
+      " lastName: " +
       lastName +
-      " " +
-      phone +
-      ", " +
-      email
+      " email" +
+      email +
+      " phone: " +
+      phone
   );
 
   var token: string | undefined = "";
@@ -188,13 +202,15 @@ const requestEnrollment = async (request: Request, response: Response) => {
 
   const newEnrollmentId = await createEnrollmentRequest(
     businessId,
+    locationId,
+    appUserId,
     firstName,
     lastName,
     phone,
     email
   );
 
-  response.status(newEnrollmentId ? 200 : 400);
+  response.status(newEnrollmentId ? 201 : 400);
   response.end();
 };
 
@@ -221,19 +237,15 @@ const enrollCustomer = async (request: Request, response: Response) => {
     return;
   }
 
-  const { firstName, lastName, phone, email } = request.body;
-
-  if (!firstName || !lastName || !phone) {
-    console.log("missing fields");
-    response.status(401);
-    response.end();
-    return;
-  }
-
-  // let digitRegExp = /^\d+$/;
+  const { appUserId, locationId, firstName, lastName, phone, email } =
+    request.body;
 
   console.log(
     "received input of " +
+      appUserId +
+      " " +
+      locationId +
+      " " +
       firstName +
       " " +
       lastName +
@@ -243,17 +255,28 @@ const enrollCustomer = async (request: Request, response: Response) => {
       email
   );
 
+  if (!appUserId || !locationId || !firstName || !phone) {
+    console.log("missing fields");
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  // let digitRegExp = /^\d+$/;
+
   var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
 
   if (token) {
     await enrollCustomerInLoyalty(
       businessId,
+      appUserId,
       token,
+      EnrollmentSourceType.RewardsApp,
+      locationId,
+      phone,
       firstName,
       lastName,
-      phone,
-      EnrollmentSourceType.RewardsApp,
       email
     );
     response.status(201);
