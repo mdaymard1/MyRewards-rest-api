@@ -211,76 +211,63 @@ export const createNewBusinessWithLoyalty = async (
   merchantId: string,
   accessToken: string,
   refreshToken: string,
-  expirationDate: Date | undefined,
-  callback: any
+  expirationDate: Date | undefined
 ) => {
   console.log("creating new business");
 
   try {
-    createBusinessFromMerchantInfo(
+    const newBusiness = await createBusinessFromMerchantInfo(
       name,
       merchantId,
       accessToken,
       refreshToken,
-      expirationDate,
-      function (newBusiness: Business) {
-        if (newBusiness) {
-          var token: string | undefined = "";
-          token = decryptToken(newBusiness.merchantAccessToken);
-          if (token) {
-            getMainLoyaltyProgramFromMerchant(
-              token,
-              function (
-                loyaltyProgram: LoyaltyProgram,
-                promotions: LoyaltyPromotion[],
-                accrualType: string,
-                catalogItemNameMap: Map<string, string>
-              ) {
-                console.log(
-                  "got back program: " +
-                    loyaltyProgram?.id +
-                    ", promo count: " +
-                    promotions?.length +
-                    ", accrualType: " +
-                    accrualType +
-                    ", catalogItemNameMap count: " +
-                    catalogItemNameMap?.size
-                );
-
-                if (loyaltyProgram) {
-                  createAppLoyaltyFromLoyaltyProgram(
-                    newBusiness.businessId,
-                    loyaltyProgram,
-                    promotions,
-                    catalogItemNameMap,
-                    function (newLoyalty: Loyalty) {
-                      if (!newLoyalty) {
-                        console.log("Failed to create app loyalty");
-                      }
-                      callback(newBusiness);
-                    }
-                  );
-                } else {
-                  // If no merchant loyalty is found, we should probably check app loyalty and remove it
-                  console.log("No loyalty program found");
-                  callback(newBusiness);
-                }
-              }
-            );
-          } else {
-            //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
-            console.log("No valid token found in newBusiness");
-            callback(newBusiness);
-          }
-        } else {
-          console.log("Failed to create new business 2");
-          callback(undefined);
-        }
-      }
+      expirationDate
     );
+    if (newBusiness) {
+      var token: string | undefined = "";
+      token = decryptToken(newBusiness.merchantAccessToken);
+      if (token) {
+        const loyaltyResponse = await getMainLoyaltyProgramFromMerchant(token);
+        // function (
+        console.log(
+          "got back program: " +
+            loyaltyResponse?.program.id +
+            ", promo count: " +
+            loyaltyResponse?.promotions?.length +
+            ", accrualType: " +
+            loyaltyResponse?.accrualType +
+            ", catalogItemNameMap count: " +
+            loyaltyResponse?.catalogItemNameMap.size
+        );
+
+        if (loyaltyResponse?.program) {
+          const newLoyalty = await createAppLoyaltyFromLoyaltyProgram(
+            newBusiness.businessId,
+            loyaltyResponse?.program,
+            loyaltyResponse?.promotions,
+            loyaltyResponse?.catalogItemNameMap
+          );
+          if (!newLoyalty) {
+            console.log("Failed to create app loyalty");
+          }
+          return newBusiness;
+        } else {
+          // If no merchant loyalty is found, we should probably check app loyalty and remove it
+          console.log("No loyalty program found");
+          return newBusiness;
+        }
+      } else {
+        //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
+        console.log("No valid token found in newBusiness");
+        return newBusiness;
+      }
+    } else {
+      console.log("Failed to create new business");
+      return undefined;
+    }
   } catch (err) {
     console.log("createNewBusinessWithLoyalty encountered an error: " + err);
-    callback(undefined);
+    return undefined;
   }
 };
 
@@ -289,8 +276,7 @@ export const createBusinessFromMerchantInfo = async (
   merchantId: string,
   accessToken: string,
   refreshToken: string,
-  expirationDate: Date | undefined,
-  callback: any
+  expirationDate: Date | undefined
 ) => {
   console.log("inside createBusinessFromMerchantInfo");
   // First, we need to make sure the tokens are valid, so we'll get the latest merchant info first
@@ -318,11 +304,11 @@ export const createBusinessFromMerchantInfo = async (
         "creation of business locations result: " + wereLocationsCreated
       );
     }
-    callback(business);
+    return business;
     return;
   } else {
     console.log("returing empty business");
-    callback(undefined);
+    return undefined;
   }
 };
 
@@ -718,21 +704,6 @@ const insertBusinessLocation = async (
     return null;
   }
 };
-// const updateBusinessWithBusinessIdToken = async (businessRepository: Repository<Business>, businessId: string, merchantId: string, callback: any) => {
-//   // Create business token
-//   const businessKey = businessId + "::" + merchantId;
-//   const encryptedKey = encryptToken(businessKey);
-//   console.log("businessKey: " + businessKey + " encrypted to: " + encryptedKey);
-//   if (encryptedKey) {
-//     await businessRepository.update(businessId, {
-//       businessToken: encryptedKey,
-//     })
-//     callback(true);
-//   } else {
-//     // If we can't create a business token, return empty business cause we can't provide a client token
-//     callback(false);
-//   }
-// }
 
 export const updateBusinessEntity = async (
   businessId: string,
@@ -740,10 +711,9 @@ export const updateBusinessEntity = async (
   accessToken: string,
   refreshToken: string,
   expirationDate: Date | undefined,
-  business: Business,
-  callback: any
+  business: Business
 ) => {
-  AppDataSource.manager.update(
+  await AppDataSource.manager.update(
     Business,
     {
       merchantId: merchantId,
@@ -755,7 +725,7 @@ export const updateBusinessEntity = async (
     }
   );
   console.log("just updated business with id: " + business.businessId);
-  callback(business);
+  return business;
 };
 
 export const updateBusinessDetails = async (
@@ -825,19 +795,16 @@ export const updateBusinessDetails = async (
   }
 };
 
-export const findBusinessByMerchantId = async (
-  merchantId: string,
-  callback: any
-) => {
+export const findBusinessByMerchantId = async (merchantId: string) => {
   console.log("inside findBusinessByMerchantId");
 
   try {
     const business = await Business.createQueryBuilder("business")
       .where("business.merchantId = :merchantId", { merchantId: merchantId })
       .getOne();
-    callback(business);
+    return business;
   } catch (err) {
-    callback(undefined);
+    return undefined;
   }
 };
 

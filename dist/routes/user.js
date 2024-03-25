@@ -9,8 +9,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getEnrolledAndPendingLoyalty = void 0;
 const BusinessService_1 = require("../src/services/BusinessService");
 const UserService_1 = require("../src/services/UserService");
+const getEnrolledAndPendingLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getEnrolledAndPendingLoyalty");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const allLoyaltyAccounts = yield (0, UserService_1.getAllLoyaltyAccounts)(userId);
+    if (allLoyaltyAccounts) {
+        response.send(allLoyaltyAccounts);
+    }
+    else {
+        response.status(400);
+    }
+    response.end();
+});
+exports.getEnrolledAndPendingLoyalty = getEnrolledAndPendingLoyalty;
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLoyalty");
     const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
@@ -82,6 +101,7 @@ const verifyUserCode = (request, response) => __awaiter(void 0, void 0, void 0, 
     response.end();
 });
 module.exports = {
+    getEnrolledAndPendingLoyalty: exports.getEnrolledAndPendingLoyalty,
     getLoyalty,
     requestUserPhoneNumberVerification,
     verifyUserCode,

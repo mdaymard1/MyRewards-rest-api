@@ -41,10 +41,15 @@ app.use(cookieParser());
 
 app.get("/business", businessRoute.getBusiness);
 app.post("/business", businessRoute.createBusiness);
+app.post("/business/test", businessRoute.createTestBusiness);
 app.put("/business", businessRoute.updateBusiness);
 app.get("/business/search", businessRoute.search);
 
 app.get("/user/:userId/loyalty", userRoute.getLoyalty);
+app.get(
+  "/user/:userId/enrolledAndPending",
+  userRoute.getEnrolledAndPendingLoyalty
+);
 app.post(
   "/user/requestVerification",
   userRoute.requestUserPhoneNumberVerification

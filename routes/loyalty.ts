@@ -317,101 +317,82 @@ const getLoyalty = async (request: Request, response: Response) => {
   var token: string | undefined = "";
   token = decryptToken(business.merchantAccessToken);
   if (token) {
-    getMainLoyaltyProgramFromMerchant(
-      token,
-      function (
-        loyaltyProgram: LoyaltyProgram,
-        promotions: LoyaltyPromotion[],
-        accrualType: string,
-        catalogItemNameMap: Map<string, string>
-      ) {
-        console.log(
-          "got back program: " +
-            loyaltyProgram?.id +
-            ", promo count: " +
-            promotions?.length +
-            ", accrualType: " +
-            accrualType +
-            ", categoryIdMap count: " +
-            catalogItemNameMap?.size
-        );
+    const loyaltyResponse = await getMainLoyaltyProgramFromMerchant(token);
+    console.log(
+      "got back program: " +
+        loyaltyResponse?.program?.id +
+        ", promo count: " +
+        loyaltyResponse?.promotions?.length +
+        ", accrualType: " +
+        loyaltyResponse?.accrualType +
+        ", categoryIdMap count: " +
+        loyaltyResponse?.catalogItemNameMap?.size
+    );
 
-        if (loyaltyProgram) {
-          if (loyalty) {
-            if (
-              isLoyaltyOrPromotionsOutOfDate(
-                loyalty,
-                loyaltyProgram,
-                promotions
-              )
-            ) {
-              console.log("loyalty is out of date");
-              updateAppLoyaltyFromMerchant(
-                loyalty,
-                loyaltyProgram,
-                promotions,
-                catalogItemNameMap,
-                function (updatedloyalty: Loyalty) {
-                  console.log("done updating loyalty");
-                  if (updatedloyalty) {
-                    //Get a refreshed loyalty
-                    console.log(
-                      "loyalty updated, now getting refreshed version"
-                    );
-                    getCurrentLoyaltyById(
-                      updatedloyalty.id,
-                      function (refreshedLoyalty: Loyalty) {
-                        if (refreshedLoyalty) {
-                          response.send(refreshedLoyalty);
-                        } else {
-                          response.status(500);
-                          response.end();
-                          return;
-                        }
-                      }
-                    );
-                  }
-                }
-              );
-            } else {
-              console.log("loyalty is not out of date");
-              response.send(loyalty);
-            }
-          } else {
-            createAppLoyaltyFromLoyaltyProgram(
-              business.businessId,
-              loyaltyProgram,
-              promotions,
-              catalogItemNameMap,
-              function (newLoyalty: Loyalty) {
-                if (newLoyalty) {
-                  getCurrentLoyaltyById(
-                    newLoyalty.id,
-                    function (loyalty: Loyalty) {
-                      if (loyalty) {
-                        response.send(loyalty);
-                      } else {
-                        response.status(500);
-                        response.end();
-                        return;
-                      }
-                    }
-                  );
-                } else {
-                  response.status(500);
-                  response.end();
-                  return;
-                }
-              }
+    if (loyaltyResponse?.program) {
+      if (loyalty) {
+        if (
+          isLoyaltyOrPromotionsOutOfDate(
+            loyalty,
+            loyaltyResponse.program,
+            loyaltyResponse?.promotions
+          )
+        ) {
+          console.log("loyalty is out of date");
+          const updatedloyalty = await updateAppLoyaltyFromMerchant(
+            loyalty,
+            loyaltyResponse.program,
+            loyaltyResponse?.promotions,
+            loyaltyResponse?.catalogItemNameMap
+            // function (updatedloyalty: Loyalty) {
+          );
+          console.log("done updating loyalty");
+          if (updatedloyalty) {
+            //Get a refreshed loyalty
+            console.log("loyalty updated, now getting refreshed version");
+            const refreshedLoyalty = await getCurrentLoyaltyById(
+              updatedloyalty.id
             );
+            if (refreshedLoyalty) {
+              response.send(refreshedLoyalty);
+            } else {
+              response.status(500);
+              response.end();
+              return;
+            }
           }
         } else {
-          // If no merchant loyalty is found, we should probably check app loyalty and remove it
-          response.status(404);
+          console.log("loyalty is not out of date");
+          response.send(loyalty);
+        }
+      } else {
+        const newLoyalty = await createAppLoyaltyFromLoyaltyProgram(
+          business.businessId,
+          loyaltyResponse?.program,
+          loyaltyResponse?.promotions,
+          loyaltyResponse?.catalogItemNameMap
+          // function (newLoyalty: Loyalty) {
+        );
+        if (newLoyalty) {
+          getCurrentLoyaltyById(newLoyalty.id);
+          if (loyalty) {
+            response.send(loyalty);
+          } else {
+            response.status(500);
+            response.end();
+            return;
+          }
+        } else {
+          response.status(500);
           response.end();
+          return;
         }
       }
-    );
+    } else {
+      // If no merchant loyalty is found, we should probably check app loyalty and remove it
+      response.status(404);
+      response.end();
+    }
   } else {
     //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
   }
@@ -447,17 +428,15 @@ const updateLoyalty = async (request: Request, response: Response) => {
     return;
   }
 
-  updateLoyaltyItems(
+  const wasSuccessful = await updateLoyaltyItems(
     businessId,
     loyaltyId,
     loyaltyAccruals,
     promotions,
-    loyaltyRewardTiers,
-    function (wasSuccessful: boolean) {
-      response.status(wasSuccessful ? 204 : 404);
-      response.end();
-    }
+    loyaltyRewardTiers
   );
+  response.status(wasSuccessful ? 204 : 404);
+  response.end();
 };
 
 const updateLoyaltyStatus = async (request: Request, response: Response) => {
@@ -499,31 +478,29 @@ const updateLoyaltyStatus = async (request: Request, response: Response) => {
     return;
   }
 
-  updateLoyaltyStatuses(
+  const wasSuccessful = await updateLoyaltyStatuses(
     businessId,
     loyaltyId,
     showLoyaltyInApp,
     showPromotionsInApp,
     automaticallyUpdateChangesFromMerchant,
-    loyaltyStatus,
-    function (wasSuccessful: boolean) {
-      response.status(wasSuccessful ? 204 : 500);
-      response.end();
-    }
+    loyaltyStatus
   );
+  response.status(wasSuccessful ? 204 : 500);
+  response.end();
 };
 
 function isValidLoyaltyStatus(value: string): value is LoyaltyStatusType {
   return Object.values<string>(LoyaltyStatusType).includes(value);
 }
 
-const getCurrentLoyaltyById = async (loyaltyId: string, callback: any) => {
+const getCurrentLoyaltyById = async (loyaltyId: string) => {
   const loyalty = await AppDataSource.manager.findOne(Loyalty, {
     where: {
       id: loyaltyId,
     },
   });
-  callback(loyalty);
+  return loyalty;
 };
 
 module.exports = {

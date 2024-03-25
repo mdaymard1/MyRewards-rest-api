@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+var businessRoute = require("./routes/business");
+var loyaltyRoute = require("./routes/loyalty");
+var userRoute = require("./routes/user");
+var webhookRoute = require("./routes/webhook");
+const routes = (0, express_1.Router)();
+// routes.use('/users', user);
+exports.default = routes;

@@ -55,7 +55,7 @@ export const getSpecialsForLocation = async (businessId: string) => {
   return special;
 };
 
-export const getAllSpecials = async (businessId: string, callback: any) => {
+export const getAllSpecials = async (businessId: string) => {
   console.log("inside getAllSpecials");
 
   const specials = await AppDataSource.manager.find(Special, {
@@ -63,14 +63,10 @@ export const getAllSpecials = async (businessId: string, callback: any) => {
       businessId: businessId,
     },
   });
-  callback(specials);
+  return specials;
 };
 
-export const createSpecial = async (
-  businessId: string,
-  special: Special,
-  callback: any
-) => {
+export const createSpecial = async (businessId: string, special: Special) => {
   console.log("inside createSpecial");
 
   const startDate = special.startDate
@@ -93,16 +89,11 @@ export const createSpecial = async (
   let sortOrder = 1;
 
   if (special.items) {
-    createSpecialItems(
-      newSpecial,
-      special.items,
-      function (wasSuccessful: boolean) {
-        updateBusinessSpecialCatalogIndicator(businessId);
-        callback(newSpecial.id);
-      }
-    );
+    const wasSuccessful = await createSpecialItems(newSpecial, special.items);
+    updateBusinessSpecialCatalogIndicator(businessId);
+    return newSpecial.id;
   } else {
-    callback(undefined);
+    return undefined;
   }
 };
 
@@ -134,8 +125,7 @@ const updateBusinessSpecialCatalogIndicator = async (businessId: string) => {
 
 export const updateExistingSpecial = async (
   specialId: string,
-  special: Special,
-  callback: any
+  special: Special
 ) => {
   console.log("inside updateExistingSpecial");
 
@@ -147,8 +137,7 @@ export const updateExistingSpecial = async (
 
   if (!existingSpecial) {
     console.log("special not found");
-    callback(false);
-    return;
+    return false;
   }
 
   existingSpecial.title = special.title;
@@ -219,28 +208,22 @@ export const updateExistingSpecial = async (
       );
     }
   }
-
   updateBusinessSpecialCatalogIndicator(existingSpecial.businessId);
-
-  callback(true);
+  return true;
 };
 
-export const deleteExistingSpecial = async (
-  specialId: string,
-  callback: any
-) => {
+export const deleteExistingSpecial = async (specialId: string) => {
   console.log("inside deleteExistingSpecial");
 
   await AppDataSource.manager.delete(Special, {
     id: specialId,
   });
-  callback(true);
+  return true;
 };
 
 const createSpecialItems = async (
   special: Special,
-  specialItems: SpecialItem[],
-  callback: any
+  specialItems: SpecialItem[]
 ) => {
   let sortOrder = 1;
 
@@ -259,13 +242,12 @@ const createSpecialItems = async (
     await AppDataSource.manager.save(newSpecialItem);
     sortOrder += 1;
   }
-  callback(true);
+  return true;
 };
 
 export const updateSpecialsFromWebhook = async (
   merchantId: string,
-  catalogVersionUpdated: SquareCatalogVersionUpdated,
-  callback: any
+  catalogVersionUpdated: SquareCatalogVersionUpdated
 ) => {
   console.log("inside updateSpecialsFromWebhook");
 
@@ -275,30 +257,26 @@ export const updateSpecialsFromWebhook = async (
 
   if (!business) {
     console.log("Can't find Business for merchantId: " + merchantId);
-    callback(false);
-    return;
+    return false;
   }
 
   // See if we need to update catalog items
   if (!business.loyaltyUsesCatalogItems && !business.specialsUseCatalogItems) {
     console.log("catalog update is not required for specials or loyalty");
-    callback(false);
-    return;
+    return false;
   }
 
   const token = decryptToken(business.merchantAccessToken);
 
   if (!token) {
     console.log("Can't get token");
-    callback(false);
-    return;
+    return false;
   }
 
   const accessTokenExpirationDate = business.accessTokenExpirationDate;
   if (!accessTokenExpirationDate || !business.merchantRefreshToken) {
     console.log("Can't get token");
-    callback(false);
-    return;
+    return false;
   }
 
   const diffInTime = accessTokenExpirationDate.getTime() - new Date().getTime();
@@ -313,8 +291,7 @@ export const updateSpecialsFromWebhook = async (
     );
     if (!refreshToken) {
       console.log("could not decrypt refresh token");
-      callback(true);
-      return;
+      return true;
     }
     const newTokens = await requestNewTokens(refreshToken);
     if (newTokens) {
@@ -334,50 +311,36 @@ export const updateSpecialsFromWebhook = async (
       );
       console.log("Just updated tokens in business");
     } else {
-      callback(true);
+      return true;
     }
   }
 
-  getCatalogItemsLastUpdated(
+  const catalogIdMapAndVariantStates = await getCatalogItemsLastUpdated(
     business.lastUpdateDate,
-    token,
-    function (
-      catalogIdMapAndVariantStates: [
-        catalogMap: Map<string, any>,
-        deletedVariants: boolean
-      ]
-    ) {
-      if (business.loyaltyUsesCatalogItems) {
-        updateLoyaltyAccrualsFromCatalogChangesIfNeeded(
-          business.businessId,
-          catalogIdMapAndVariantStates,
-          token,
-          function (wasSuccessful: boolean) {
-            if (business.specialsUseCatalogItems) {
-              updateSpecialsFromCatalogChangesIfNeeded(
-                business.businessId,
-                catalogIdMapAndVariantStates[0],
-                function (wasSuccessful: boolean) {
-                  callback(true);
-                }
-              );
-            }
-          }
-        );
-      } else if (business.specialsUseCatalogItems) {
-        updateSpecialsFromCatalogChangesIfNeeded(
-          business.businessId,
-          catalogIdMapAndVariantStates[0],
-          function (wasSuccessful: boolean) {
-            console.log(
-              "returned from updateSpecialsFromCatalogChangesIfNeeded"
-            );
-            callback(true);
-          }
-        );
-      }
-    }
+    token
   );
+  if (business.loyaltyUsesCatalogItems) {
+    const wasSuccessful = await updateLoyaltyAccrualsFromCatalogChangesIfNeeded(
+      business.businessId,
+      catalogIdMapAndVariantStates,
+      token
+    );
+    if (business.specialsUseCatalogItems) {
+      const wasSuccessful = await updateSpecialsFromCatalogChangesIfNeeded(
+        business.businessId,
+        catalogIdMapAndVariantStates.catalogMap
+        // function (wasSuccessful: boolean) {
+      );
+      return true;
+    }
+  } else if (business.specialsUseCatalogItems) {
+    updateSpecialsFromCatalogChangesIfNeeded(
+      business.businessId,
+      catalogIdMapAndVariantStates.catalogMap
+    );
+    console.log("returned from updateSpecialsFromCatalogChangesIfNeeded");
+    return true;
+  }
 };
 
 const requestNewTokens = async (refreshToken: string) => {
@@ -438,8 +401,7 @@ const requestNewTokens = async (refreshToken: string) => {
 
 const updateSpecialsFromCatalogChangesIfNeeded = async (
   businessId: string,
-  catalogMap: Map<string, any>,
-  callback: any
+  catalogMap: Map<string, any>
 ) => {
   console.log("inside updateSpecialsFromCatalogChangesIfNeeded");
 
@@ -602,24 +564,23 @@ const updateSpecialsFromCatalogChangesIfNeeded = async (
     }
   }
   updateBusinessSpecialCatalogIndicator(businessId);
-  callback(true);
+  return true;
 };
 
 const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = async (
   businessId: string,
-  catalogIdMapAndVariantStates: [
-    catalogMap: Map<string, any>,
-    deletedVariants: boolean
-  ],
-  token: string,
-  callback: any
+  catalogIdMapAndVariantStates: {
+    catalogMap: Map<string, any>;
+    wereVariantsMissing: boolean;
+  },
+  token: string
 ) => {
   let wereLoyaltyItemsUpdated = false;
 
   // If a variant was deleted, we don't get the variantId and so can't check to see if
   // it was in an accrual. So unfortunately, we need to assume it may have been on an
   // accrual and the request a loyalty update from the merchant
-  if (catalogIdMapAndVariantStates[1]) {
+  if (catalogIdMapAndVariantStates.wereVariantsMissing) {
     wereLoyaltyItemsUpdated = true;
   } else {
     // get all loyalty accrual and their categories or variant ids
@@ -636,7 +597,8 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = async (
             ? accrual.categoryId
             : accrual.variantId;
         console.log("checking catalogMap for catalogId: " + catalogId);
-        const catalogItem = catalogIdMapAndVariantStates[0].get(catalogId);
+        const catalogItem =
+          catalogIdMapAndVariantStates.catalogMap.get(catalogId);
         if (catalogItem) {
           wereLoyaltyItemsUpdated = true;
           return true;
@@ -662,37 +624,32 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = async (
     const loyaltyProgram = loyaltyProgramResponse?.result?.program;
 
     if (loyaltyProgram) {
-      getCatalogItemIdMapFromAccurals(
+      const catalogItemNameMap = await getCatalogItemIdMapFromAccurals(
         token,
-        loyaltyProgram.accrualRules ?? [],
-        function (catalogItemNameMap: Map<string, string>) {
-          console.log(
-            "Catalog items used by loyalty have changes, so updating loyalty"
-          );
-          updateLoyaltyWithLatestChanges(
-            businessId,
-            loyaltyProgram,
-            catalogItemNameMap,
-            function (wasSuccessful: boolean) {
-              callback(true);
-            }
-          );
-        }
+        loyaltyProgram.accrualRules ?? []
       );
+      console.log(
+        "Catalog items used by loyalty have changes, so updating loyalty"
+      );
+      await updateLoyaltyWithLatestChanges(
+        businessId,
+        loyaltyProgram,
+        catalogItemNameMap
+      );
+      return true;
     } else {
-      callback(true);
+      return true;
     }
   } else {
     console.log("No catalog items have changed since last update");
-    callback(true);
+    return true;
   }
 };
 
 const updateLoyaltyWithLatestChanges = async (
   businessId: string,
   loyaltyProgram: LoyaltyProgram,
-  catalogItemNameMap: Map<string, string>,
-  callback: any
+  catalogItemNameMap: Map<string, string>
 ) => {
   if (loyaltyProgram.accrualRules && loyaltyProgram.terminology) {
     let loyalty = await AppDataSource.manager.findOne(Loyalty, {
@@ -701,13 +658,13 @@ const updateLoyaltyWithLatestChanges = async (
       },
     });
     if (loyalty) {
-      updateAppLoyaltyAccrualsFromMerchant(
+      await updateAppLoyaltyAccrualsFromMerchant(
         loyaltyProgram.accrualRules,
         loyaltyProgram.terminology,
         loyalty,
         catalogItemNameMap
       );
-      removeOldAccrualRules(loyalty.loyaltyAccruals, loyaltyProgram);
+      await removeOldAccrualRules(loyalty.loyaltyAccruals, loyaltyProgram);
 
       let loyaltyUsesCatalogItems = false;
       for (var loyaltyAccrualRule of loyaltyProgram.accrualRules) {
@@ -717,24 +674,23 @@ const updateLoyaltyWithLatestChanges = async (
         )
           loyaltyUsesCatalogItems = true;
       }
-      updateBusinessLoyaltyCatalogIndicator(
+      await updateBusinessLoyaltyCatalogIndicator(
         businessId,
         loyaltyUsesCatalogItems
       );
       console.log("sending callback");
-      callback(true);
+      return true;
     } else {
-      callback(true);
+      return true;
     }
   } else {
-    callback(true);
+    return true;
   }
 };
 
 const getCatalogItemsLastUpdated = async (
   lastUpdateDate: Date,
-  token: string,
-  callback: any
+  token: string
 ) => {
   console.log("inside getCatalogItemsLastUpdated");
 
@@ -762,7 +718,7 @@ const getCatalogItemsLastUpdated = async (
   const catalogResults = await catalogApi.searchCatalogObjects(body);
 
   let catalogMap = new Map<string, any>();
-  let wereVariantsMission = false;
+  let wereVariantsMissing = false;
 
   if (catalogResults.result.objects) {
     for (var object of catalogResults.result.objects) {
@@ -795,7 +751,7 @@ const getCatalogItemsLastUpdated = async (
             );
           }
         } else {
-          wereVariantsMission = true;
+          wereVariantsMissing = true;
           console.log(
             "variant was missing from ITEM in searchCatalogObjects results"
           );
@@ -820,7 +776,10 @@ const getCatalogItemsLastUpdated = async (
       }
     }
   }
-  callback([catalogMap, wereVariantsMission]);
+  return {
+    catalogMap: catalogMap,
+    wereVariantsMissing: wereVariantsMissing,
+  };
 };
 
 module.exports = {

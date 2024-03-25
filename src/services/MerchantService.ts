@@ -15,6 +15,50 @@ import { decryptToken } from "./EncryptionService";
 import { getMerchantEnvironment } from "../utility/Utility";
 import dotenv from "dotenv";
 import { SquareAccrualRules } from "./entity/SquareWebhook";
+import { error } from "console";
+import { Loyalty } from "../entity/Loyalty";
+import { RewardDetails } from "./entity/RewardDetails";
+import { LoyaltyRewardTier } from "../entity/LoyaltyRewardTier";
+
+export const getAvailableRewardsForLoyaltyBalance = (
+  customerBalance: number,
+  rewardTiers: LoyaltyRewardTier[]
+) => {
+  console.log("inside getAvailableRewardsForLoyaltyBalance");
+
+  var rewardDetails: RewardDetails[] = [];
+
+  if (customerBalance < 1) {
+    return rewardDetails;
+  }
+
+  for (var rewardTier of rewardTiers) {
+    const descSplit = rewardTier.merchantReward.split(" ");
+    if (descSplit.length == 2) {
+      const numberOfPointsRequired = parseInt(descSplit[0]);
+      var rewardDescription =
+        rewardTier.displayRewardDescription ??
+        rewardTier.merchantRewardDescription;
+      if (customerBalance >= numberOfPointsRequired) {
+        rewardDetails.push(new RewardDetails("earned", rewardDescription));
+      } else {
+        const percentToRequiredPoints =
+          customerBalance / numberOfPointsRequired;
+        // If balance is 80% of required points, add a message that they're close to earning the reward
+        if (percentToRequiredPoints >= 0.8) {
+          rewardDetails.push(
+            new RewardDetails(
+              "near",
+              rewardDescription,
+              numberOfPointsRequired - customerBalance
+            )
+          );
+        }
+      }
+    }
+  }
+  return rewardDetails;
+};
 
 export const createLoyaltyAccount = async (
   accessToken: string,
@@ -284,10 +328,35 @@ export const getMerchantLocation = async (
   }
 };
 
-export const getMainLoyaltyProgramFromMerchant = async (
-  token: string,
-  callback: any
-) => {
+const getMerchantsMainLoyaltyProgram = async (token: string) => {
+  console.log("inside getMerchantsMainLoyaltyProgram");
+
+  dotenv.config();
+
+  const env = getMerchantEnvironment();
+
+  const client = new Client({
+    squareVersion: "2024-01-18",
+    accessToken: token,
+    environment: env,
+  });
+
+  const { catalogApi, loyaltyApi } = client;
+
+  try {
+    const loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
+      "main"
+    );
+    console.log("response: " + loyaltyProgramResponse?.result);
+
+    return loyaltyProgramResponse?.result?.program;
+  } catch (error) {
+    console.log("Error thrown in getMerchantsMainLoyaltyProgram: " + error);
+    return null;
+  }
+};
+
+export const getMainLoyaltyProgramFromMerchant = async (token: string) => {
   console.log("token: " + token);
 
   dotenv.config();
@@ -303,7 +372,7 @@ export const getMainLoyaltyProgramFromMerchant = async (
   const { catalogApi, loyaltyApi } = client;
 
   try {
-    let loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
+    const loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
       "main"
     );
     console.log("response: " + loyaltyProgramResponse?.result);
@@ -311,8 +380,7 @@ export const getMainLoyaltyProgramFromMerchant = async (
     const program = loyaltyProgramResponse?.result?.program;
 
     if (!program) {
-      callback(undefined);
-      return;
+      return undefined;
     }
     console.log("program id: " + program.id);
 
@@ -325,8 +393,7 @@ export const getMainLoyaltyProgramFromMerchant = async (
     console.log("response: " + promotionsResponse?.result);
 
     if (!promotionsResponse) {
-      callback(undefined);
-      return;
+      return undefined;
     }
     if (promotionsResponse.result?.loyaltyPromotions) {
       promotions = promotionsResponse.result.loyaltyPromotions;
@@ -352,16 +419,24 @@ export const getMainLoyaltyProgramFromMerchant = async (
     // Loop through each tier to determine its type
 
     if (program.accrualRules) {
-      getCatalogItemIdMapFromAccurals(
+      const catalogItemNameMap = await getCatalogItemIdMapFromAccurals(
         token,
-        program.accrualRules,
-        function (catalogItemNameMap: Map<string, string>) {
-          callback(program, promotions, accrualType, catalogItemNameMap);
-          return;
-        }
+        program.accrualRules
+        // function (catalogItemNameMap: Map<string, string>) {
       );
+      return {
+        program: program,
+        promotions: promotions,
+        accrualType: accrualType,
+        catalogItemNameMap: catalogItemNameMap,
+      };
     } else {
-      callback(program, promotions, accrualType, new Map<string, string>());
+      return {
+        program: program,
+        promotions: promotions,
+        accrualType: accrualType,
+        catalogItemNameMap: new Map<string, string>(),
+      };
     }
   } catch (error) {
     if (error instanceof ApiError) {
@@ -376,14 +451,13 @@ export const getMainLoyaltyProgramFromMerchant = async (
         error
       );
     }
-    callback(undefined);
+    return undefined;
   }
 };
 
 export const getCatalogItemIdMapFromAccurals = async (
   token: string,
-  accrualRules: LoyaltyProgramAccrualRule[] | SquareAccrualRules[],
-  callback: any
+  accrualRules: LoyaltyProgramAccrualRule[] | SquareAccrualRules[]
 ) => {
   console.log("inside getCatalogItemIdMapFromAccurals");
 
@@ -483,14 +557,15 @@ export const getCatalogItemIdMapFromAccurals = async (
         }
       }
     }
-    callback(itemNameMap);
+    return itemNameMap;
   } else {
-    callback(itemNameMap);
+    return itemNameMap;
   }
 };
 
 module.exports = {
   createLoyaltyAccount,
+  getAvailableRewardsForLoyaltyBalance,
   getCatalogItemIdMapFromAccurals,
   getMerchantInfo,
   getMerchantLocation,

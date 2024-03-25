@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
-import { getBusinessIdFromAuthToken } from '../src/services/BusinessService';
+import { Request, Response } from "express";
+import { getBusinessIdFromAuthToken } from "../src/services/BusinessService";
 import {
   createSpecial,
   deleteExistingSpecial,
   getAllSpecials,
   updateExistingSpecial,
-} from '../src/services/SpecialService';
-import { Special } from '../src/entity/Special';
+} from "../src/services/SpecialService";
+import { Special } from "../src/entity/Special";
 
 export const getSpecials = async (request: Request, response: Response) => {
   const businessId = getBusinessIdFromAuthToken(request);
@@ -17,15 +17,14 @@ export const getSpecials = async (request: Request, response: Response) => {
     return;
   }
 
-  getAllSpecials(businessId, function (specials: Special[]) {
-    response.send(specials);
-    return;
-  });
+  const specials = await getAllSpecials(businessId);
+  response.send(specials);
+  return;
 };
 
 export const createNewSpecial = async (
   request: Request,
-  response: Response,
+  response: Response
 ) => {
   const businessId = getBusinessIdFromAuthToken(request);
 
@@ -38,37 +37,36 @@ export const createNewSpecial = async (
   const { special } = request.body;
 
   if (!special) {
-    console.log('Special object not found');
+    console.log("Special object not found");
     response.status(400);
     response.end();
     return;
   }
 
   if (!special.title) {
-    console.log('Special missing title');
+    console.log("Special missing title");
     response.status(400);
     response.end();
     return;
   }
 
   if (!special.items) {
-    console.log('Special missing items');
+    console.log("Special missing items");
     response.status(400);
     response.end();
     return;
   }
 
-  createSpecial(businessId, special, function (newSpecialId: string) {
-    if (newSpecialId) {
-      var specialResponse = Object();
-      specialResponse.id = newSpecialId;
-      response.send(specialResponse);
-    } else {
-      console.log('create special did not return a new id');
-      response.status(400);
-      response.end();
-    }
-  });
+  const newSpecialId = await createSpecial(businessId, special);
+  if (newSpecialId) {
+    var specialResponse = Object();
+    specialResponse.id = newSpecialId;
+    response.send(specialResponse);
+  } else {
+    console.log("create special did not return a new id");
+    response.status(400);
+    response.end();
+  }
 };
 
 export const updateSpecial = async (request: Request, response: Response) => {
@@ -84,29 +82,27 @@ export const updateSpecial = async (request: Request, response: Response) => {
   const { special } = request.body;
 
   if (!special) {
-    console.log('Special object not found');
+    console.log("Special object not found");
     response.status(400);
     response.end();
     return;
   }
 
   if (!special.title) {
-    console.log('Special missing title');
+    console.log("Special missing title");
     response.status(400);
     response.end();
     return;
   }
 
   if (!special.items) {
-    console.log('Special missing items');
+    console.log("Special missing items");
     response.status(400);
     response.end();
     return;
   }
-
-  updateExistingSpecial(specialId, special, function (wasSuccessful: boolean) {
-    response.sendStatus(wasSuccessful ? 204 : 400);
-  });
+  const wasSuccessful = await updateExistingSpecial(specialId, special);
+  response.sendStatus(wasSuccessful ? 204 : 400);
 };
 
 export const deleteSpecial = async (request: Request, response: Response) => {
@@ -120,9 +116,8 @@ export const deleteSpecial = async (request: Request, response: Response) => {
 
   const { specialId } = request.params;
 
-  deleteExistingSpecial(specialId, function (wasSuccessful: boolean) {
-    response.sendStatus(wasSuccessful ? 200 : 400);
-  });
+  const wasSuccessful = await deleteExistingSpecial(specialId);
+  response.sendStatus(wasSuccessful ? 200 : 400);
 };
 
 module.exports = {

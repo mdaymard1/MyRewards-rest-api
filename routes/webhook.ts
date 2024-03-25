@@ -18,8 +18,8 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
     "webhook type: " + webhook.type + " for merchant: " + webhook.merchantId
   );
 
-  const callbackBody = JSON.stringify(request.body);
-  console.log("callbackBody: " + callbackBody);
+  const requestBody = JSON.stringify(request.body);
+  console.log("requestBody: " + requestBody);
 
   if (!webhook) {
     console.log("webhook payload was empty");
@@ -38,24 +38,17 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
   console.log("payload is valid.");
 
   if (webhook.loyaltyProgram) {
-    updateLoyaltyFromWebhook(
+    const wasSuccessful = await updateLoyaltyFromWebhook(
       webhook.merchantId,
-      webhook.loyaltyProgram,
-      function (wasSuccessful: boolean) {
-        console.log("handleSquareWebhook completed successfully");
-        response.status(200);
-        response.end();
-      }
+      webhook.loyaltyProgram
     );
+    console.log("handleSquareWebhook completed successfully");
+    response.status(200);
+    response.end();
   } else if (webhook.loyaltyPromotion) {
-    updatePromotionsFromWebhook(
-      webhook.merchantId,
-      webhook.loyaltyPromotion,
-      function (wasSuccessful: boolean) {
-        response.status(200);
-        response.end();
-      }
-    );
+    updatePromotionsFromWebhook(webhook.merchantId, webhook.loyaltyPromotion);
+    response.status(200);
+    response.end();
   } else if (webhook.loyaltyAccount) {
     const wasSuccessful = await updateLoyaltyAccountFromWebhook(
       webhook.merchantId,
@@ -64,15 +57,13 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
     response.status(wasSuccessful ? 200 : 400);
     response.end();
   } else if (webhook.catalogVersionUpdated) {
-    updateSpecialsFromWebhook(
+    const wasSuccessful = await updateSpecialsFromWebhook(
       webhook.merchantId,
-      webhook.catalogVersionUpdated,
-      function (wasSuccessful: boolean) {
-        console.log("returned from updateSpecialsFromWebhook");
-        response.status(200);
-        response.end();
-      }
+      webhook.catalogVersionUpdated
     );
+    console.log("returned from updateSpecialsFromWebhook");
+    response.status(200);
+    response.end();
   } else if (webhook.location) {
     const status = await updateBusinessLocationFromWebhook(
       webhook.merchantId,

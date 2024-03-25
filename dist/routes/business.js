@@ -212,6 +212,26 @@ const getBusiness = (request, response) => __awaiter(void 0, void 0, void 0, fun
     }
     response.send(business);
 });
+const createTestBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside createTestBusiness");
+    const { merchantId, accessToken, refreshToken, expirationDate } = request.body;
+    var date;
+    console.log("expirationDate: " + expirationDate);
+    if (expirationDate) {
+        date = new Date(expirationDate);
+    }
+    const newBusiness = yield (0, BusinessService_1.createNewBusinessWithLoyalty)(undefined, merchantId, accessToken, refreshToken, expirationDate);
+    if (newBusiness === null || newBusiness === void 0 ? void 0 : newBusiness.businessId) {
+        var businessResponse = Object();
+        businessResponse.id = newBusiness.businessId;
+        response.send(businessResponse);
+        // return;
+    }
+    else {
+        response.sendStatus(500);
+        // return;
+    }
+});
 const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside createBusiness");
     const { merchantId, accessToken, refreshToken, expirationDate } = request.body;
@@ -235,18 +255,17 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
         if (business) {
             console.log("found business");
             // Business found, so update it with the latest tokens and exp date
-            (0, BusinessService_1.updateBusinessEntity)(businessId, merchantId, accessToken, refreshToken, expirationDate, business, function (updatedBusiness) {
-                if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
-                    var businessResponse = Object();
-                    businessResponse.id = updatedBusiness.businessId;
-                    response.send(businessResponse);
-                    return;
-                }
-                else {
-                    response.sendStatus(500);
-                    return;
-                }
-            });
+            const updatedBusiness = yield (0, BusinessService_1.updateBusinessEntity)(businessId, merchantId, accessToken, refreshToken, expirationDate, business);
+            if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
+                var businessResponse = Object();
+                businessResponse.id = updatedBusiness.businessId;
+                response.send(businessResponse);
+                return;
+            }
+            else {
+                response.sendStatus(500);
+                return;
+            }
         }
         else {
             // This should never happen where an auth token is passed with business id, but no corresponding business is found
@@ -257,37 +276,32 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
     }
     else if (merchantId) {
         // lookup business by merchantId. If it's already been created, update it with the latest tokens and exp date
-        (0, BusinessService_1.findBusinessByMerchantId)(merchantId, function (business) {
-            if (business) {
-                console.log("Found business for merchantId");
-                (0, BusinessService_1.updateBusinessEntity)(business.businessId, merchantId, accessToken, refreshToken, expirationDate, business, function (updatedBusiness) {
-                    if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
-                        var businessResponse = Object();
-                        businessResponse.id = updatedBusiness.businessId;
-                        response.send(businessResponse);
-                        return;
-                    }
-                    else {
-                        response.sendStatus(500);
-                        return;
-                    }
-                });
+        const business = yield (0, BusinessService_1.findBusinessByMerchantId)(merchantId);
+        if (business) {
+            console.log("Found business for merchantId");
+            const updatedBusiness = yield (0, BusinessService_1.updateBusinessEntity)(business.businessId, merchantId, accessToken, refreshToken, expirationDate, business);
+            if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
+                var businessResponse = Object();
+                businessResponse.id = updatedBusiness.businessId;
+                response.send(businessResponse);
+                return;
             }
             else {
-                (0, BusinessService_1.createNewBusinessWithLoyalty)(undefined, merchantId, accessToken, refreshToken, expirationDate, function (newBusiness) {
-                    if (newBusiness === null || newBusiness === void 0 ? void 0 : newBusiness.businessId) {
-                        var businessResponse = Object();
-                        businessResponse.id = newBusiness.businessId;
-                        response.send(businessResponse);
-                        // return;
-                    }
-                    else {
-                        response.sendStatus(500);
-                        // return;
-                    }
-                });
+                response.sendStatus(500);
+                return;
             }
-        });
+        }
+        else {
+            const newBusiness = yield (0, BusinessService_1.createNewBusinessWithLoyalty)(undefined, merchantId, accessToken, refreshToken, expirationDate);
+            if (newBusiness === null || newBusiness === void 0 ? void 0 : newBusiness.businessId) {
+                var businessResponse = Object();
+                businessResponse.id = newBusiness.businessId;
+                response.send(businessResponse);
+            }
+            else {
+                response.sendStatus(500);
+            }
+        }
     }
     else {
         // No businessId or merchantId passed, so we can't look anything up to create or update a business
@@ -314,6 +328,7 @@ const updateBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
 });
 module.exports = {
     createBusiness,
+    createTestBusiness,
     getBusiness,
     getLocationDetails,
     getLocations,

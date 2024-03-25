@@ -152,76 +152,75 @@ const updateLocationsWithLoyaltySettings = (businessId, merchantLocationIds) => 
     }
 });
 exports.updateLocationsWithLoyaltySettings = updateLocationsWithLoyaltySettings;
-const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToken, expirationDate) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     console.log("creating new business");
     try {
-        (0, exports.createBusinessFromMerchantInfo)(name, merchantId, accessToken, refreshToken, expirationDate, function (newBusiness) {
-            if (newBusiness) {
-                var token = "";
-                token = (0, EncryptionService_1.decryptToken)(newBusiness.merchantAccessToken);
-                if (token) {
-                    (0, MerchantService_1.getMainLoyaltyProgramFromMerchant)(token, function (loyaltyProgram, promotions, accrualType, catalogItemNameMap) {
-                        console.log("got back program: " +
-                            (loyaltyProgram === null || loyaltyProgram === void 0 ? void 0 : loyaltyProgram.id) +
-                            ", promo count: " +
-                            (promotions === null || promotions === void 0 ? void 0 : promotions.length) +
-                            ", accrualType: " +
-                            accrualType +
-                            ", catalogItemNameMap count: " +
-                            (catalogItemNameMap === null || catalogItemNameMap === void 0 ? void 0 : catalogItemNameMap.size));
-                        if (loyaltyProgram) {
-                            (0, LoyaltyService_1.createAppLoyaltyFromLoyaltyProgram)(newBusiness.businessId, loyaltyProgram, promotions, catalogItemNameMap, function (newLoyalty) {
-                                if (!newLoyalty) {
-                                    console.log("Failed to create app loyalty");
-                                }
-                                callback(newBusiness);
-                            });
-                        }
-                        else {
-                            // If no merchant loyalty is found, we should probably check app loyalty and remove it
-                            console.log("No loyalty program found");
-                            callback(newBusiness);
-                        }
-                    });
+        const newBusiness = yield (0, exports.createBusinessFromMerchantInfo)(name, merchantId, accessToken, refreshToken, expirationDate);
+        if (newBusiness) {
+            var token = "";
+            token = (0, EncryptionService_1.decryptToken)(newBusiness.merchantAccessToken);
+            if (token) {
+                const loyaltyResponse = yield (0, MerchantService_1.getMainLoyaltyProgramFromMerchant)(token);
+                // function (
+                console.log("got back program: " +
+                    (loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.program.id) +
+                    ", promo count: " +
+                    ((_a = loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.promotions) === null || _a === void 0 ? void 0 : _a.length) +
+                    ", accrualType: " +
+                    (loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.accrualType) +
+                    ", catalogItemNameMap count: " +
+                    (loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.catalogItemNameMap.size));
+                if (loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.program) {
+                    const newLoyalty = yield (0, LoyaltyService_1.createAppLoyaltyFromLoyaltyProgram)(newBusiness.businessId, loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.program, loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.promotions, loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.catalogItemNameMap);
+                    if (!newLoyalty) {
+                        console.log("Failed to create app loyalty");
+                    }
+                    return newBusiness;
                 }
                 else {
-                    //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
-                    console.log("No valid token found in newBusiness");
-                    callback(newBusiness);
+                    // If no merchant loyalty is found, we should probably check app loyalty and remove it
+                    console.log("No loyalty program found");
+                    return newBusiness;
                 }
             }
             else {
-                console.log("Failed to create new business 2");
-                callback(undefined);
+                //TODO: How do we handle an invalid encrypted token? Need to notifiy someone
+                console.log("No valid token found in newBusiness");
+                return newBusiness;
             }
-        });
+        }
+        else {
+            console.log("Failed to create new business");
+            return undefined;
+        }
     }
     catch (err) {
         console.log("createNewBusinessWithLoyalty encountered an error: " + err);
-        callback(undefined);
+        return undefined;
     }
 });
 exports.createNewBusinessWithLoyalty = createNewBusinessWithLoyalty;
-const createBusinessFromMerchantInfo = (name, merchantId, accessToken, refreshToken, expirationDate, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+const createBusinessFromMerchantInfo = (name, merchantId, accessToken, refreshToken, expirationDate) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
     console.log("inside createBusinessFromMerchantInfo");
     // First, we need to make sure the tokens are valid, so we'll get the latest merchant info first
     const merchant = yield (0, MerchantService_1.getMerchantInfo)(merchantId, accessToken);
     if (merchant) {
         console.log("got merchant, calling createBusinessEntity");
-        var merchantName = (_a = merchant.businessName) !== null && _a !== void 0 ? _a : undefined;
+        var merchantName = (_b = merchant.businessName) !== null && _b !== void 0 ? _b : undefined;
         const business = yield createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate);
         console.log("returned from createBusinessEntity with business: " + business);
         if (business) {
             const wereLocationsCreated = yield createBusinessLocations(business.businessId, merchantId, accessToken);
             console.log("creation of business locations result: " + wereLocationsCreated);
         }
-        callback(business);
+        return business;
         return;
     }
     else {
         console.log("returing empty business");
-        callback(undefined);
+        return undefined;
     }
 });
 exports.createBusinessFromMerchantInfo = createBusinessFromMerchantInfo;
@@ -259,7 +258,7 @@ const createLocationHours = (businessHourPeriods) => {
     return jsonPeriods;
 };
 const createBusinessLocations = (businessId, merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+    var _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
     const merchantLocations = yield (0, MerchantService_1.getMerchantLocations)(merchantId, accessToken);
     if (!merchantLocations || merchantLocations.length == 0) {
         return false;
@@ -273,7 +272,7 @@ const createBusinessLocations = (businessId, merchantId, accessToken) => __await
         //     }[]
         //   | undefined;
         let hours;
-        if ((_b = merchantLocation.businessHours) === null || _b === void 0 ? void 0 : _b.periods) {
+        if ((_c = merchantLocation.businessHours) === null || _c === void 0 ? void 0 : _c.periods) {
             hours = createLocationHours(merchantLocation.businessHours.periods);
         }
         else {
@@ -296,21 +295,21 @@ const createBusinessLocations = (businessId, merchantId, accessToken) => __await
         //   hours = undefined;
         // }
         let locationPoint;
-        if (((_c = merchantLocation.coordinates) === null || _c === void 0 ? void 0 : _c.longitude) &&
+        if (((_d = merchantLocation.coordinates) === null || _d === void 0 ? void 0 : _d.longitude) &&
             merchantLocation.coordinates.latitude) {
             locationPoint = {
                 type: "Point",
                 coordinates: [
-                    (_d = merchantLocation.coordinates) === null || _d === void 0 ? void 0 : _d.longitude,
-                    (_e = merchantLocation.coordinates) === null || _e === void 0 ? void 0 : _e.latitude,
+                    (_e = merchantLocation.coordinates) === null || _e === void 0 ? void 0 : _e.longitude,
+                    (_f = merchantLocation.coordinates) === null || _f === void 0 ? void 0 : _f.latitude,
                 ],
             };
         }
-        yield insertBusinessLocation(businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_f = merchantLocation.address) === null || _f === void 0 ? void 0 : _f.addressLine1, (_g = merchantLocation.address) === null || _g === void 0 ? void 0 : _g.addressLine2, (_h = merchantLocation.address) === null || _h === void 0 ? void 0 : _h.locality, (_j = merchantLocation.address) === null || _j === void 0 ? void 0 : _j.administrativeDistrictLevel1, (_k = merchantLocation.address) === null || _k === void 0 ? void 0 : _k.postalCode, (_l = merchantLocation.address) === null || _l === void 0 ? void 0 : _l.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_m = merchantLocation.timezone) !== null && _m !== void 0 ? _m : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+        yield insertBusinessLocation(businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_g = merchantLocation.address) === null || _g === void 0 ? void 0 : _g.addressLine1, (_h = merchantLocation.address) === null || _h === void 0 ? void 0 : _h.addressLine2, (_j = merchantLocation.address) === null || _j === void 0 ? void 0 : _j.locality, (_k = merchantLocation.address) === null || _k === void 0 ? void 0 : _k.administrativeDistrictLevel1, (_l = merchantLocation.address) === null || _l === void 0 ? void 0 : _l.postalCode, (_m = merchantLocation.address) === null || _m === void 0 ? void 0 : _m.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_o = merchantLocation.timezone) !== null && _o !== void 0 ? _o : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
     }
 });
 const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updateType) => __awaiter(void 0, void 0, void 0, function* () {
-    var _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2;
+    var _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3;
     console.log("inside updateBusinessLocationFromWebhook");
     const business = yield Business_1.Business.createQueryBuilder("business")
         .where("business.merchantId = :merchantId", { merchantId: merchantId })
@@ -331,7 +330,7 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
     }
     // let xx = merchantLocation.locationPoint.coordinates
     let hours;
-    if ((_o = merchantLocation.businessHours) === null || _o === void 0 ? void 0 : _o.periods) {
+    if ((_p = merchantLocation.businessHours) === null || _p === void 0 ? void 0 : _p.periods) {
         hours = createLocationHours(merchantLocation.businessHours.periods);
     }
     let locationPoint;
@@ -351,13 +350,13 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
     };
     // }
     if (updateType == "create") {
-        const newLocation = yield insertBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_p = merchantLocation.address) === null || _p === void 0 ? void 0 : _p.addressLine1, (_q = merchantLocation.address) === null || _q === void 0 ? void 0 : _q.addressLine2, (_r = merchantLocation.address) === null || _r === void 0 ? void 0 : _r.locality, (_s = merchantLocation.address) === null || _s === void 0 ? void 0 : _s.administrativeDistrictLevel1, (_t = merchantLocation.address) === null || _t === void 0 ? void 0 : _t.postalCode, (_u = merchantLocation.address) === null || _u === void 0 ? void 0 : _u.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_v = merchantLocation.timezone) !== null && _v !== void 0 ? _v : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+        const newLocation = yield insertBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_q = merchantLocation.address) === null || _q === void 0 ? void 0 : _q.addressLine1, (_r = merchantLocation.address) === null || _r === void 0 ? void 0 : _r.addressLine2, (_s = merchantLocation.address) === null || _s === void 0 ? void 0 : _s.locality, (_t = merchantLocation.address) === null || _t === void 0 ? void 0 : _t.administrativeDistrictLevel1, (_u = merchantLocation.address) === null || _u === void 0 ? void 0 : _u.postalCode, (_v = merchantLocation.address) === null || _v === void 0 ? void 0 : _v.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_w = merchantLocation.timezone) !== null && _w !== void 0 ? _w : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
         if (newLocation) {
             return true;
         }
     }
     // Either it's an update for insert failed. Either way we'll try to update it
-    const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_w = merchantLocation.address) === null || _w === void 0 ? void 0 : _w.addressLine1, (_x = merchantLocation.address) === null || _x === void 0 ? void 0 : _x.addressLine2, (_y = merchantLocation.address) === null || _y === void 0 ? void 0 : _y.locality, (_z = merchantLocation.address) === null || _z === void 0 ? void 0 : _z.administrativeDistrictLevel1, (_0 = merchantLocation.address) === null || _0 === void 0 ? void 0 : _0.postalCode, (_1 = merchantLocation.address) === null || _1 === void 0 ? void 0 : _1.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_2 = merchantLocation.timezone) !== null && _2 !== void 0 ? _2 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+    const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_x = merchantLocation.address) === null || _x === void 0 ? void 0 : _x.addressLine1, (_y = merchantLocation.address) === null || _y === void 0 ? void 0 : _y.addressLine2, (_z = merchantLocation.address) === null || _z === void 0 ? void 0 : _z.locality, (_0 = merchantLocation.address) === null || _0 === void 0 ? void 0 : _0.administrativeDistrictLevel1, (_1 = merchantLocation.address) === null || _1 === void 0 ? void 0 : _1.postalCode, (_2 = merchantLocation.address) === null || _2 === void 0 ? void 0 : _2.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_3 = merchantLocation.timezone) !== null && _3 !== void 0 ? _3 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
     console.log("");
     return status;
 });
@@ -443,23 +442,8 @@ const insertBusinessLocation = (businessId, merchantLocationId, status, name, bu
         return null;
     }
 });
-// const updateBusinessWithBusinessIdToken = async (businessRepository: Repository<Business>, businessId: string, merchantId: string, callback: any) => {
-//   // Create business token
-//   const businessKey = businessId + "::" + merchantId;
-//   const encryptedKey = encryptToken(businessKey);
-//   console.log("businessKey: " + businessKey + " encrypted to: " + encryptedKey);
-//   if (encryptedKey) {
-//     await businessRepository.update(businessId, {
-//       businessToken: encryptedKey,
-//     })
-//     callback(true);
-//   } else {
-//     // If we can't create a business token, return empty business cause we can't provide a client token
-//     callback(false);
-//   }
-// }
-const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken, expirationDate, business, callback) => __awaiter(void 0, void 0, void 0, function* () {
-    appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
+const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken, expirationDate, business) => __awaiter(void 0, void 0, void 0, function* () {
+    yield appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
         merchantId: merchantId,
     }, {
         merchantAccessToken: accessToken,
@@ -467,7 +451,7 @@ const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken,
         accessTokenExpirationDate: expirationDate,
     });
     console.log("just updated business with id: " + business.businessId);
-    callback(business);
+    return business;
 });
 exports.updateBusinessEntity = updateBusinessEntity;
 const updateBusinessDetails = (businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, firstImageUrl, secondImageUrl) => __awaiter(void 0, void 0, void 0, function* () {
@@ -511,16 +495,16 @@ const updateBusinessDetails = (businessId, lastUpdateDate, businessName, address
     }
 });
 exports.updateBusinessDetails = updateBusinessDetails;
-const findBusinessByMerchantId = (merchantId, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const findBusinessByMerchantId = (merchantId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside findBusinessByMerchantId");
     try {
         const business = yield Business_1.Business.createQueryBuilder("business")
             .where("business.merchantId = :merchantId", { merchantId: merchantId })
             .getOne();
-        callback(business);
+        return business;
     }
     catch (err) {
-        callback(undefined);
+        return undefined;
     }
 });
 exports.findBusinessByMerchantId = findBusinessByMerchantId;

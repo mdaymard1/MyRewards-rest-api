@@ -9,26 +9,49 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyCodeIsValid = exports.sendSMSVerification = exports.updateUserWithDetails = exports.getUserLoyaltyDetails = void 0;
+exports.verifyCodeIsValid = exports.sendSMSVerification = exports.updateUserWithDetails = exports.getUserLoyaltyDetails = exports.getAllLoyaltyAccounts = void 0;
 const Utility_1 = require("../utility/Utility");
 const appDataSource_1 = require("../../appDataSource");
 const AppUser_1 = require("../entity/AppUser");
 const Loyalty_1 = require("../entity/Loyalty");
+const MerchantService_1 = require("./MerchantService");
+const LoyaltyRewardTier_1 = require("../entity/LoyaltyRewardTier");
+const getAllLoyaltyAccounts = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getAllLoyaltyAccounts");
+    try {
+        const customerAccounts = yield AppUser_1.AppUser.createQueryBuilder("appUser")
+            .innerJoinAndSelect("appUser.customer", "customer")
+            .where("appUser.id = :id", { id: userId })
+            .getMany();
+        return customerAccounts;
+    }
+    catch (error) {
+        console.log("Error thrown in getAllLoyaltyAccounts: " + error);
+    }
+});
+exports.getAllLoyaltyAccounts = getAllLoyaltyAccounts;
 const getUserLoyaltyDetails = (businessId, userId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getUserLoyaltyDetails");
-    const loyalty = yield Loyalty_1.Loyalty.createQueryBuilder("loyalty")
-        .where("loyalty.businessId = :businessId", { businessId: businessId })
-        .getOne();
-    if (!loyalty) {
-        console.log("loyalty not found");
-        return null;
-    }
     try {
+        const loyalty = yield Loyalty_1.Loyalty.createQueryBuilder("loyalty")
+            .where("loyalty.businessId = :businessId", { businessId: businessId })
+            .getOne();
+        if (!loyalty) {
+            console.log("loyalty not found");
+            return null;
+        }
+        const loyaltyRewardTiers = yield LoyaltyRewardTier_1.LoyaltyRewardTier.createQueryBuilder("loyaltyRewardTier")
+            .where("loyaltyRewardTier.loyaltyId = :loyaltyId", {
+            loyaltyId: loyalty.id,
+        })
+            .getMany();
         const appUser = yield AppUser_1.AppUser.createQueryBuilder("appUser")
             .innerJoinAndSelect("appUser.customer", "customer")
             .where("appUser.id = :id", { id: userId })
+            .andWhere("customer.businessId = :businessId", { businessId: businessId })
             .getOne();
         if (appUser) {
+            const rewardDetails = (0, MerchantService_1.getAvailableRewardsForLoyaltyBalance)(appUser.customer.balance, loyaltyRewardTiers);
             const userLoyalty = {
                 id: appUser.id,
                 balance: appUser.customer.balance,
@@ -38,6 +61,7 @@ const getUserLoyaltyDetails = (businessId, userId) => __awaiter(void 0, void 0, 
                 terminologyMany: loyalty.terminologyMany,
                 businessId: appUser.customer.business,
                 locationId: appUser.customer.locationId,
+                rewardDetails: rewardDetails,
             };
             return userLoyalty;
         }
@@ -168,6 +192,7 @@ const updateUser = (ref, firstName, lastName, email) => __awaiter(void 0, void 0
     }
 });
 module.exports = {
+    getAllLoyaltyAccounts: exports.getAllLoyaltyAccounts,
     getUserLoyaltyDetails: exports.getUserLoyaltyDetails,
     sendSMSVerification: exports.sendSMSVerification,
     verifyCodeIsValid: exports.verifyCodeIsValid,

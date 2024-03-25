@@ -19,10 +19,9 @@ const getSpecials = (request, response) => __awaiter(void 0, void 0, void 0, fun
         response.end();
         return;
     }
-    (0, SpecialService_1.getAllSpecials)(businessId, function (specials) {
-        response.send(specials);
-        return;
-    });
+    const specials = yield (0, SpecialService_1.getAllSpecials)(businessId);
+    response.send(specials);
+    return;
 });
 exports.getSpecials = getSpecials;
 const createNewSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
@@ -34,35 +33,34 @@ const createNewSpecial = (request, response) => __awaiter(void 0, void 0, void 0
     }
     const { special } = request.body;
     if (!special) {
-        console.log('Special object not found');
+        console.log("Special object not found");
         response.status(400);
         response.end();
         return;
     }
     if (!special.title) {
-        console.log('Special missing title');
+        console.log("Special missing title");
         response.status(400);
         response.end();
         return;
     }
     if (!special.items) {
-        console.log('Special missing items');
+        console.log("Special missing items");
         response.status(400);
         response.end();
         return;
     }
-    (0, SpecialService_1.createSpecial)(businessId, special, function (newSpecialId) {
-        if (newSpecialId) {
-            var specialResponse = Object();
-            specialResponse.id = newSpecialId;
-            response.send(specialResponse);
-        }
-        else {
-            console.log('create special did not return a new id');
-            response.status(400);
-            response.end();
-        }
-    });
+    const newSpecialId = yield (0, SpecialService_1.createSpecial)(businessId, special);
+    if (newSpecialId) {
+        var specialResponse = Object();
+        specialResponse.id = newSpecialId;
+        response.send(specialResponse);
+    }
+    else {
+        console.log("create special did not return a new id");
+        response.status(400);
+        response.end();
+    }
 });
 exports.createNewSpecial = createNewSpecial;
 const updateSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
@@ -75,26 +73,25 @@ const updateSpecial = (request, response) => __awaiter(void 0, void 0, void 0, f
     const { specialId } = request.params;
     const { special } = request.body;
     if (!special) {
-        console.log('Special object not found');
+        console.log("Special object not found");
         response.status(400);
         response.end();
         return;
     }
     if (!special.title) {
-        console.log('Special missing title');
+        console.log("Special missing title");
         response.status(400);
         response.end();
         return;
     }
     if (!special.items) {
-        console.log('Special missing items');
+        console.log("Special missing items");
         response.status(400);
         response.end();
         return;
     }
-    (0, SpecialService_1.updateExistingSpecial)(specialId, special, function (wasSuccessful) {
-        response.sendStatus(wasSuccessful ? 204 : 400);
-    });
+    const wasSuccessful = yield (0, SpecialService_1.updateExistingSpecial)(specialId, special);
+    response.sendStatus(wasSuccessful ? 204 : 400);
 });
 exports.updateSpecial = updateSpecial;
 const deleteSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
@@ -105,9 +102,8 @@ const deleteSpecial = (request, response) => __awaiter(void 0, void 0, void 0, f
         return;
     }
     const { specialId } = request.params;
-    (0, SpecialService_1.deleteExistingSpecial)(specialId, function (wasSuccessful) {
-        response.sendStatus(wasSuccessful ? 200 : 400);
-    });
+    const wasSuccessful = yield (0, SpecialService_1.deleteExistingSpecial)(specialId);
+    response.sendStatus(wasSuccessful ? 200 : 400);
 });
 exports.deleteSpecial = deleteSpecial;
 module.exports = {

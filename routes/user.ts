@@ -1,10 +1,38 @@
 import { Request, Response } from "express";
 import { getBusinessIdFromAuthToken } from "../src/services/BusinessService";
 import {
+  getAllLoyaltyAccounts,
   getUserLoyaltyDetails,
   sendSMSVerification,
   verifyCodeIsValid,
 } from "../src/services/UserService";
+import { AppDataSource } from "../appDataSource";
+import { Business } from "../src/entity/Business";
+import { decryptToken } from "../src/services/EncryptionService";
+
+export const getEnrolledAndPendingLoyalty = async (
+  request: Request,
+  response: Response
+) => {
+  console.log("inside getEnrolledAndPendingLoyalty");
+
+  const { userId } = request.params;
+
+  if (!userId) {
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  const allLoyaltyAccounts = await getAllLoyaltyAccounts(userId);
+
+  if (allLoyaltyAccounts) {
+    response.send(allLoyaltyAccounts);
+  } else {
+    response.status(400);
+  }
+  response.end();
+};
 
 const getLoyalty = async (request: Request, response: Response) => {
   console.log("inside getLoyalty");
@@ -109,6 +137,7 @@ const verifyUserCode = async (request: Request, response: Response) => {
 };
 
 module.exports = {
+  getEnrolledAndPendingLoyalty,
   getLoyalty,
   requestUserPhoneNumberVerification,
   verifyUserCode,

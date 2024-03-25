@@ -44,17 +44,17 @@ const getSpecialsForLocation = (businessId) => __awaiter(void 0, void 0, void 0,
     return special;
 });
 exports.getSpecialsForLocation = getSpecialsForLocation;
-const getAllSpecials = (businessId, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const getAllSpecials = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getAllSpecials");
     const specials = yield appDataSource_1.AppDataSource.manager.find(Special_1.Special, {
         where: {
             businessId: businessId,
         },
     });
-    callback(specials);
+    return specials;
 });
 exports.getAllSpecials = getAllSpecials;
-const createSpecial = (businessId, special, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const createSpecial = (businessId, special) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;
     console.log("inside createSpecial");
     const startDate = special.startDate
@@ -75,13 +75,12 @@ const createSpecial = (businessId, special, callback) => __awaiter(void 0, void 
     console.log("just created new special with id: " + newSpecial.id);
     let sortOrder = 1;
     if (special.items) {
-        createSpecialItems(newSpecial, special.items, function (wasSuccessful) {
-            updateBusinessSpecialCatalogIndicator(businessId);
-            callback(newSpecial.id);
-        });
+        const wasSuccessful = yield createSpecialItems(newSpecial, special.items);
+        updateBusinessSpecialCatalogIndicator(businessId);
+        return newSpecial.id;
     }
     else {
-        callback(undefined);
+        return undefined;
     }
 });
 exports.createSpecial = createSpecial;
@@ -100,7 +99,7 @@ const updateBusinessSpecialCatalogIndicator = (businessId) => __awaiter(void 0, 
         lastUpdateDate: new Date(),
     });
 });
-const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const updateExistingSpecial = (specialId, special) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateExistingSpecial");
     const existingSpecial = yield appDataSource_1.AppDataSource.manager.findOne(Special_1.Special, {
         where: {
@@ -109,8 +108,7 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
     });
     if (!existingSpecial) {
         console.log("special not found");
-        callback(false);
-        return;
+        return false;
     }
     existingSpecial.title = special.title;
     existingSpecial.description = special.description;
@@ -169,18 +167,18 @@ const updateExistingSpecial = (specialId, special, callback) => __awaiter(void 0
         }
     }
     updateBusinessSpecialCatalogIndicator(existingSpecial.businessId);
-    callback(true);
+    return true;
 });
 exports.updateExistingSpecial = updateExistingSpecial;
-const deleteExistingSpecial = (specialId, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const deleteExistingSpecial = (specialId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside deleteExistingSpecial");
     yield appDataSource_1.AppDataSource.manager.delete(Special_1.Special, {
         id: specialId,
     });
-    callback(true);
+    return true;
 });
 exports.deleteExistingSpecial = deleteExistingSpecial;
-const createSpecialItems = (special, specialItems, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const createSpecialItems = (special, specialItems) => __awaiter(void 0, void 0, void 0, function* () {
     let sortOrder = 1;
     for (var item of specialItems) {
         const newSpecialItem = yield appDataSource_1.AppDataSource.manager.create(SpecialItem_1.SpecialItem, {
@@ -197,35 +195,31 @@ const createSpecialItems = (special, specialItems, callback) => __awaiter(void 0
         yield appDataSource_1.AppDataSource.manager.save(newSpecialItem);
         sortOrder += 1;
     }
-    callback(true);
+    return true;
 });
-const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateSpecialsFromWebhook");
     const business = yield Business_1.Business.createQueryBuilder("business")
         .where("business.merchantId = :merchantId", { merchantId: merchantId })
         .getOne();
     if (!business) {
         console.log("Can't find Business for merchantId: " + merchantId);
-        callback(false);
-        return;
+        return false;
     }
     // See if we need to update catalog items
     if (!business.loyaltyUsesCatalogItems && !business.specialsUseCatalogItems) {
         console.log("catalog update is not required for specials or loyalty");
-        callback(false);
-        return;
+        return false;
     }
     const token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
     if (!token) {
         console.log("Can't get token");
-        callback(false);
-        return;
+        return false;
     }
     const accessTokenExpirationDate = business.accessTokenExpirationDate;
     if (!accessTokenExpirationDate || !business.merchantRefreshToken) {
         console.log("Can't get token");
-        callback(false);
-        return;
+        return false;
     }
     const diffInTime = accessTokenExpirationDate.getTime() - new Date().getTime();
     const diffInDays = diffInTime / (1000 * 3600 * 24);
@@ -236,8 +230,7 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
         console.log("accessToken: " + accessToken + ", refreshToken: " + refreshToken);
         if (!refreshToken) {
             console.log("could not decrypt refresh token");
-            callback(true);
-            return;
+            return true;
         }
         const newTokens = yield requestNewTokens(refreshToken);
         if (newTokens) {
@@ -254,26 +247,24 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated, callback) 
             console.log("Just updated tokens in business");
         }
         else {
-            callback(true);
+            return true;
         }
     }
-    getCatalogItemsLastUpdated(business.lastUpdateDate, token, function (catalogIdMapAndVariantStates) {
-        if (business.loyaltyUsesCatalogItems) {
-            updateLoyaltyAccrualsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates, token, function (wasSuccessful) {
-                if (business.specialsUseCatalogItems) {
-                    updateSpecialsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates[0], function (wasSuccessful) {
-                        callback(true);
-                    });
-                }
-            });
+    const catalogIdMapAndVariantStates = yield getCatalogItemsLastUpdated(business.lastUpdateDate, token);
+    if (business.loyaltyUsesCatalogItems) {
+        const wasSuccessful = yield updateLoyaltyAccrualsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates, token);
+        if (business.specialsUseCatalogItems) {
+            const wasSuccessful = yield updateSpecialsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates.catalogMap
+            // function (wasSuccessful: boolean) {
+            );
+            return true;
         }
-        else if (business.specialsUseCatalogItems) {
-            updateSpecialsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates[0], function (wasSuccessful) {
-                console.log("returned from updateSpecialsFromCatalogChangesIfNeeded");
-                callback(true);
-            });
-        }
-    });
+    }
+    else if (business.specialsUseCatalogItems) {
+        updateSpecialsFromCatalogChangesIfNeeded(business.businessId, catalogIdMapAndVariantStates.catalogMap);
+        console.log("returned from updateSpecialsFromCatalogChangesIfNeeded");
+        return true;
+    }
 });
 exports.updateSpecialsFromWebhook = updateSpecialsFromWebhook;
 const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
@@ -324,7 +315,7 @@ const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, fun
         return undefined;
     }
 });
-const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __awaiter(void 0, void 0, void 0, function* () {
     var _g, _h, _j, _k, _l, _m, _o;
     console.log("inside updateSpecialsFromCatalogChangesIfNeeded");
     let itemIds = [];
@@ -458,15 +449,15 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap, callba
         }
     }
     updateBusinessSpecialCatalogIndicator(businessId);
-    callback(true);
+    return true;
 });
-const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMapAndVariantStates, token, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMapAndVariantStates, token) => __awaiter(void 0, void 0, void 0, function* () {
     var _p, _q;
     let wereLoyaltyItemsUpdated = false;
     // If a variant was deleted, we don't get the variantId and so can't check to see if
     // it was in an accrual. So unfortunately, we need to assume it may have been on an
     // accrual and the request a loyalty update from the merchant
-    if (catalogIdMapAndVariantStates[1]) {
+    if (catalogIdMapAndVariantStates.wereVariantsMissing) {
         wereLoyaltyItemsUpdated = true;
     }
     else {
@@ -480,7 +471,7 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
                     ? accrual.categoryId
                     : accrual.variantId;
                 console.log("checking catalogMap for catalogId: " + catalogId);
-                const catalogItem = catalogIdMapAndVariantStates[0].get(catalogId);
+                const catalogItem = catalogIdMapAndVariantStates.catalogMap.get(catalogId);
                 if (catalogItem) {
                     wereLoyaltyItemsUpdated = true;
                     return true;
@@ -499,23 +490,21 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
         console.log("response: " + (loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result));
         const loyaltyProgram = (_p = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _p === void 0 ? void 0 : _p.program;
         if (loyaltyProgram) {
-            (0, MerchantService_1.getCatalogItemIdMapFromAccurals)(token, (_q = loyaltyProgram.accrualRules) !== null && _q !== void 0 ? _q : [], function (catalogItemNameMap) {
-                console.log("Catalog items used by loyalty have changes, so updating loyalty");
-                updateLoyaltyWithLatestChanges(businessId, loyaltyProgram, catalogItemNameMap, function (wasSuccessful) {
-                    callback(true);
-                });
-            });
+            const catalogItemNameMap = yield (0, MerchantService_1.getCatalogItemIdMapFromAccurals)(token, (_q = loyaltyProgram.accrualRules) !== null && _q !== void 0 ? _q : []);
+            console.log("Catalog items used by loyalty have changes, so updating loyalty");
+            yield updateLoyaltyWithLatestChanges(businessId, loyaltyProgram, catalogItemNameMap);
+            return true;
         }
         else {
-            callback(true);
+            return true;
         }
     }
     else {
         console.log("No catalog items have changed since last update");
-        callback(true);
+        return true;
     }
 });
-const updateLoyaltyWithLatestChanges = (businessId, loyaltyProgram, catalogItemNameMap, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const updateLoyaltyWithLatestChanges = (businessId, loyaltyProgram, catalogItemNameMap) => __awaiter(void 0, void 0, void 0, function* () {
     if (loyaltyProgram.accrualRules && loyaltyProgram.terminology) {
         let loyalty = yield appDataSource_1.AppDataSource.manager.findOne(Loyalty_1.Loyalty, {
             where: {
@@ -523,27 +512,27 @@ const updateLoyaltyWithLatestChanges = (businessId, loyaltyProgram, catalogItemN
             },
         });
         if (loyalty) {
-            (0, LoyaltyService_1.updateAppLoyaltyAccrualsFromMerchant)(loyaltyProgram.accrualRules, loyaltyProgram.terminology, loyalty, catalogItemNameMap);
-            (0, LoyaltyService_1.removeOldAccrualRules)(loyalty.loyaltyAccruals, loyaltyProgram);
+            yield (0, LoyaltyService_1.updateAppLoyaltyAccrualsFromMerchant)(loyaltyProgram.accrualRules, loyaltyProgram.terminology, loyalty, catalogItemNameMap);
+            yield (0, LoyaltyService_1.removeOldAccrualRules)(loyalty.loyaltyAccruals, loyaltyProgram);
             let loyaltyUsesCatalogItems = false;
             for (var loyaltyAccrualRule of loyaltyProgram.accrualRules) {
                 if (loyaltyAccrualRule.accrualType == "CATEGORY" ||
                     loyaltyAccrualRule.accrualType == "ITEM_VARIATION")
                     loyaltyUsesCatalogItems = true;
             }
-            (0, LoyaltyService_1.updateBusinessLoyaltyCatalogIndicator)(businessId, loyaltyUsesCatalogItems);
+            yield (0, LoyaltyService_1.updateBusinessLoyaltyCatalogIndicator)(businessId, loyaltyUsesCatalogItems);
             console.log("sending callback");
-            callback(true);
+            return true;
         }
         else {
-            callback(true);
+            return true;
         }
     }
     else {
-        callback(true);
+        return true;
     }
 });
-const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaiter(void 0, void 0, void 0, function* () {
+const getCatalogItemsLastUpdated = (lastUpdateDate, token) => __awaiter(void 0, void 0, void 0, function* () {
     var _r, _s, _t, _u;
     console.log("inside getCatalogItemsLastUpdated");
     console.log("looking up catalog changes with token: " + token);
@@ -563,7 +552,7 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaite
     console.log("Getting catalog changes since " + lastUpdateDateIso);
     const catalogResults = yield catalogApi.searchCatalogObjects(body);
     let catalogMap = new Map();
-    let wereVariantsMission = false;
+    let wereVariantsMissing = false;
     if (catalogResults.result.objects) {
         for (var object of catalogResults.result.objects) {
             if (object.type == "CATEGORY") {
@@ -593,7 +582,7 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaite
                     }
                 }
                 else {
-                    wereVariantsMission = true;
+                    wereVariantsMissing = true;
                     console.log("variant was missing from ITEM in searchCatalogObjects results");
                 }
             }
@@ -614,7 +603,10 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token, callback) => __awaite
             }
         }
     }
-    callback([catalogMap, wereVariantsMission]);
+    return {
+        catalogMap: catalogMap,
+        wereVariantsMissing: wereVariantsMissing,
+    };
 });
 module.exports = {
     deleteExistingSpecial: exports.deleteExistingSpecial,

@@ -287,6 +287,37 @@ const getBusiness = async (request: Request, response: Response) => {
   response.send(business);
 };
 
+const createTestBusiness = async (request: Request, response: Response) => {
+  console.log("inside createTestBusiness");
+
+  const { merchantId, accessToken, refreshToken, expirationDate } =
+    request.body;
+
+  var date: Date | undefined;
+  console.log("expirationDate: " + expirationDate);
+  if (expirationDate) {
+    date = new Date(expirationDate);
+  }
+
+  const newBusiness = await createNewBusinessWithLoyalty(
+    undefined,
+    merchantId,
+    accessToken,
+    refreshToken,
+    expirationDate
+  );
+
+  if (newBusiness?.businessId) {
+    var businessResponse = Object();
+    businessResponse.id = newBusiness.businessId;
+    response.send(businessResponse);
+    // return;
+  } else {
+    response.sendStatus(500);
+    // return;
+  }
+};
+
 const createBusiness = async (request: Request, response: Response) => {
   console.log("inside createBusiness");
 
@@ -317,25 +348,23 @@ const createBusiness = async (request: Request, response: Response) => {
     if (business) {
       console.log("found business");
       // Business found, so update it with the latest tokens and exp date
-      updateBusinessEntity(
+      const updatedBusiness = await updateBusinessEntity(
         businessId,
         merchantId,
         accessToken,
         refreshToken,
         expirationDate,
-        business,
-        function (updatedBusiness: Business) {
-          if (updatedBusiness?.businessId) {
-            var businessResponse = Object();
-            businessResponse.id = updatedBusiness.businessId;
-            response.send(businessResponse);
-            return;
-          } else {
-            response.sendStatus(500);
-            return;
-          }
-        }
+        business
       );
+      if (updatedBusiness?.businessId) {
+        var businessResponse = Object();
+        businessResponse.id = updatedBusiness.businessId;
+        response.send(businessResponse);
+        return;
+      } else {
+        response.sendStatus(500);
+        return;
+      }
     } else {
       // This should never happen where an auth token is passed with business id, but no corresponding business is found
       // If it does, the client should remove their businessId and resubmit
@@ -344,52 +373,42 @@ const createBusiness = async (request: Request, response: Response) => {
     }
   } else if (merchantId) {
     // lookup business by merchantId. If it's already been created, update it with the latest tokens and exp date
-    findBusinessByMerchantId(
-      merchantId,
-      function (business: Business | undefined) {
-        if (business) {
-          console.log("Found business for merchantId");
-          updateBusinessEntity(
-            business.businessId,
-            merchantId,
-            accessToken,
-            refreshToken,
-            expirationDate,
-            business,
-            function (updatedBusiness: Business) {
-              if (updatedBusiness?.businessId) {
-                var businessResponse = Object();
-                businessResponse.id = updatedBusiness.businessId;
-                response.send(businessResponse);
-                return;
-              } else {
-                response.sendStatus(500);
-                return;
-              }
-            }
-          );
-        } else {
-          createNewBusinessWithLoyalty(
-            undefined,
-            merchantId,
-            accessToken,
-            refreshToken,
-            expirationDate,
-            function (newBusiness: Business) {
-              if (newBusiness?.businessId) {
-                var businessResponse = Object();
-                businessResponse.id = newBusiness.businessId;
-                response.send(businessResponse);
-                // return;
-              } else {
-                response.sendStatus(500);
-                // return;
-              }
-            }
-          );
-        }
+    const business = await findBusinessByMerchantId(merchantId);
+    if (business) {
+      console.log("Found business for merchantId");
+      const updatedBusiness = await updateBusinessEntity(
+        business.businessId,
+        merchantId,
+        accessToken,
+        refreshToken,
+        expirationDate,
+        business
+      );
+      if (updatedBusiness?.businessId) {
+        var businessResponse = Object();
+        businessResponse.id = updatedBusiness.businessId;
+        response.send(businessResponse);
+        return;
+      } else {
+        response.sendStatus(500);
+        return;
       }
-    );
+    } else {
+      const newBusiness = await createNewBusinessWithLoyalty(
+        undefined,
+        merchantId,
+        accessToken,
+        refreshToken,
+        expirationDate
+      );
+      if (newBusiness?.businessId) {
+        var businessResponse = Object();
+        businessResponse.id = newBusiness.businessId;
+        response.send(businessResponse);
+      } else {
+        response.sendStatus(500);
+      }
+    }
   } else {
     // No businessId or merchantId passed, so we can't look anything up to create or update a business
     response.sendStatus(404);
@@ -462,6 +481,7 @@ const updateBusiness = async (request: Request, response: Response) => {
 
 module.exports = {
   createBusiness,
+  createTestBusiness,
   getBusiness,
   getLocationDetails,
   getLocations,

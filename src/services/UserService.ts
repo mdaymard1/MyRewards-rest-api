@@ -1,8 +1,27 @@
 import { obsfucatePhoneNumber } from "../utility/Utility";
 import { AppDataSource } from "../../appDataSource";
 import { AppUser } from "../entity/AppUser";
+import { Business } from "../entity/Business";
 import { Customer } from "../entity/Customer";
 import { Loyalty } from "../entity/Loyalty";
+import { getAvailableRewardsForLoyaltyBalance } from "./MerchantService";
+import { LoyaltyRewardTier } from "../entity/LoyaltyRewardTier";
+import exp from "constants";
+
+export const getAllLoyaltyAccounts = async (userId: string) => {
+  console.log("inside getAllLoyaltyAccounts");
+
+  try {
+    const customerAccounts = await AppUser.createQueryBuilder("appUser")
+      .innerJoinAndSelect("appUser.customer", "customer")
+      .where("appUser.id = :id", { id: userId })
+      .getMany();
+
+    return customerAccounts;
+  } catch (error) {
+    console.log("Error thrown in getAllLoyaltyAccounts: " + error);
+  }
+};
 
 export const getUserLoyaltyDetails = async (
   businessId: string,
@@ -10,21 +29,35 @@ export const getUserLoyaltyDetails = async (
 ) => {
   console.log("inside getUserLoyaltyDetails");
 
-  const loyalty = await Loyalty.createQueryBuilder("loyalty")
-    .where("loyalty.businessId = :businessId", { businessId: businessId })
-    .getOne();
-
-  if (!loyalty) {
-    console.log("loyalty not found");
-    return null;
-  }
-
   try {
+    const loyalty = await Loyalty.createQueryBuilder("loyalty")
+      .where("loyalty.businessId = :businessId", { businessId: businessId })
+      .getOne();
+
+    if (!loyalty) {
+      console.log("loyalty not found");
+      return null;
+    }
+
+    const loyaltyRewardTiers = await LoyaltyRewardTier.createQueryBuilder(
+      "loyaltyRewardTier"
+    )
+      .where("loyaltyRewardTier.loyaltyId = :loyaltyId", {
+        loyaltyId: loyalty.id,
+      })
+      .getMany();
+
     const appUser = await AppUser.createQueryBuilder("appUser")
       .innerJoinAndSelect("appUser.customer", "customer")
       .where("appUser.id = :id", { id: userId })
+      .andWhere("customer.businessId = :businessId", { businessId: businessId })
       .getOne();
     if (appUser) {
+      const rewardDetails = getAvailableRewardsForLoyaltyBalance(
+        appUser.customer.balance,
+        loyaltyRewardTiers
+      );
+
       const userLoyalty = {
         id: appUser.id,
         balance: appUser.customer.balance,
@@ -34,6 +67,7 @@ export const getUserLoyaltyDetails = async (
         terminologyMany: loyalty.terminologyMany,
         businessId: appUser.customer.business,
         locationId: appUser.customer.locationId,
+        rewardDetails: rewardDetails,
       };
       return userLoyalty;
     } else {
@@ -206,6 +240,7 @@ const updateUser = async (
 };
 
 module.exports = {
+  getAllLoyaltyAccounts,
   getUserLoyaltyDetails,
   sendSMSVerification,
   verifyCodeIsValid,
