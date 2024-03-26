@@ -29,14 +29,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importStar(require("express"));
 const appDataSource_1 = require("./appDataSource");
 const dotenv_1 = __importDefault(require("dotenv"));
-// import { json } from 'stream/consumers';
-// const express = require('express');
-// var createError = require('http-errors');
+const checkJwt_1 = require("./src/middleware/checkJwt");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
-// const bodyParser = require('body-parser');
-// const typeorm = require('typeorm');
-// import { createConnection } from 'typeorm';
 dotenv_1.default.config();
 appDataSource_1.AppDataSource.initialize()
     .then(() => {
@@ -69,7 +64,7 @@ app.post("/user/verifyCode", userRoute.verifyUserCode);
 app.get("/locations", businessRoute.getLocations);
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);
 app.post("/location/:locationId", businessRoute.updateLocation);
-app.get("/loyalty", loyaltyRoute.getLoyalty);
+app.get("/loyalty", [checkJwt_1.checkJwt, loyaltyRoute.getLoyalty]);
 app.post("/loyalty/enroll", loyaltyRoute.enrollCustomer);
 app.delete("/loyalty/requestEnrollment/:enrollmentRequestId", loyaltyRoute.deleteEnrollmentRequest);
 app.get("/loyalty/enrollmentRequests", loyaltyRoute.getEnrollmentRequests);

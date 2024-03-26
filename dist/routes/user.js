@@ -32,7 +32,7 @@ const getEnrolledAndPendingLoyalty = (request, response) => __awaiter(void 0, vo
 exports.getEnrolledAndPendingLoyalty = getEnrolledAndPendingLoyalty;
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLoyalty");
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(400);
         response.end();
@@ -55,7 +55,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
 });
 const requestUserPhoneNumberVerification = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside requestCustomerPhoneNumberVerification");
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(400);
         response.end();
@@ -75,7 +75,7 @@ const requestUserPhoneNumberVerification = (request, response) => __awaiter(void
 });
 const verifyUserCode = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside verifyCode");
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(400);
         response.end();

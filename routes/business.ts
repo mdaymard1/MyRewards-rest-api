@@ -12,10 +12,12 @@ import {
   getActiveLocationsForBusinessId,
   searchBusiness,
 } from "../src/services/BusinessService";
-
+import { verifyMerchantToken } from "../src/services/MerchantService";
 import crypto from "crypto";
 import { getLoyaltyForLocation } from "../src/services/LoyaltyService";
 import { getSpecialsForLocation } from "../src/services/SpecialService";
+import { sign } from "jsonwebtoken";
+import config from "../src/config";
 
 const getLocationDetails = async (request: Request, response: Response) => {
   console.log("inside getLocationDetails");
@@ -128,7 +130,7 @@ function isLongitude(lng: any) {
 const getLocations = async (request: Request, response: Response) => {
   console.log("inside getLocations");
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(400);
@@ -160,7 +162,7 @@ const getLocations = async (request: Request, response: Response) => {
 const updateLocation = async (request: Request, response: Response) => {
   console.log("inside updateLocation");
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(400);
@@ -185,9 +187,6 @@ const updateLocation = async (request: Request, response: Response) => {
     secondImageUrl,
   } = request.body;
 
-  // var isBoolean = require("node-boolify").isBoolean;
-
-  // const isBoolean = val => typeof val === 'boolean';
   if (
     !isBoolean(showLoyaltyInApp) ||
     !isBoolean(showThisLocationInApp) ||
@@ -242,19 +241,12 @@ const getBusiness = async (request: Request, response: Response) => {
   //   'EAAAEYQN7Eyq8Zx5TKdvij2iMg1wx7IqZWbwjPwzMIrFjcTeKSLTMWU0KmC2aTN_',
   // );
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(400);
     return;
   }
-
-  // const business = await AppDataSource.manager.findOne(Business, {
-  //   select: { businessId, },
-  //   where: {
-  //     businessId: businessId,
-  //   },
-  // });
 
   const business = await Business.createQueryBuilder("business")
     .select([
@@ -327,7 +319,7 @@ const createBusiness = async (request: Request, response: Response) => {
   var businessId: string | undefined = undefined;
   var encryptedBusinessIdToken: string | undefined;
 
-  businessId = getBusinessIdFromAuthToken(request);
+  businessId = await getBusinessIdFromAuthToken(request);
 
   console.log("businessId: " + businessId);
   console.log("accessToken: " + accessToken);
@@ -356,11 +348,12 @@ const createBusiness = async (request: Request, response: Response) => {
         expirationDate,
         business
       );
-      if (updatedBusiness?.businessId) {
-        var businessResponse = Object();
-        businessResponse.id = updatedBusiness.businessId;
-        response.send(businessResponse);
-        return;
+      if (updatedBusiness) {
+        const newToken = await generateJwt(updatedBusiness);
+        if (newToken) {
+          response.send({ token: newToken });
+        }
+        response.sendStatus(500);
       } else {
         response.sendStatus(500);
         return;
@@ -372,53 +365,81 @@ const createBusiness = async (request: Request, response: Response) => {
       return;
     }
   } else if (merchantId) {
-    // lookup business by merchantId. If it's already been created, update it with the latest tokens and exp date
-    const business = await findBusinessByMerchantId(merchantId);
-    if (business) {
-      console.log("Found business for merchantId");
-      const updatedBusiness = await updateBusinessEntity(
-        business.businessId,
-        merchantId,
-        accessToken,
-        refreshToken,
-        expirationDate,
-        business
-      );
-      if (updatedBusiness?.businessId) {
-        var businessResponse = Object();
-        businessResponse.id = updatedBusiness.businessId;
-        response.send(businessResponse);
-        return;
-      } else {
+    const isTokenValid = await verifyMerchantToken(merchantId, accessToken);
+    if (isTokenValid) {
+      // lookup business by merchantId. If it's already been created, update it with the latest tokens and exp date
+      const business = await findBusinessByMerchantId(merchantId);
+      if (business) {
+        console.log("Found business for merchantId");
+        const updatedBusiness = await updateBusinessEntity(
+          business.businessId,
+          merchantId,
+          accessToken,
+          refreshToken,
+          expirationDate,
+          business
+        );
+        if (updatedBusiness?.businessId) {
+          const newToken = await generateJwt(business);
+          if (newToken) {
+            response.send({ token: newToken });
+            return;
+          }
+        }
         response.sendStatus(500);
-        return;
+      } else {
+        const newBusiness = await createNewBusinessWithLoyalty(
+          undefined,
+          merchantId,
+          accessToken,
+          refreshToken,
+          expirationDate
+        );
+        if (newBusiness) {
+          const newToken = await generateJwt(newBusiness);
+          if (newToken) {
+            response.send({ token: newToken });
+            return;
+          }
+        }
+        response.sendStatus(500);
       }
     } else {
-      const newBusiness = await createNewBusinessWithLoyalty(
-        undefined,
-        merchantId,
-        accessToken,
-        refreshToken,
-        expirationDate
-      );
-      if (newBusiness?.businessId) {
-        var businessResponse = Object();
-        businessResponse.id = newBusiness.businessId;
-        response.send(businessResponse);
-      } else {
-        response.sendStatus(500);
-      }
+      response.sendStatus(401);
     }
   } else {
     // No businessId or merchantId passed, so we can't look anything up to create or update a business
-    response.sendStatus(404);
+    response.send(401);
+  }
+};
+
+const generateJwt = async (business: Business) => {
+  try {
+    // Generate and sign a JWT that is valid for one hour.
+    const token = sign(
+      {
+        merchantId: business.merchantId,
+        username: business.businessName,
+      },
+      config.jwt.secret!,
+      {
+        expiresIn: "1h",
+        notBefore: "0", // Cannot use before now, can be configured to be deferred.
+        algorithm: "HS256",
+        audience: config.jwt.audience,
+        issuer: config.jwt.issuer,
+      }
+    );
+    return token;
+  } catch (error) {
+    return null;
   }
 };
 
 const updateBusiness = async (request: Request, response: Response) => {
   console.log("inside updateBusiness");
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.sendStatus(404);

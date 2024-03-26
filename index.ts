@@ -1,17 +1,9 @@
 import express, { json, Express, Request, Response } from "express";
 import { AppDataSource } from "./appDataSource";
 import dotenv from "dotenv";
-// import { json } from 'stream/consumers';
-
-// const express = require('express');
-// var createError = require('http-errors');
+import { checkJwt } from "./src/middleware/checkJwt";
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
-// const bodyParser = require('body-parser');
-
-// const typeorm = require('typeorm');
-
-// import { createConnection } from 'typeorm';
 
 dotenv.config();
 
@@ -60,7 +52,7 @@ app.get("/locations", businessRoute.getLocations);
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);
 app.post("/location/:locationId", businessRoute.updateLocation);
 
-app.get("/loyalty", loyaltyRoute.getLoyalty);
+app.get("/loyalty", [checkJwt, loyaltyRoute.getLoyalty]);
 app.post("/loyalty/enroll", loyaltyRoute.enrollCustomer);
 app.delete(
   "/loyalty/requestEnrollment/:enrollmentRequestId",

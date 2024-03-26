@@ -25,19 +25,27 @@ import { Equal, Point, QueryFailedError } from "typeorm";
 import exp from "constants";
 import { error } from "console";
 import { off } from "process";
+import { CustomRequest } from "../middleware/checkJwt";
 
-export function getBusinessIdFromAuthToken(
-  request: Request
-): string | undefined {
-  if (request.headers.authorization) {
-    const authValues = request.headers.authorization.split(" ");
-    if (authValues.length == 2) {
-      const encryptedBusinessIdToken = authValues[1];
-      return decryptToken(encryptedBusinessIdToken);
+export const getBusinessIdFromAuthToken = async (request: Request) => {
+  try {
+    const merchantId = (request as CustomRequest)?.token?.payload?.merchantId;
+    if (merchantId) {
+      const business = await Business.createQueryBuilder("business")
+        .select(["business.businessId"])
+        .where("business.merchantId = :merchantId", {
+          merchantId: merchantId,
+        })
+        .getOne();
+      return business?.businessId;
+    } else {
+      return undefined;
     }
+  } catch (error) {
+    console.log("Error thrown while getting merchantId from token: " + error);
+    return undefined;
   }
-  return undefined;
-}
+};
 
 export const searchBusiness = async (
   latitude: number,
@@ -88,14 +96,6 @@ export const getActiveLocationsForBusinessId = async (
   console.log("inside getLocationsForBusinessId");
 
   try {
-    const business = await Business.createQueryBuilder("business")
-      .where("business.businessId = :businessId", { businessId: businessId })
-      .getOne();
-
-    if (!business) {
-      console.log("Can't find Business for businessId: " + businessId);
-      return false;
-    }
     const take = pageSize || 10;
     const page = pageNumber || 1;
     const skip = (page - 1) * take;
@@ -772,20 +772,9 @@ export const updateBusinessDetails = async (
       {
         lastUpdateDate: lastUpdate,
         businessName: businessName,
-        addressLine1: addressLine1,
-        addressLine2: addressLine2,
-        city: city,
-        state: state,
-        zipCode: zipCode,
-        phone: phone,
-        hoursOfOperation: hoursOfOperation,
-        businessDescription: businessDescription,
-        websiteUrl: websiteUrl,
         appStoreUrl: appStoreUrl,
         googlePlayStoreUrl: googlePlayStoreUrl,
         reviewsUrl: reviewsUrl,
-        firstImageUrl: firstImageUrl ?? null,
-        secondImageUrl: secondImageUrl ?? null,
       }
     );
     return true;

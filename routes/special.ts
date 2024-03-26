@@ -9,7 +9,7 @@ import {
 import { Special } from "../src/entity/Special";
 
 export const getSpecials = async (request: Request, response: Response) => {
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(401);
@@ -26,7 +26,7 @@ export const createNewSpecial = async (
   request: Request,
   response: Response
 ) => {
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(401);
@@ -70,7 +70,7 @@ export const createNewSpecial = async (
 };
 
 export const updateSpecial = async (request: Request, response: Response) => {
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(401);
@@ -102,11 +102,11 @@ export const updateSpecial = async (request: Request, response: Response) => {
     return;
   }
   const wasSuccessful = await updateExistingSpecial(specialId, special);
-  response.sendStatus(wasSuccessful ? 204 : 400);
+  response.send(wasSuccessful ? 204 : 400);
 };
 
 export const deleteSpecial = async (request: Request, response: Response) => {
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(401);

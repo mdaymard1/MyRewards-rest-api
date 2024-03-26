@@ -37,7 +37,7 @@ export const getEnrolledAndPendingLoyalty = async (
 const getLoyalty = async (request: Request, response: Response) => {
   console.log("inside getLoyalty");
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(400);
@@ -69,7 +69,7 @@ const requestUserPhoneNumberVerification = async (
 ) => {
   console.log("inside requestCustomerPhoneNumberVerification");
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(400);
@@ -99,7 +99,7 @@ const requestUserPhoneNumberVerification = async (
 const verifyUserCode = async (request: Request, response: Response) => {
   console.log("inside verifyCode");
 
-  const businessId = getBusinessIdFromAuthToken(request);
+  const businessId = await getBusinessIdFromAuthToken(request);
 
   if (!businessId) {
     response.status(400);

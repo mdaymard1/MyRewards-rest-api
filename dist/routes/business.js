@@ -8,13 +8,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const appDataSource_1 = require("../appDataSource");
 const Business_1 = require("../src/entity/Business");
 const Location_1 = require("../src/entity/Location");
 const BusinessService_1 = require("../src/services/BusinessService");
+const MerchantService_1 = require("../src/services/MerchantService");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
 const SpecialService_1 = require("../src/services/SpecialService");
+const jsonwebtoken_1 = require("jsonwebtoken");
+const config_1 = __importDefault(require("../src/config"));
 const getLocationDetails = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLocationDetails");
     const { locationId } = request.params;
@@ -96,7 +102,7 @@ function isLongitude(lng) {
 }
 const getLocations = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLocations");
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(400);
         return;
@@ -117,7 +123,7 @@ const getLocations = (request, response) => __awaiter(void 0, void 0, void 0, fu
 });
 const updateLocation = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateLocation");
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(400);
         response.end();
@@ -131,8 +137,6 @@ const updateLocation = (request, response) => __awaiter(void 0, void 0, void 0, 
         return;
     }
     const { showThisLocationInApp, showLoyaltyInApp, showPromotionsInApp, firstImageUrl, secondImageUrl, } = request.body;
-    // var isBoolean = require("node-boolify").isBoolean;
-    // const isBoolean = val => typeof val === 'boolean';
     if (!isBoolean(showLoyaltyInApp) ||
         !isBoolean(showThisLocationInApp) ||
         !isBoolean(showPromotionsInApp)) {
@@ -172,17 +176,11 @@ const getBusiness = (request, response) => __awaiter(void 0, void 0, void 0, fun
     // const encryptedKey = encryptToken(
     //   'EAAAEYQN7Eyq8Zx5TKdvij2iMg1wx7IqZWbwjPwzMIrFjcTeKSLTMWU0KmC2aTN_',
     // );
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(400);
         return;
     }
-    // const business = await AppDataSource.manager.findOne(Business, {
-    //   select: { businessId, },
-    //   where: {
-    //     businessId: businessId,
-    //   },
-    // });
     const business = yield Business_1.Business.createQueryBuilder("business")
         .select([
         "business.businessId",
@@ -237,7 +235,7 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
     const { merchantId, accessToken, refreshToken, expirationDate } = request.body;
     var businessId = undefined;
     var encryptedBusinessIdToken;
-    businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     console.log("businessId: " + businessId);
     console.log("accessToken: " + accessToken);
     console.log("refreshToken: " + refreshToken);
@@ -256,11 +254,12 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
             console.log("found business");
             // Business found, so update it with the latest tokens and exp date
             const updatedBusiness = yield (0, BusinessService_1.updateBusinessEntity)(businessId, merchantId, accessToken, refreshToken, expirationDate, business);
-            if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
-                var businessResponse = Object();
-                businessResponse.id = updatedBusiness.businessId;
-                response.send(businessResponse);
-                return;
+            if (updatedBusiness) {
+                const newToken = yield generateJwt(updatedBusiness);
+                if (newToken) {
+                    response.send({ token: newToken });
+                }
+                response.sendStatus(500);
             }
             else {
                 response.sendStatus(500);
@@ -275,42 +274,65 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
         }
     }
     else if (merchantId) {
-        // lookup business by merchantId. If it's already been created, update it with the latest tokens and exp date
-        const business = yield (0, BusinessService_1.findBusinessByMerchantId)(merchantId);
-        if (business) {
-            console.log("Found business for merchantId");
-            const updatedBusiness = yield (0, BusinessService_1.updateBusinessEntity)(business.businessId, merchantId, accessToken, refreshToken, expirationDate, business);
-            if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
-                var businessResponse = Object();
-                businessResponse.id = updatedBusiness.businessId;
-                response.send(businessResponse);
-                return;
+        const isTokenValid = yield (0, MerchantService_1.verifyMerchantToken)(merchantId, accessToken);
+        if (isTokenValid) {
+            // lookup business by merchantId. If it's already been created, update it with the latest tokens and exp date
+            const business = yield (0, BusinessService_1.findBusinessByMerchantId)(merchantId);
+            if (business) {
+                console.log("Found business for merchantId");
+                const updatedBusiness = yield (0, BusinessService_1.updateBusinessEntity)(business.businessId, merchantId, accessToken, refreshToken, expirationDate, business);
+                if (updatedBusiness === null || updatedBusiness === void 0 ? void 0 : updatedBusiness.businessId) {
+                    const newToken = yield generateJwt(business);
+                    if (newToken) {
+                        response.send({ token: newToken });
+                        return;
+                    }
+                }
+                response.sendStatus(500);
             }
             else {
+                const newBusiness = yield (0, BusinessService_1.createNewBusinessWithLoyalty)(undefined, merchantId, accessToken, refreshToken, expirationDate);
+                if (newBusiness) {
+                    const newToken = yield generateJwt(newBusiness);
+                    if (newToken) {
+                        response.send({ token: newToken });
+                        return;
+                    }
+                }
                 response.sendStatus(500);
-                return;
             }
         }
         else {
-            const newBusiness = yield (0, BusinessService_1.createNewBusinessWithLoyalty)(undefined, merchantId, accessToken, refreshToken, expirationDate);
-            if (newBusiness === null || newBusiness === void 0 ? void 0 : newBusiness.businessId) {
-                var businessResponse = Object();
-                businessResponse.id = newBusiness.businessId;
-                response.send(businessResponse);
-            }
-            else {
-                response.sendStatus(500);
-            }
+            response.sendStatus(401);
         }
     }
     else {
         // No businessId or merchantId passed, so we can't look anything up to create or update a business
-        response.sendStatus(404);
+        response.send(401);
+    }
+});
+const generateJwt = (business) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        // Generate and sign a JWT that is valid for one hour.
+        const token = (0, jsonwebtoken_1.sign)({
+            merchantId: business.merchantId,
+            username: business.businessName,
+        }, config_1.default.jwt.secret, {
+            expiresIn: "1h",
+            notBefore: "0",
+            algorithm: "HS256",
+            audience: config_1.default.jwt.audience,
+            issuer: config_1.default.jwt.issuer,
+        });
+        return token;
+    }
+    catch (error) {
+        return null;
     }
 });
 const updateBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateBusiness");
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.sendStatus(404);
         return;

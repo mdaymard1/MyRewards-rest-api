@@ -18,16 +18,28 @@ const Location_1 = require("../entity/Location");
 const appDataSource_1 = require("../../appDataSource");
 const Utility_1 = require("../utility/Utility");
 const typeorm_1 = require("typeorm");
-function getBusinessIdFromAuthToken(request) {
-    if (request.headers.authorization) {
-        const authValues = request.headers.authorization.split(" ");
-        if (authValues.length == 2) {
-            const encryptedBusinessIdToken = authValues[1];
-            return (0, EncryptionService_1.decryptToken)(encryptedBusinessIdToken);
+const getBusinessIdFromAuthToken = (request) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    try {
+        const merchantId = (_b = (_a = request === null || request === void 0 ? void 0 : request.token) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.merchantId;
+        if (merchantId) {
+            const business = yield Business_1.Business.createQueryBuilder("business")
+                .select(["business.businessId"])
+                .where("business.merchantId = :merchantId", {
+                merchantId: merchantId,
+            })
+                .getOne();
+            return business === null || business === void 0 ? void 0 : business.businessId;
+        }
+        else {
+            return undefined;
         }
     }
-    return undefined;
-}
+    catch (error) {
+        console.log("Error thrown while getting merchantId from token: " + error);
+        return undefined;
+    }
+});
 exports.getBusinessIdFromAuthToken = getBusinessIdFromAuthToken;
 const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, appUserId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside searchBusiness");
@@ -59,13 +71,6 @@ exports.searchBusiness = searchBusiness;
 const getActiveLocationsForBusinessId = (businessId, pageNumber, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLocationsForBusinessId");
     try {
-        const business = yield Business_1.Business.createQueryBuilder("business")
-            .where("business.businessId = :businessId", { businessId: businessId })
-            .getOne();
-        if (!business) {
-            console.log("Can't find Business for businessId: " + businessId);
-            return false;
-        }
         const take = pageSize || 10;
         const page = pageNumber || 1;
         const skip = (page - 1) * take;
@@ -153,7 +158,7 @@ const updateLocationsWithLoyaltySettings = (businessId, merchantLocationIds) => 
 });
 exports.updateLocationsWithLoyaltySettings = updateLocationsWithLoyaltySettings;
 const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToken, expirationDate) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _c;
     console.log("creating new business");
     try {
         const newBusiness = yield (0, exports.createBusinessFromMerchantInfo)(name, merchantId, accessToken, refreshToken, expirationDate);
@@ -166,7 +171,7 @@ const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToke
                 console.log("got back program: " +
                     (loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.program.id) +
                     ", promo count: " +
-                    ((_a = loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.promotions) === null || _a === void 0 ? void 0 : _a.length) +
+                    ((_c = loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.promotions) === null || _c === void 0 ? void 0 : _c.length) +
                     ", accrualType: " +
                     (loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.accrualType) +
                     ", catalogItemNameMap count: " +
@@ -202,13 +207,13 @@ const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToke
 });
 exports.createNewBusinessWithLoyalty = createNewBusinessWithLoyalty;
 const createBusinessFromMerchantInfo = (name, merchantId, accessToken, refreshToken, expirationDate) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b;
+    var _d;
     console.log("inside createBusinessFromMerchantInfo");
     // First, we need to make sure the tokens are valid, so we'll get the latest merchant info first
     const merchant = yield (0, MerchantService_1.getMerchantInfo)(merchantId, accessToken);
     if (merchant) {
         console.log("got merchant, calling createBusinessEntity");
-        var merchantName = (_b = merchant.businessName) !== null && _b !== void 0 ? _b : undefined;
+        var merchantName = (_d = merchant.businessName) !== null && _d !== void 0 ? _d : undefined;
         const business = yield createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate);
         console.log("returned from createBusinessEntity with business: " + business);
         if (business) {
@@ -258,7 +263,7 @@ const createLocationHours = (businessHourPeriods) => {
     return jsonPeriods;
 };
 const createBusinessLocations = (businessId, merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
-    var _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+    var _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
     const merchantLocations = yield (0, MerchantService_1.getMerchantLocations)(merchantId, accessToken);
     if (!merchantLocations || merchantLocations.length == 0) {
         return false;
@@ -272,7 +277,7 @@ const createBusinessLocations = (businessId, merchantId, accessToken) => __await
         //     }[]
         //   | undefined;
         let hours;
-        if ((_c = merchantLocation.businessHours) === null || _c === void 0 ? void 0 : _c.periods) {
+        if ((_e = merchantLocation.businessHours) === null || _e === void 0 ? void 0 : _e.periods) {
             hours = createLocationHours(merchantLocation.businessHours.periods);
         }
         else {
@@ -295,21 +300,21 @@ const createBusinessLocations = (businessId, merchantId, accessToken) => __await
         //   hours = undefined;
         // }
         let locationPoint;
-        if (((_d = merchantLocation.coordinates) === null || _d === void 0 ? void 0 : _d.longitude) &&
+        if (((_f = merchantLocation.coordinates) === null || _f === void 0 ? void 0 : _f.longitude) &&
             merchantLocation.coordinates.latitude) {
             locationPoint = {
                 type: "Point",
                 coordinates: [
-                    (_e = merchantLocation.coordinates) === null || _e === void 0 ? void 0 : _e.longitude,
-                    (_f = merchantLocation.coordinates) === null || _f === void 0 ? void 0 : _f.latitude,
+                    (_g = merchantLocation.coordinates) === null || _g === void 0 ? void 0 : _g.longitude,
+                    (_h = merchantLocation.coordinates) === null || _h === void 0 ? void 0 : _h.latitude,
                 ],
             };
         }
-        yield insertBusinessLocation(businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_g = merchantLocation.address) === null || _g === void 0 ? void 0 : _g.addressLine1, (_h = merchantLocation.address) === null || _h === void 0 ? void 0 : _h.addressLine2, (_j = merchantLocation.address) === null || _j === void 0 ? void 0 : _j.locality, (_k = merchantLocation.address) === null || _k === void 0 ? void 0 : _k.administrativeDistrictLevel1, (_l = merchantLocation.address) === null || _l === void 0 ? void 0 : _l.postalCode, (_m = merchantLocation.address) === null || _m === void 0 ? void 0 : _m.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_o = merchantLocation.timezone) !== null && _o !== void 0 ? _o : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+        yield insertBusinessLocation(businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_j = merchantLocation.address) === null || _j === void 0 ? void 0 : _j.addressLine1, (_k = merchantLocation.address) === null || _k === void 0 ? void 0 : _k.addressLine2, (_l = merchantLocation.address) === null || _l === void 0 ? void 0 : _l.locality, (_m = merchantLocation.address) === null || _m === void 0 ? void 0 : _m.administrativeDistrictLevel1, (_o = merchantLocation.address) === null || _o === void 0 ? void 0 : _o.postalCode, (_p = merchantLocation.address) === null || _p === void 0 ? void 0 : _p.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_q = merchantLocation.timezone) !== null && _q !== void 0 ? _q : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
     }
 });
 const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updateType) => __awaiter(void 0, void 0, void 0, function* () {
-    var _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3;
+    var _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5;
     console.log("inside updateBusinessLocationFromWebhook");
     const business = yield Business_1.Business.createQueryBuilder("business")
         .where("business.merchantId = :merchantId", { merchantId: merchantId })
@@ -330,7 +335,7 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
     }
     // let xx = merchantLocation.locationPoint.coordinates
     let hours;
-    if ((_p = merchantLocation.businessHours) === null || _p === void 0 ? void 0 : _p.periods) {
+    if ((_r = merchantLocation.businessHours) === null || _r === void 0 ? void 0 : _r.periods) {
         hours = createLocationHours(merchantLocation.businessHours.periods);
     }
     let locationPoint;
@@ -350,13 +355,13 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
     };
     // }
     if (updateType == "create") {
-        const newLocation = yield insertBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_q = merchantLocation.address) === null || _q === void 0 ? void 0 : _q.addressLine1, (_r = merchantLocation.address) === null || _r === void 0 ? void 0 : _r.addressLine2, (_s = merchantLocation.address) === null || _s === void 0 ? void 0 : _s.locality, (_t = merchantLocation.address) === null || _t === void 0 ? void 0 : _t.administrativeDistrictLevel1, (_u = merchantLocation.address) === null || _u === void 0 ? void 0 : _u.postalCode, (_v = merchantLocation.address) === null || _v === void 0 ? void 0 : _v.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_w = merchantLocation.timezone) !== null && _w !== void 0 ? _w : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+        const newLocation = yield insertBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_s = merchantLocation.address) === null || _s === void 0 ? void 0 : _s.addressLine1, (_t = merchantLocation.address) === null || _t === void 0 ? void 0 : _t.addressLine2, (_u = merchantLocation.address) === null || _u === void 0 ? void 0 : _u.locality, (_v = merchantLocation.address) === null || _v === void 0 ? void 0 : _v.administrativeDistrictLevel1, (_w = merchantLocation.address) === null || _w === void 0 ? void 0 : _w.postalCode, (_x = merchantLocation.address) === null || _x === void 0 ? void 0 : _x.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_y = merchantLocation.timezone) !== null && _y !== void 0 ? _y : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
         if (newLocation) {
             return true;
         }
     }
     // Either it's an update for insert failed. Either way we'll try to update it
-    const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_x = merchantLocation.address) === null || _x === void 0 ? void 0 : _x.addressLine1, (_y = merchantLocation.address) === null || _y === void 0 ? void 0 : _y.addressLine2, (_z = merchantLocation.address) === null || _z === void 0 ? void 0 : _z.locality, (_0 = merchantLocation.address) === null || _0 === void 0 ? void 0 : _0.administrativeDistrictLevel1, (_1 = merchantLocation.address) === null || _1 === void 0 ? void 0 : _1.postalCode, (_2 = merchantLocation.address) === null || _2 === void 0 ? void 0 : _2.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_3 = merchantLocation.timezone) !== null && _3 !== void 0 ? _3 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+    const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_z = merchantLocation.address) === null || _z === void 0 ? void 0 : _z.addressLine1, (_0 = merchantLocation.address) === null || _0 === void 0 ? void 0 : _0.addressLine2, (_1 = merchantLocation.address) === null || _1 === void 0 ? void 0 : _1.locality, (_2 = merchantLocation.address) === null || _2 === void 0 ? void 0 : _2.administrativeDistrictLevel1, (_3 = merchantLocation.address) === null || _3 === void 0 ? void 0 : _3.postalCode, (_4 = merchantLocation.address) === null || _4 === void 0 ? void 0 : _4.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_5 = merchantLocation.timezone) !== null && _5 !== void 0 ? _5 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
     console.log("");
     return status;
 });
@@ -472,20 +477,9 @@ const updateBusinessDetails = (businessId, lastUpdateDate, businessName, address
         }, {
             lastUpdateDate: lastUpdate,
             businessName: businessName,
-            addressLine1: addressLine1,
-            addressLine2: addressLine2,
-            city: city,
-            state: state,
-            zipCode: zipCode,
-            phone: phone,
-            hoursOfOperation: hoursOfOperation,
-            businessDescription: businessDescription,
-            websiteUrl: websiteUrl,
             appStoreUrl: appStoreUrl,
             googlePlayStoreUrl: googlePlayStoreUrl,
             reviewsUrl: reviewsUrl,
-            firstImageUrl: firstImageUrl !== null && firstImageUrl !== void 0 ? firstImageUrl : null,
-            secondImageUrl: secondImageUrl !== null && secondImageUrl !== void 0 ? secondImageUrl : null,
         });
         return true;
     }
@@ -511,7 +505,7 @@ exports.findBusinessByMerchantId = findBusinessByMerchantId;
 module.exports = {
     createBusinessFromMerchantInfo: exports.createBusinessFromMerchantInfo,
     createNewBusinessWithLoyalty: exports.createNewBusinessWithLoyalty,
-    getBusinessIdFromAuthToken,
+    getBusinessIdFromAuthToken: exports.getBusinessIdFromAuthToken,
     getActiveLocationsForBusinessId: exports.getActiveLocationsForBusinessId,
     updateBusinessDetails: exports.updateBusinessDetails,
     updateBusinessEntity: exports.updateBusinessEntity,

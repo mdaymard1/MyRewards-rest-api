@@ -20,6 +20,35 @@ import { Loyalty } from "../entity/Loyalty";
 import { RewardDetails } from "./entity/RewardDetails";
 import { LoyaltyRewardTier } from "../entity/LoyaltyRewardTier";
 
+export const verifyMerchantToken = async (
+  merchantId: string,
+  accessToken: string
+) => {
+  console.log("inside verifyMerchantToken");
+
+  const env = getMerchantEnvironment();
+
+  const client = new Client({
+    squareVersion: "2024-01-18",
+    accessToken: accessToken,
+    environment: env,
+  });
+
+  const { merchantsApi } = client;
+
+  try {
+    const merchantResponse = await merchantsApi.retrieveMerchant(merchantId);
+    if (merchantResponse?.result?.merchant) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (err) {
+    console.log("merchantsApi.retrieveMerchant returned an error: " + err);
+    return false;
+  }
+};
+
 export const getAvailableRewardsForLoyaltyBalance = (
   customerBalance: number,
   rewardTiers: LoyaltyRewardTier[]
@@ -573,4 +602,5 @@ module.exports = {
   getMainLoyaltyProgramFromMerchant,
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
+  verifyMerchantToken,
 };

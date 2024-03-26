@@ -13,7 +13,7 @@ exports.deleteSpecial = exports.updateSpecial = exports.createNewSpecial = expor
 const BusinessService_1 = require("../src/services/BusinessService");
 const SpecialService_1 = require("../src/services/SpecialService");
 const getSpecials = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
         response.end();
@@ -25,7 +25,7 @@ const getSpecials = (request, response) => __awaiter(void 0, void 0, void 0, fun
 });
 exports.getSpecials = getSpecials;
 const createNewSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
         response.end();
@@ -64,7 +64,7 @@ const createNewSpecial = (request, response) => __awaiter(void 0, void 0, void 0
 });
 exports.createNewSpecial = createNewSpecial;
 const updateSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
         response.end();
@@ -91,11 +91,11 @@ const updateSpecial = (request, response) => __awaiter(void 0, void 0, void 0, f
         return;
     }
     const wasSuccessful = yield (0, SpecialService_1.updateExistingSpecial)(specialId, special);
-    response.sendStatus(wasSuccessful ? 204 : 400);
+    response.send(wasSuccessful ? 204 : 400);
 });
 exports.updateSpecial = updateSpecial;
 const deleteSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
-    const businessId = (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
         response.status(401);
         response.end();
