@@ -1,23 +1,247 @@
 import { obsfucatePhoneNumber } from "../utility/Utility";
 import { AppDataSource } from "../../appDataSource";
-import { AppUser } from "../entity/AppUser";
+import { User } from "../entity/User";
 import { Business } from "../entity/Business";
 import { Customer } from "../entity/Customer";
 import { Loyalty } from "../entity/Loyalty";
+import { Location } from "../entity/Location";
 import { getAvailableRewardsForLoyaltyBalance } from "./MerchantService";
 import { LoyaltyRewardTier } from "../entity/LoyaltyRewardTier";
 import exp from "constants";
+import { EnrollmentRequest } from "../entity/EnrollmentRequest";
+import { Point } from "typeorm";
+import { CustomerNotificationPreference } from "../entity/CustomerNotificationPreference";
+
+export const updateUserBusinessNotificationSettings = async (
+  userId: string,
+  businessId: string,
+  customerId: string,
+  notifyOfRewardChanges: boolean,
+  notifyOfPromotionChanges: boolean,
+  notifyOfSpecialsChanges: boolean
+) => {
+  console.log("inside updateUserBusinessNotificationSettings");
+
+  const notificationPref =
+    await CustomerNotificationPreference.createQueryBuilder("notificationPref")
+      .where("notificationPref.appUserId = :userId", { userId: userId })
+      .andWhere("notificationPref.businessId = :businessId", {
+        businessId: businessId,
+      })
+      .getOne();
+
+  if (notificationPref) {
+    return updateCustomerNotificationPreference(
+      notificationPref.id,
+      notifyOfRewardChanges,
+      notifyOfPromotionChanges,
+      notifyOfSpecialsChanges
+    );
+  } else {
+    return insertCustomerNotificationPreference(
+      userId,
+      businessId,
+      customerId,
+      notifyOfRewardChanges,
+      notifyOfPromotionChanges,
+      notifyOfSpecialsChanges
+    );
+  }
+};
+
+export const insertCustomerNotificationPreference = async (
+  userId: string,
+  businessId: string,
+  customerId: string,
+  notifyOfRewardChanges: boolean,
+  notifyOfPromotionChanges: boolean,
+  notifyOfSpecialsChanges: boolean
+) => {
+  console.log("inside insertCustomerNotificationPreference");
+
+  const notificationPref = AppDataSource.manager.create(
+    CustomerNotificationPreference,
+    {
+      businessId: businessId,
+      customerId: customerId,
+      notifyOfRewardChanges: notifyOfRewardChanges,
+      notifyOfPromotionChanges: notifyOfPromotionChanges,
+      notifyOfSpecialsChanges: notifyOfSpecialsChanges,
+    }
+  );
+  await AppDataSource.manager.save(notificationPref);
+  console.log("notificationPref created");
+  return notificationPref;
+};
+
+const updateCustomerNotificationPreference = async (
+  notificationPrefId: string,
+  notifyOfRewardChanges: boolean,
+  notifyOfPromotionChanges: boolean,
+  notifyOfSpecialsChanges: boolean
+) => {
+  console.log("inside updateCustomerNotificationPreference");
+
+  const updatedPref = await AppDataSource.manager.update(
+    CustomerNotificationPreference,
+    {
+      id: notificationPrefId,
+    },
+    {
+      notifyOfRewardChanges: notifyOfRewardChanges,
+      notifyOfPromotionChanges: notifyOfPromotionChanges,
+      notifyOfSpecialsChanges: notifyOfSpecialsChanges,
+    }
+  );
+  return updatedPref;
+};
+
+export const getUserDetails = async (userId: string) => {
+  console.log("inside updateUserDetails");
+
+  const user = await User.createQueryBuilder("appUser")
+    .where("appUser.id = :id", { id: userId })
+    .getOne();
+
+  var userDetails: UserDetails | undefined;
+  if (user?.userDetails) {
+    userDetails = JSON.parse(JSON.stringify(user.userDetails)) as UserDetails;
+    console.log("userDetails: " + userDetails);
+  }
+  if (userDetails) {
+    const details = {
+      firstName: userDetails.firstName,
+      lastName: userDetails.lastName,
+      email: userDetails.email,
+      notifyOfMyRewardChanges: user?.notifyOfMyRewardChanges,
+    };
+    return details;
+  } else {
+    return null;
+  }
+};
+
+export interface UserDetails {
+  firstName: string;
+  lastName: string | undefined;
+  email: string | undefined;
+}
+
+export const updateUserDetails = async (
+  userId: string,
+  firstName: string,
+  lastName?: string,
+  email?: string
+) => {
+  console.log("inside updateUserDetails");
+
+  const user = await User.createQueryBuilder("appUser")
+    .where("appUser.id = :id", { id: userId })
+    .getOne();
+
+  if (user) {
+    return await updateUserWithDetails(user.ref, firstName, lastName, email);
+  } else {
+    return null;
+  }
+};
+export const updateUserNotificationSettings = async (
+  appUserId: string,
+  notifyOfNewBusinesses: boolean,
+  notifyOfMyRewardChanges: boolean,
+  notifyOfPointChanges: boolean,
+  coordinateLatitude?: number,
+  coordinateLongitude?: number,
+  zipCode?: string
+) => {
+  console.log("inside getUserNotificationSettings");
+
+  var locationPoint: Point | undefined;
+  if (coordinateLatitude && coordinateLongitude) {
+    locationPoint = {
+      type: "Point",
+      coordinates: [coordinateLongitude, coordinateLatitude],
+    };
+  }
+  const updatedUser = await AppDataSource.manager.update(
+    User,
+    {
+      id: appUserId,
+    },
+    {
+      notifyOfNewBusinesses: notifyOfNewBusinesses,
+      notifyOfMyRewardChanges: notifyOfMyRewardChanges,
+      notifyOfPointChanges: notifyOfPointChanges,
+      locationPoint: locationPoint,
+      zipCode: zipCode,
+    }
+  );
+  return;
+};
+
+export const getUserNotificationSettings = async (appUserId: string) => {
+  console.log("inside getUserNotificationSettings");
+
+  const appUser = await User.createQueryBuilder("appUser")
+    // .select([
+    //   "appUser.notifyOfNewBusinesses",
+    //   "appUser.notifyOfMyRewardChanges",
+    //   "appUser.notifyOfPointChanges",
+    //   "appUser.zipCode",
+    //   "ST_ASTEXT('appUserId.locationPoint') AS locationPoint",
+    // ])
+    .where("appUser.id = :id", { id: appUserId })
+    .getOne();
+
+  var latitude: number | undefined;
+  var longitude: number | undefined;
+  if (appUser?.locationPoint) {
+    var locationPoint: LocationPoint;
+    locationPoint = JSON.parse(
+      JSON.stringify(appUser.locationPoint)
+    ) as LocationPoint;
+    console.log("locationPoint: " + locationPoint);
+    if (locationPoint && locationPoint.coordinates.length == 2) {
+      latitude = locationPoint.coordinates[1];
+      longitude = locationPoint.coordinates[0];
+    }
+  }
+  if (appUser) {
+    const settings = {
+      latitude: latitude,
+      longitude: longitude,
+      notifyOfNewBusinesses: appUser.notifyOfNewBusinesses ?? false,
+      notifyOfMyRewardChanges: appUser.notifyOfMyRewardChanges ?? false,
+      notifyOfPointChanges: appUser.notifyOfPointChanges ?? false,
+      zipCode: appUser.zipCode,
+    };
+    return settings;
+  }
+  return null;
+};
+
+export interface LocationPoint {
+  type: string;
+  coordinates: number[];
+}
 
 export const getAllLoyaltyAccounts = async (userId: string) => {
   console.log("inside getAllLoyaltyAccounts");
 
   try {
-    const customerAccounts = await AppUser.createQueryBuilder("appUser")
-      .innerJoinAndSelect("appUser.customer", "customer")
-      .where("appUser.id = :id", { id: userId })
-      .getMany();
+    const enrolledLocations = await Location.query(
+      `SELECT "customer"."balance" AS "balance", "customer"."lifetimePoints" AS "lifetimePoints", "customer"."enrolledAt" AS "enrolledAt", "customer"."id" AS "customerId", "location"."businessId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "location"."timezone" AS "timezone", "location"."timezone" AS "timezone", "location"."id" AS "locationId", "loyalty"."terminologyOne" as "terminologyOne", "loyalty"."terminologyMany" as "terminologyMany", "customerNotificationPreference"."notifyOfRewardChanges", "customerNotificationPreference"."notifyOfPromotionChanges", "customerNotificationPreference"."notifyOfSpecialsChanges" FROM "customer" "customer" INNER JOIN "location" "location" ON "customer"."locationId" = "location"."id" LEFT OUTER JOIN "loyalty" "loyalty" ON "loyalty"."businessId"
+      = "location"."businessId" LEFT OUTER JOIN "customer_notification_preference" "customerNotificationPreference" ON "customerNotificationPreference"."businessId"
+      = "location"."businessId" AND "customerNotificationPreference"."customerId" = "customer".id WHERE "customer"."appUserId" = '${userId}'`
+    );
 
-    return customerAccounts;
+    const pendingLocations = await EnrollmentRequest.query(
+      `SELECT "enrollmentRequest"."enrollRequestedAt" AS "enrollRequestedAt", "enrollmentRequest"."id" AS "enrollmentRequestId", "location"."businessId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "location"."timezone" AS "timezone", "location"."timezone" AS "timezone", "location"."id" AS "locationId" FROM "enrollment_request" "enrollmentRequest" INNER JOIN "location" "location" ON "enrollmentRequest"."locationId" = "location"."id" WHERE "enrollmentRequest"."appUserid" = '${userId}'`
+    );
+    return {
+      enrolledLocations: enrolledLocations,
+      pendingLocations: pendingLocations,
+    };
   } catch (error) {
     console.log("Error thrown in getAllLoyaltyAccounts: " + error);
   }
@@ -47,26 +271,25 @@ export const getUserLoyaltyDetails = async (
       })
       .getMany();
 
-    const appUser = await AppUser.createQueryBuilder("appUser")
-      .innerJoinAndSelect("appUser.customer", "customer")
-      .where("appUser.id = :id", { id: userId })
+    const customer = await Customer.createQueryBuilder("customer")
+      .where("customer.appUserId = :id", { id: userId })
       .andWhere("customer.businessId = :businessId", { businessId: businessId })
       .getOne();
-    if (appUser) {
+    if (customer) {
       const rewardDetails = getAvailableRewardsForLoyaltyBalance(
-        appUser.customer.balance,
+        customer.balance,
         loyaltyRewardTiers
       );
 
       const userLoyalty = {
-        id: appUser.id,
-        balance: appUser.customer.balance,
-        lifetimePoints: appUser.customer.lifetimePoints,
-        enrolledAt: appUser.customer.enrolledAt,
+        id: customer.appUserId,
+        balance: customer.balance,
+        lifetimePoints: customer.lifetimePoints,
+        enrolledAt: customer.enrolledAt,
         terminologyOne: loyalty.terminologyOne,
         terminologyMany: loyalty.terminologyMany,
-        businessId: appUser.customer.business,
-        locationId: appUser.customer.locationId,
+        businessId: customer.business,
+        locationId: customer.locationId,
         rewardDetails: rewardDetails,
       };
       return userLoyalty;
@@ -91,8 +314,7 @@ export const updateUserWithDetails = async (
 
 export const sendSMSVerification = async (
   countryCode: string,
-  phoneNumber: string,
-  businessId: string
+  phoneNumber: string
 ) => {
   console.log("inside sendSMSVerification");
 
@@ -118,7 +340,6 @@ export const sendSMSVerification = async (
 export const verifyCodeIsValid = async (
   countryCode: string,
   phoneNumber: string,
-  businessId: string,
   code: string
 ) => {
   console.log("inside verifyCodeIsValid");
@@ -162,7 +383,7 @@ const upsertUser = async (ref: string) => {
     if (appUser) {
       console.log("user already exists, updating last updated date");
       await AppDataSource.manager.update(
-        AppUser,
+        User,
         {
           ref: ref,
         },
@@ -173,7 +394,7 @@ const upsertUser = async (ref: string) => {
       return appUser;
     }
     // AppUser not found, so create one
-    const newAppUser = AppDataSource.manager.create(AppUser, {
+    const newAppUser = AppDataSource.manager.create(User, {
       ref: ref,
       createDate: currentDate,
       lastUpdateDate: currentDate,
@@ -191,7 +412,7 @@ const getAppUserByRef = async (ref: string) => {
   console.log("inside getAppUserByRef");
 
   try {
-    const appUser = await AppUser.createQueryBuilder("appUser")
+    const appUser = await User.createQueryBuilder("appUser")
       .where("appUser.ref = :ref", {
         ref: ref,
       })
@@ -220,30 +441,31 @@ const updateUser = async (
 
   const currentDate = new Date();
 
-  try {
-    await AppDataSource.manager.update(
-      AppUser,
-      {
-        ref: ref,
-      },
-      {
-        userDetails: details,
-        lastUpdateDate: currentDate,
-      }
-    );
-    console.log("AppUser details were updated successfully");
-    return "success";
-  } catch (error) {
-    console.log("got error when updating user:" + error);
-    return null;
-  }
+  await AppDataSource.manager.update(
+    User,
+    {
+      ref: ref,
+    },
+    {
+      userDetails: details,
+      lastUpdateDate: currentDate,
+    }
+  );
+  console.log("AppUser details were updated successfully");
+  return "success";
 };
 
 module.exports = {
   getAllLoyaltyAccounts,
+  getUserDetails,
   getUserLoyaltyDetails,
+  getUserNotificationSettings,
+  insertCustomerNotificationPreference,
   sendSMSVerification,
   verifyCodeIsValid,
+  updateUserBusinessNotificationSettings,
+  updateUserNotificationSettings,
+  updateUserDetails,
   updateUserWithDetails,
   upsertUser,
 };

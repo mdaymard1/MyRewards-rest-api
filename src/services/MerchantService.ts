@@ -26,25 +26,22 @@ export const verifyMerchantToken = async (
 ) => {
   console.log("inside verifyMerchantToken");
 
+  const decryptedToken = decryptToken(accessToken);
+
   const env = getMerchantEnvironment();
 
   const client = new Client({
     squareVersion: "2024-01-18",
-    accessToken: accessToken,
+    accessToken: decryptedToken,
     environment: env,
   });
 
   const { merchantsApi } = client;
 
-  try {
-    const merchantResponse = await merchantsApi.retrieveMerchant(merchantId);
-    if (merchantResponse?.result?.merchant) {
-      return true;
-    } else {
-      return false;
-    }
-  } catch (err) {
-    console.log("merchantsApi.retrieveMerchant returned an error: " + err);
+  const merchantResponse = await merchantsApi.retrieveMerchant(merchantId);
+  if (merchantResponse?.result?.merchant) {
+    return true;
+  } else {
     return false;
   }
 };

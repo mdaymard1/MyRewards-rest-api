@@ -16,6 +16,7 @@ import { verifyMerchantToken } from "../src/services/MerchantService";
 import crypto from "crypto";
 import { getLoyaltyForLocation } from "../src/services/LoyaltyService";
 import { getSpecialsForLocation } from "../src/services/SpecialService";
+import { isBoolean } from "../src/utility/Utility";
 import { sign } from "jsonwebtoken";
 import config from "../src/config";
 
@@ -211,10 +212,6 @@ const updateLocation = async (request: Request, response: Response) => {
   response.end();
 };
 
-function isBoolean(val: any) {
-  return val === false || val === true || val instanceof Boolean;
-}
-
 const getBusiness = async (request: Request, response: Response) => {
   // const key = 'f7fbba6e0636f890e56fbbf3283e524c';
   // const encryptionIV = 'd82c4eb5261cb9c8';
@@ -319,7 +316,11 @@ const createBusiness = async (request: Request, response: Response) => {
   var businessId: string | undefined = undefined;
   var encryptedBusinessIdToken: string | undefined;
 
-  businessId = await getBusinessIdFromAuthToken(request);
+  try {
+    businessId = await getBusinessIdFromAuthToken(request);
+  } catch (error) {
+    console.log("handling missing businessId");
+  }
 
   console.log("businessId: " + businessId);
   console.log("accessToken: " + accessToken);

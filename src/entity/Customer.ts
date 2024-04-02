@@ -6,10 +6,13 @@ import {
   JoinColumn,
   ManyToOne,
   OneToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Business } from "./Business";
-import { AppUser } from "./AppUser";
+// import { AppUser } from "./AppUser";
+import { Location } from "./Location";
+import { CustomerNotificationPreference } from "./CustomerNotificationPreference";
 
 @Index("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
   unique: true,
@@ -54,9 +57,17 @@ export class Customer extends BaseEntity {
   @JoinColumn({ name: "businessId" })
   business: Business;
 
-  @OneToOne(() => AppUser, (appUser) => appUser.customer, {
-    nullable: true,
-  })
-  @JoinColumn({ name: "appUserId" })
-  appUser: AppUser;
+  // @OneToMany(() => AppUser, (appUser) => appUser.customers, {
+  //   nullable: true,
+  // })
+  // @JoinColumn({ name: "appUserId" })
+  // appUser: AppUser;
+
+  @ManyToOne(() => Location, (location) => location.customers, { eager: true })
+  @JoinColumn({ name: "locationId" })
+  location: Location;
+
+  @OneToOne(() => CustomerNotificationPreference)
+  @JoinColumn()
+  notificationPreference: CustomerNotificationPreference;
 }

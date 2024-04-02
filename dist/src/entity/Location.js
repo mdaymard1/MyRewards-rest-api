@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Location = void 0;
 const typeorm_1 = require("typeorm");
 const Business_1 = require("./Business");
+const Customer_1 = require("./Customer");
 let Location = class Location extends typeorm_1.BaseEntity {
 };
 exports.Location = Location;
@@ -132,6 +133,13 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: "businessId" }),
     __metadata("design:type", Business_1.Business)
 ], Location.prototype, "business", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Customer_1.Customer, (customer) => customer.location, {
+        nullable: true,
+    }),
+    (0, typeorm_1.JoinColumn)({ name: "customerId" }),
+    __metadata("design:type", Array)
+], Location.prototype, "customers", void 0);
 exports.Location = Location = __decorate([
     (0, typeorm_1.Entity)()
 ], Location);

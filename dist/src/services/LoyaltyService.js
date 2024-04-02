@@ -234,6 +234,9 @@ const enrollCustomerInLoyalty = (businessId, appUserId, token, enrollmentSource,
         return customerId;
     }
     let appCustomerId = yield insertCustomer(businessId, appUserId, loyaltyCustomerAccountId, ref, enrollmentSource, locationId);
+    if (appCustomerId) {
+        const notificationPref = (0, UserService_1.insertCustomerNotificationPreference)(appUserId, businessId, appCustomerId, true, true, true);
+    }
     var merchCustomerId;
     if (appCustomerId) {
         merchCustomerId = yield (0, MerchantService_1.upsertMerchantCustomerAccount)(token, loyaltyCustomerAccountId, appCustomerId, phoneNumber, firstName, lastName, email);
@@ -252,6 +255,9 @@ const updateExistingCustomer = (token, enrollmentSource, businessId, appUserId, 
     if (existingCustomerId) {
         // Add the customer to our db
         let appCustomerId = yield insertCustomer(businessId, appUserId, existingCustomerId, (0, Utility_1.obsfucatePhoneNumber)(phoneNumber), enrollmentSource, locationId);
+        if (appCustomerId) {
+            (0, UserService_1.insertCustomerNotificationPreference)(appUserId, businessId, appCustomerId, true, true, true);
+        }
         // Finally, upsert the merchant's customer account
         if (appCustomerId) {
             (0, MerchantService_1.upsertMerchantCustomerAccount)(token, existingCustomerId, appCustomerId, phoneNumber, firstName, lastName, email);

@@ -4,7 +4,7 @@ import {
   Column,
   Index,
   OneToMany,
-  OneToOne,
+  Point,
   PrimaryGeneratedColumn,
 } from "typeorm";
 
@@ -16,7 +16,7 @@ import { EncryptionTransformerConfig } from "../../encryption-config";
   unique: true,
 })
 @Entity()
-export class AppUser extends BaseEntity {
+export class User extends BaseEntity {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
@@ -30,6 +30,26 @@ export class AppUser extends BaseEntity {
   })
   userDetails: object;
 
+  @Column({
+    type: "geography",
+    spatialFeatureType: "Point",
+    srid: 4326,
+    nullable: true,
+  })
+  locationPoint?: Point;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyOfNewBusinesses: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyOfMyRewardChanges: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyOfPointChanges: boolean;
+
+  @Column({ type: "text", nullable: true })
+  zipCode?: string;
+
   // @CreateDateColumn({ type: 'timestamp', nullable: true })
   @Column({ type: "timestamp", nullable: true })
   createDate: Date;
@@ -38,6 +58,6 @@ export class AppUser extends BaseEntity {
   @Column({ type: "timestamp", nullable: false })
   lastUpdateDate: Date;
 
-  @OneToOne(() => Customer, (customer) => customer.appUser, { eager: true })
-  customer: Customer;
+  // @OneToMany(() => Customer, (customer) => customer.appUser, { eager: true })
+  // customers: Customer[];
 }

@@ -20,25 +20,19 @@ const Utility_1 = require("../utility/Utility");
 const typeorm_1 = require("typeorm");
 const getBusinessIdFromAuthToken = (request) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
-    try {
-        const merchantId = (_b = (_a = request === null || request === void 0 ? void 0 : request.token) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.merchantId;
-        if (merchantId) {
-            const business = yield Business_1.Business.createQueryBuilder("business")
-                .select(["business.businessId"])
-                .where("business.merchantId = :merchantId", {
-                merchantId: merchantId,
-            })
-                .getOne();
+    const merchantId = (_b = (_a = request === null || request === void 0 ? void 0 : request.token) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.merchantId;
+    if (merchantId) {
+        const business = yield Business_1.Business.createQueryBuilder("business")
+            .select(["business.businessId"])
+            .where("business.merchantId = :merchantId", {
+            merchantId: merchantId,
+        })
+            .getOne();
+        if (business) {
             return business === null || business === void 0 ? void 0 : business.businessId;
         }
-        else {
-            return undefined;
-        }
     }
-    catch (error) {
-        console.log("Error thrown while getting merchantId from token: " + error);
-        return undefined;
-    }
+    return undefined;
 });
 exports.getBusinessIdFromAuthToken = getBusinessIdFromAuthToken;
 const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, appUserId) => __awaiter(void 0, void 0, void 0, function* () {
@@ -52,7 +46,7 @@ const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, a
     const customerSelectClause = appUserId
         ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
         : "";
-    var selectClause = `SELECT location."id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+    var selectClause = `SELECT location."id" as "locationId", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
     if (searchTerm) {
         selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";
     }

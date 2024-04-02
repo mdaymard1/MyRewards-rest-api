@@ -5,10 +5,12 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   Point,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Business } from "./Business";
+import { Customer } from "./Customer";
 
 @Entity()
 export class Location extends BaseEntity {
@@ -105,4 +107,10 @@ export class Location extends BaseEntity {
   })
   @JoinColumn({ name: "businessId" })
   business: Business;
+
+  @OneToMany(() => Customer, (customer) => customer.location, {
+    nullable: true,
+  })
+  @JoinColumn({ name: "customerId" })
+  customers: Customer[];
 }

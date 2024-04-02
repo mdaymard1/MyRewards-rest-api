@@ -19,6 +19,7 @@ const BusinessService_1 = require("../src/services/BusinessService");
 const MerchantService_1 = require("../src/services/MerchantService");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
 const SpecialService_1 = require("../src/services/SpecialService");
+const Utility_1 = require("../src/utility/Utility");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const config_1 = __importDefault(require("../src/config"));
 const getLocationDetails = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
@@ -137,9 +138,9 @@ const updateLocation = (request, response) => __awaiter(void 0, void 0, void 0, 
         return;
     }
     const { showThisLocationInApp, showLoyaltyInApp, showPromotionsInApp, firstImageUrl, secondImageUrl, } = request.body;
-    if (!isBoolean(showLoyaltyInApp) ||
-        !isBoolean(showThisLocationInApp) ||
-        !isBoolean(showPromotionsInApp)) {
+    if (!(0, Utility_1.isBoolean)(showLoyaltyInApp) ||
+        !(0, Utility_1.isBoolean)(showThisLocationInApp) ||
+        !(0, Utility_1.isBoolean)(showPromotionsInApp)) {
         console.log("missing fields");
         response.status(401);
         response.end();
@@ -149,9 +150,6 @@ const updateLocation = (request, response) => __awaiter(void 0, void 0, void 0, 
     response.status(wasUpdated ? 200 : 400);
     response.end();
 });
-function isBoolean(val) {
-    return val === false || val === true || val instanceof Boolean;
-}
 const getBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     // const key = 'f7fbba6e0636f890e56fbbf3283e524c';
     // const encryptionIV = 'd82c4eb5261cb9c8';
@@ -235,7 +233,12 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
     const { merchantId, accessToken, refreshToken, expirationDate } = request.body;
     var businessId = undefined;
     var encryptedBusinessIdToken;
-    businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    try {
+        businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    }
+    catch (error) {
+        console.log("handling missing businessId");
+    }
     console.log("businessId: " + businessId);
     console.log("accessToken: " + accessToken);
     console.log("refreshToken: " + refreshToken);

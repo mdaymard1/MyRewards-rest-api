@@ -9,9 +9,106 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEnrolledAndPendingLoyalty = void 0;
-const BusinessService_1 = require("../src/services/BusinessService");
+exports.getEnrolledAndPendingLoyalty = exports.getNotificationSettings = exports.updateNotificationSettings = exports.updateDetails = exports.getDetails = exports.updateBusinessNotificationSettings = void 0;
 const UserService_1 = require("../src/services/UserService");
+const Utility_1 = require("../src/utility/Utility");
+const updateBusinessNotificationSettings = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateBusinessNotificationSettings");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        return;
+    }
+    const { businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges, } = request.body;
+    console.log("checking for valid input");
+    if (!businessId ||
+        !customerId ||
+        !(0, Utility_1.isBoolean)(notifyOfRewardChanges) ||
+        !(0, Utility_1.isBoolean)(notifyOfPromotionChanges) ||
+        !(0, Utility_1.isBoolean)(notifyOfSpecialsChanges)) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    console.log("calling updateUserBusinessNotificationSettings");
+    const notificationPref = yield (0, UserService_1.updateUserBusinessNotificationSettings)(userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges);
+    response.sendStatus(200);
+    response.end();
+});
+exports.updateBusinessNotificationSettings = updateBusinessNotificationSettings;
+const getDetails = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getDetails");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        return;
+    }
+    const userDetails = yield (0, UserService_1.getUserDetails)(userId);
+    if (userDetails) {
+        response.send(userDetails);
+    }
+    else {
+        response.sendStatus(404);
+    }
+});
+exports.getDetails = getDetails;
+const updateDetails = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateNotificationSettings");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        return;
+    }
+    const { firstName, lastName, email } = request.body;
+    if (!firstName) {
+        response.status(400);
+        return;
+    }
+    const status = yield (0, UserService_1.updateUserDetails)(userId, firstName, lastName, email);
+    if (status && status == "success") {
+        response.sendStatus(200);
+    }
+    else {
+        response.sendStatus(400);
+    }
+});
+exports.updateDetails = updateDetails;
+const updateNotificationSettings = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateNotificationSettings");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const { coordinateLatitude, coordinateLongitude, zipCode, notifyOfNewBusinesses, notifyOfMyRewardChanges, notifyOfPointChanges, } = request.body;
+    if (!(0, Utility_1.isBoolean)(notifyOfNewBusinesses) ||
+        !(0, Utility_1.isBoolean)(notifyOfMyRewardChanges) ||
+        !(0, Utility_1.isBoolean)(notifyOfPointChanges)) {
+        response.sendStatus(400);
+        return;
+    }
+    const updatedUser = yield (0, UserService_1.updateUserNotificationSettings)(userId, notifyOfNewBusinesses, notifyOfMyRewardChanges, notifyOfPointChanges, coordinateLatitude, coordinateLongitude, zipCode);
+    response.sendStatus(201);
+});
+exports.updateNotificationSettings = updateNotificationSettings;
+const getNotificationSettings = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getNotificationSettings");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const appUser = yield (0, UserService_1.getUserNotificationSettings)(userId);
+    if (appUser) {
+        response.send(appUser);
+    }
+    else {
+        response.sendStatus(400);
+    }
+});
+exports.getNotificationSettings = getNotificationSettings;
 const getEnrolledAndPendingLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getEnrolledAndPendingLoyalty");
     const { userId } = request.params;
@@ -32,7 +129,7 @@ const getEnrolledAndPendingLoyalty = (request, response) => __awaiter(void 0, vo
 exports.getEnrolledAndPendingLoyalty = getEnrolledAndPendingLoyalty;
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLoyalty");
-    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    const { businessId } = request.query;
     if (!businessId) {
         response.status(400);
         response.end();
@@ -55,16 +152,14 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
 });
 const requestUserPhoneNumberVerification = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside requestCustomerPhoneNumberVerification");
-    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    if (!businessId) {
-        response.status(400);
-        response.end();
-        return;
-    }
     const { countryCode, phoneNumber } = request.body;
     console.log("countryCode: " + countryCode + ", phoneNumber: " + phoneNumber);
+    if (!countryCode || !phoneNumber) {
+        response.status(400);
+        return;
+    }
     //   await sendSMSVerification(countryCode, phoneNumber, businessId);
-    const status = yield (0, UserService_1.sendSMSVerification)(countryCode, phoneNumber, businessId);
+    const status = yield (0, UserService_1.sendSMSVerification)(countryCode, phoneNumber);
     if (status && status == "pending") {
         response.status(200);
     }
@@ -75,20 +170,19 @@ const requestUserPhoneNumberVerification = (request, response) => __awaiter(void
 });
 const verifyUserCode = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside verifyCode");
-    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    if (!businessId) {
+    const { countryCode, phoneNumber, code } = request.body;
+    if (!countryCode || !phoneNumber || !code) {
         response.status(400);
         response.end();
         return;
     }
-    const { countryCode, phoneNumber, code } = request.body;
     console.log("countryCode: " +
         countryCode +
         ", phoneNumber: " +
         phoneNumber +
         ", code: " +
         code);
-    const appUser = yield (0, UserService_1.verifyCodeIsValid)(countryCode, phoneNumber, businessId, code);
+    const appUser = yield (0, UserService_1.verifyCodeIsValid)(countryCode, phoneNumber, code);
     if (appUser) {
         const appUserIdResponse = {
             appuserId: appUser.id,
@@ -101,8 +195,13 @@ const verifyUserCode = (request, response) => __awaiter(void 0, void 0, void 0, 
     response.end();
 });
 module.exports = {
+    getDetails: exports.getDetails,
     getEnrolledAndPendingLoyalty: exports.getEnrolledAndPendingLoyalty,
     getLoyalty,
+    getNotificationSettings: exports.getNotificationSettings,
     requestUserPhoneNumberVerification,
+    updateBusinessNotificationSettings: exports.updateBusinessNotificationSettings,
+    updateDetails: exports.updateDetails,
+    updateNotificationSettings: exports.updateNotificationSettings,
     verifyUserCode,
 };

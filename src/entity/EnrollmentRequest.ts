@@ -11,7 +11,7 @@ import { Business } from "./Business";
 import { JSONEncryptionTransformer } from "typeorm-encrypted";
 import { EncryptionTransformerConfig } from "../../encryption-config";
 
-// @Index('customer_id_UNIQUE', ['merchantCustomerId', 'businessId'], {
+// @Index("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
 //   unique: true,
 // })
 @Entity()

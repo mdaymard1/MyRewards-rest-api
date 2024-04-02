@@ -2,6 +2,8 @@ import express, { json, Express, Request, Response } from "express";
 import { AppDataSource } from "./appDataSource";
 import dotenv from "dotenv";
 import { checkJwt } from "./src/middleware/checkJwt";
+import { asyncHandler } from "./src/middleware/asyncHandler";
+
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 
@@ -32,21 +34,35 @@ app.use(json());
 app.use(cookieParser());
 
 app.get("/business", businessRoute.getBusiness);
-app.post("/business", businessRoute.createBusiness);
+app.post("/business", asyncHandler(businessRoute.createBusiness));
 app.post("/business/test", businessRoute.createTestBusiness);
 app.put("/business", businessRoute.updateBusiness);
 app.get("/business/search", businessRoute.search);
 
-app.get("/user/:userId/loyalty", userRoute.getLoyalty);
+app.get("/user/:userId/loyalty", asyncHandler(userRoute.getLoyalty));
+app.get(
+  "/user/:userId/notificationSettings",
+  asyncHandler(userRoute.getNotificationSettings)
+);
+app.post(
+  "/user/:userId/notificationSettings",
+  asyncHandler(userRoute.updateNotificationSettings)
+);
+app.post(
+  "/user/:userId/businessNotificationSettings",
+  asyncHandler(userRoute.updateBusinessNotificationSettings)
+);
+app.get("/user/:userId/details", asyncHandler(userRoute.getDetails));
+app.post("/user/:userId/details", asyncHandler(userRoute.updateDetails));
 app.get(
   "/user/:userId/enrolledAndPending",
-  userRoute.getEnrolledAndPendingLoyalty
+  asyncHandler(userRoute.getEnrolledAndPendingLoyalty)
 );
 app.post(
   "/user/requestVerification",
-  userRoute.requestUserPhoneNumberVerification
+  asyncHandler(userRoute.requestUserPhoneNumberVerification)
 );
-app.post("/user/verifyCode", userRoute.verifyUserCode);
+app.post("/user/verifyCode", asyncHandler(userRoute.verifyUserCode));
 
 app.get("/locations", businessRoute.getLocations);
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);

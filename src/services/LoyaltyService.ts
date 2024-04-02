@@ -28,7 +28,10 @@ import {
   lookupCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
 } from "./MerchantService";
-import { updateUserWithDetails } from "./UserService";
+import {
+  insertCustomerNotificationPreference,
+  updateUserWithDetails,
+} from "./UserService";
 import { Equal, QueryFailedError } from "typeorm";
 import { EnrollmentRequest } from "../entity/EnrollmentRequest";
 import {
@@ -365,6 +368,17 @@ export const enrollCustomerInLoyalty = async (
     locationId
   );
 
+  if (appCustomerId) {
+    const notificationPref = insertCustomerNotificationPreference(
+      appUserId,
+      businessId,
+      appCustomerId,
+      true,
+      true,
+      true
+    );
+  }
+
   var merchCustomerId: string | undefined;
   if (appCustomerId) {
     merchCustomerId = await upsertMerchantCustomerAccount(
@@ -414,6 +428,16 @@ const updateExistingCustomer = async (
       enrollmentSource,
       locationId
     );
+    if (appCustomerId) {
+      insertCustomerNotificationPreference(
+        appUserId,
+        businessId,
+        appCustomerId,
+        true,
+        true,
+        true
+      );
+    }
     // Finally, upsert the merchant's customer account
     if (appCustomerId) {
       upsertMerchantCustomerAccount(

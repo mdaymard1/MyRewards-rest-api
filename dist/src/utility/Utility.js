@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.paginateResponseWithoutTotal = exports.paginateResponse = exports.unobsfucatePhoneNumber = exports.obsfucatePhoneNumber = exports.getMerchantEnvironment = void 0;
+exports.paginateResponseWithoutTotal = exports.paginateResponse = exports.unobsfucatePhoneNumber = exports.obsfucatePhoneNumber = exports.isBoolean = exports.getMerchantEnvironment = void 0;
 const square_1 = require("square");
 const getMerchantEnvironment = () => {
     return process.env.NODE_ENV == "production2222"
@@ -8,6 +8,10 @@ const getMerchantEnvironment = () => {
         : square_1.Environment.Sandbox;
 };
 exports.getMerchantEnvironment = getMerchantEnvironment;
+function isBoolean(val) {
+    return val === false || val === true || val instanceof Boolean;
+}
+exports.isBoolean = isBoolean;
 const obsfucatePhoneNumber = (phoneNumber) => {
     let maskedPhoneNumber = phoneNumber.replace("+", "");
     let reversedNumber = "";
@@ -89,6 +93,7 @@ exports.paginateResponseWithoutTotal = paginateResponseWithoutTotal;
 module.exports = {
     obsfucatePhoneNumber: exports.obsfucatePhoneNumber,
     getMerchantEnvironment: exports.getMerchantEnvironment,
+    isBoolean,
     paginateResponse,
     paginateResponseWithoutTotal,
     unobsfucatePhoneNumber: exports.unobsfucatePhoneNumber,

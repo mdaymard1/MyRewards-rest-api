@@ -155,25 +155,15 @@ export const deleteEnrollmentRequest = async (
 const requestEnrollment = async (request: Request, response: Response) => {
   console.log("inside requestEnrollment");
 
-  const businessId = await getBusinessIdFromAuthToken(request);
-
-  if (!businessId) {
-    response.status(401);
-    response.end();
-    return;
-  }
-
-  const { appUserId, locationId, firstName, lastName, phone, email } =
-    request.body;
-
-  if (!appUserId || !locationId || !firstName || !phone) {
-    console.log("missing fields");
-    response.status(401);
-    response.end();
-    return;
-  }
-
-  // let digitRegExp = /^\d+$/;
+  const {
+    businessId,
+    appUserId,
+    locationId,
+    firstName,
+    lastName,
+    phone,
+    email,
+  } = request.body;
 
   console.log(
     "received input of " +
@@ -188,8 +178,17 @@ const requestEnrollment = async (request: Request, response: Response) => {
       " email" +
       email +
       " phone: " +
-      phone
+      phone +
+      " businessId: " +
+      businessId
   );
+
+  if (!businessId || !appUserId || !locationId || !firstName || !phone) {
+    console.log("missing fields");
+    response.status(400);
+    response.end();
+    return;
+  }
 
   const newEnrollmentId = await createEnrollmentRequest(
     businessId,
@@ -208,10 +207,36 @@ const requestEnrollment = async (request: Request, response: Response) => {
 const enrollCustomer = async (request: Request, response: Response) => {
   console.log("inside enrollCustomer");
 
-  const businessId = await getBusinessIdFromAuthToken(request);
+  const {
+    businessId,
+    appUserId,
+    locationId,
+    firstName,
+    lastName,
+    phone,
+    email,
+  } = request.body;
 
-  if (!businessId) {
-    response.status(401);
+  console.log(
+    "received input of " +
+      appUserId +
+      " " +
+      locationId +
+      " " +
+      firstName +
+      " " +
+      lastName +
+      " +" +
+      phone +
+      ", " +
+      email +
+      ", businessId:" +
+      businessId
+  );
+
+  if (!appUserId || !locationId || !firstName || !phone || !businessId) {
+    console.log("missing fields");
+    response.status(400);
     response.end();
     return;
   }
@@ -225,31 +250,6 @@ const enrollCustomer = async (request: Request, response: Response) => {
       .getOne();
     if (!business) {
       response.status(404);
-      response.end();
-      return;
-    }
-
-    const { appUserId, locationId, firstName, lastName, phone, email } =
-      request.body;
-
-    console.log(
-      "received input of " +
-        appUserId +
-        " " +
-        locationId +
-        " " +
-        firstName +
-        " " +
-        lastName +
-        " +" +
-        phone +
-        ", " +
-        email
-    );
-
-    if (!appUserId || !locationId || !firstName || !phone) {
-      console.log("missing fields");
-      response.status(400);
       response.end();
       return;
     }

@@ -112,20 +112,7 @@ const deleteEnrollmentRequest = (request, response) => __awaiter(void 0, void 0,
 exports.deleteEnrollmentRequest = deleteEnrollmentRequest;
 const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside requestEnrollment");
-    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    if (!businessId) {
-        response.status(401);
-        response.end();
-        return;
-    }
-    const { appUserId, locationId, firstName, lastName, phone, email } = request.body;
-    if (!appUserId || !locationId || !firstName || !phone) {
-        console.log("missing fields");
-        response.status(401);
-        response.end();
-        return;
-    }
-    // let digitRegExp = /^\d+$/;
+    const { businessId, appUserId, locationId, firstName, lastName, phone, email, } = request.body;
     console.log("received input of " +
         "appUserId: " +
         appUserId +
@@ -138,16 +125,39 @@ const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 
         " email" +
         email +
         " phone: " +
-        phone);
+        phone +
+        " businessId: " +
+        businessId);
+    if (!businessId || !appUserId || !locationId || !firstName || !phone) {
+        console.log("missing fields");
+        response.status(400);
+        response.end();
+        return;
+    }
     const newEnrollmentId = yield (0, LoyaltyService_1.createEnrollmentRequest)(businessId, locationId, appUserId, firstName, lastName, phone, email);
     response.status(newEnrollmentId ? 201 : 400);
     response.end();
 });
 const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside enrollCustomer");
-    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    if (!businessId) {
-        response.status(401);
+    const { businessId, appUserId, locationId, firstName, lastName, phone, email, } = request.body;
+    console.log("received input of " +
+        appUserId +
+        " " +
+        locationId +
+        " " +
+        firstName +
+        " " +
+        lastName +
+        " +" +
+        phone +
+        ", " +
+        email +
+        ", businessId:" +
+        businessId);
+    if (!appUserId || !locationId || !firstName || !phone || !businessId) {
+        console.log("missing fields");
+        response.status(400);
         response.end();
         return;
     }
@@ -160,25 +170,6 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
             .getOne();
         if (!business) {
             response.status(404);
-            response.end();
-            return;
-        }
-        const { appUserId, locationId, firstName, lastName, phone, email } = request.body;
-        console.log("received input of " +
-            appUserId +
-            " " +
-            locationId +
-            " " +
-            firstName +
-            " " +
-            lastName +
-            " +" +
-            phone +
-            ", " +
-            email);
-        if (!appUserId || !locationId || !firstName || !phone) {
-            console.log("missing fields");
-            response.status(400);
             response.end();
             return;
         }

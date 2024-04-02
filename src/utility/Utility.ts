@@ -7,6 +7,10 @@ export const getMerchantEnvironment = () => {
     : Environment.Sandbox;
 };
 
+export function isBoolean(val: any) {
+  return val === false || val === true || val instanceof Boolean;
+}
+
 export const obsfucatePhoneNumber = (phoneNumber: string) => {
   let maskedPhoneNumber = phoneNumber.replace("+", "");
   let reversedNumber = "";
@@ -100,6 +104,7 @@ export function paginateResponseWithoutTotal(
 module.exports = {
   obsfucatePhoneNumber,
   getMerchantEnvironment,
+  isBoolean,
   paginateResponse,
   paginateResponseWithoutTotal,
   unobsfucatePhoneNumber,

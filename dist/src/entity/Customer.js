@@ -12,7 +12,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Customer = void 0;
 const typeorm_1 = require("typeorm");
 const Business_1 = require("./Business");
-const AppUser_1 = require("./AppUser");
+// import { AppUser } from "./AppUser";
+const Location_1 = require("./Location");
+const CustomerNotificationPreference_1 = require("./CustomerNotificationPreference");
 let Customer = class Customer extends typeorm_1.BaseEntity {
 };
 exports.Customer = Customer;
@@ -66,12 +68,15 @@ __decorate([
     __metadata("design:type", Business_1.Business)
 ], Customer.prototype, "business", void 0);
 __decorate([
-    (0, typeorm_1.OneToOne)(() => AppUser_1.AppUser, (appUser) => appUser.customer, {
-        nullable: true,
-    }),
-    (0, typeorm_1.JoinColumn)({ name: "appUserId" }),
-    __metadata("design:type", AppUser_1.AppUser)
-], Customer.prototype, "appUser", void 0);
+    (0, typeorm_1.ManyToOne)(() => Location_1.Location, (location) => location.customers, { eager: true }),
+    (0, typeorm_1.JoinColumn)({ name: "locationId" }),
+    __metadata("design:type", Location_1.Location)
+], Customer.prototype, "location", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => CustomerNotificationPreference_1.CustomerNotificationPreference),
+    (0, typeorm_1.JoinColumn)(),
+    __metadata("design:type", CustomerNotificationPreference_1.CustomerNotificationPreference)
+], Customer.prototype, "notificationPreference", void 0);
 exports.Customer = Customer = __decorate([
     (0, typeorm_1.Index)("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
         unique: true,

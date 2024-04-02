@@ -14,7 +14,7 @@ const typeorm_1 = require("typeorm");
 const Business_1 = require("./Business");
 const typeorm_encrypted_1 = require("typeorm-encrypted");
 const encryption_config_1 = require("../../encryption-config");
-// @Index('customer_id_UNIQUE', ['merchantCustomerId', 'businessId'], {
+// @Index("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
 //   unique: true,
 // })
 let EnrollmentRequest = class EnrollmentRequest extends typeorm_1.BaseEntity {

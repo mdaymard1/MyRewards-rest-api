@@ -24,7 +24,7 @@
     "square": "^31.0.0",
     "superagent": "^8.1.2",
     "twilio": "^5.0.1",
-    "typeorm": "^0.3.17",
+    "typeorm": "^0.3.20",
     "typeorm-encrypted": "^0.8.0",
     "uuid": "^9.0.1"
   },

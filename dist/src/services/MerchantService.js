@@ -21,24 +21,19 @@ const RewardDetails_1 = require("./entity/RewardDetails");
 const verifyMerchantToken = (merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     console.log("inside verifyMerchantToken");
+    const decryptedToken = (0, EncryptionService_1.decryptToken)(accessToken);
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         squareVersion: "2024-01-18",
-        accessToken: accessToken,
+        accessToken: decryptedToken,
         environment: env,
     });
     const { merchantsApi } = client;
-    try {
-        const merchantResponse = yield merchantsApi.retrieveMerchant(merchantId);
-        if ((_a = merchantResponse === null || merchantResponse === void 0 ? void 0 : merchantResponse.result) === null || _a === void 0 ? void 0 : _a.merchant) {
-            return true;
-        }
-        else {
-            return false;
-        }
+    const merchantResponse = yield merchantsApi.retrieveMerchant(merchantId);
+    if ((_a = merchantResponse === null || merchantResponse === void 0 ? void 0 : merchantResponse.result) === null || _a === void 0 ? void 0 : _a.merchant) {
+        return true;
     }
-    catch (err) {
-        console.log("merchantsApi.retrieveMerchant returned an error: " + err);
+    else {
         return false;
     }
 });

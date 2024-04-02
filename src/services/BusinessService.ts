@@ -28,23 +28,19 @@ import { off } from "process";
 import { CustomRequest } from "../middleware/checkJwt";
 
 export const getBusinessIdFromAuthToken = async (request: Request) => {
-  try {
-    const merchantId = (request as CustomRequest)?.token?.payload?.merchantId;
-    if (merchantId) {
-      const business = await Business.createQueryBuilder("business")
-        .select(["business.businessId"])
-        .where("business.merchantId = :merchantId", {
-          merchantId: merchantId,
-        })
-        .getOne();
+  const merchantId = (request as CustomRequest)?.token?.payload?.merchantId;
+  if (merchantId) {
+    const business = await Business.createQueryBuilder("business")
+      .select(["business.businessId"])
+      .where("business.merchantId = :merchantId", {
+        merchantId: merchantId,
+      })
+      .getOne();
+    if (business) {
       return business?.businessId;
-    } else {
-      return undefined;
     }
-  } catch (error) {
-    console.log("Error thrown while getting merchantId from token: " + error);
-    return undefined;
   }
+  return undefined;
 };
 
 export const searchBusiness = async (
@@ -68,7 +64,7 @@ export const searchBusiness = async (
   const customerSelectClause = appUserId
     ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
     : "";
-  var selectClause = `SELECT location."id", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+  var selectClause = `SELECT location."id" as "locationId", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
 
   if (searchTerm) {
     selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";

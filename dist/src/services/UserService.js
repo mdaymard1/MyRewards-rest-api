@@ -9,21 +9,165 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyCodeIsValid = exports.sendSMSVerification = exports.updateUserWithDetails = exports.getUserLoyaltyDetails = exports.getAllLoyaltyAccounts = void 0;
+exports.verifyCodeIsValid = exports.sendSMSVerification = exports.updateUserWithDetails = exports.getUserLoyaltyDetails = exports.getAllLoyaltyAccounts = exports.getUserNotificationSettings = exports.updateUserNotificationSettings = exports.updateUserDetails = exports.getUserDetails = exports.insertCustomerNotificationPreference = exports.updateUserBusinessNotificationSettings = void 0;
 const Utility_1 = require("../utility/Utility");
 const appDataSource_1 = require("../../appDataSource");
-const AppUser_1 = require("../entity/AppUser");
+const User_1 = require("../entity/User");
+const Customer_1 = require("../entity/Customer");
 const Loyalty_1 = require("../entity/Loyalty");
+const Location_1 = require("../entity/Location");
 const MerchantService_1 = require("./MerchantService");
 const LoyaltyRewardTier_1 = require("../entity/LoyaltyRewardTier");
+const EnrollmentRequest_1 = require("../entity/EnrollmentRequest");
+const CustomerNotificationPreference_1 = require("../entity/CustomerNotificationPreference");
+const updateUserBusinessNotificationSettings = (userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateUserBusinessNotificationSettings");
+    const notificationPref = yield CustomerNotificationPreference_1.CustomerNotificationPreference.createQueryBuilder("notificationPref")
+        .where("notificationPref.appUserId = :userId", { userId: userId })
+        .andWhere("notificationPref.businessId = :businessId", {
+        businessId: businessId,
+    })
+        .getOne();
+    if (notificationPref) {
+        return updateCustomerNotificationPreference(notificationPref.id, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges);
+    }
+    else {
+        return (0, exports.insertCustomerNotificationPreference)(userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges);
+    }
+});
+exports.updateUserBusinessNotificationSettings = updateUserBusinessNotificationSettings;
+const insertCustomerNotificationPreference = (userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside insertCustomerNotificationPreference");
+    const notificationPref = appDataSource_1.AppDataSource.manager.create(CustomerNotificationPreference_1.CustomerNotificationPreference, {
+        businessId: businessId,
+        customerId: customerId,
+        notifyOfRewardChanges: notifyOfRewardChanges,
+        notifyOfPromotionChanges: notifyOfPromotionChanges,
+        notifyOfSpecialsChanges: notifyOfSpecialsChanges,
+    });
+    yield appDataSource_1.AppDataSource.manager.save(notificationPref);
+    console.log("notificationPref created");
+    return notificationPref;
+});
+exports.insertCustomerNotificationPreference = insertCustomerNotificationPreference;
+const updateCustomerNotificationPreference = (notificationPrefId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateCustomerNotificationPreference");
+    const updatedPref = yield appDataSource_1.AppDataSource.manager.update(CustomerNotificationPreference_1.CustomerNotificationPreference, {
+        id: notificationPrefId,
+    }, {
+        notifyOfRewardChanges: notifyOfRewardChanges,
+        notifyOfPromotionChanges: notifyOfPromotionChanges,
+        notifyOfSpecialsChanges: notifyOfSpecialsChanges,
+    });
+    return updatedPref;
+});
+const getUserDetails = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateUserDetails");
+    const user = yield User_1.User.createQueryBuilder("appUser")
+        .where("appUser.id = :id", { id: userId })
+        .getOne();
+    var userDetails;
+    if (user === null || user === void 0 ? void 0 : user.userDetails) {
+        userDetails = JSON.parse(JSON.stringify(user.userDetails));
+        console.log("userDetails: " + userDetails);
+    }
+    if (userDetails) {
+        const details = {
+            firstName: userDetails.firstName,
+            lastName: userDetails.lastName,
+            email: userDetails.email,
+            notifyOfMyRewardChanges: user === null || user === void 0 ? void 0 : user.notifyOfMyRewardChanges,
+        };
+        return details;
+    }
+    else {
+        return null;
+    }
+});
+exports.getUserDetails = getUserDetails;
+const updateUserDetails = (userId, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateUserDetails");
+    const user = yield User_1.User.createQueryBuilder("appUser")
+        .where("appUser.id = :id", { id: userId })
+        .getOne();
+    if (user) {
+        return yield (0, exports.updateUserWithDetails)(user.ref, firstName, lastName, email);
+    }
+    else {
+        return null;
+    }
+});
+exports.updateUserDetails = updateUserDetails;
+const updateUserNotificationSettings = (appUserId, notifyOfNewBusinesses, notifyOfMyRewardChanges, notifyOfPointChanges, coordinateLatitude, coordinateLongitude, zipCode) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getUserNotificationSettings");
+    var locationPoint;
+    if (coordinateLatitude && coordinateLongitude) {
+        locationPoint = {
+            type: "Point",
+            coordinates: [coordinateLongitude, coordinateLatitude],
+        };
+    }
+    const updatedUser = yield appDataSource_1.AppDataSource.manager.update(User_1.User, {
+        id: appUserId,
+    }, {
+        notifyOfNewBusinesses: notifyOfNewBusinesses,
+        notifyOfMyRewardChanges: notifyOfMyRewardChanges,
+        notifyOfPointChanges: notifyOfPointChanges,
+        locationPoint: locationPoint,
+        zipCode: zipCode,
+    });
+    return;
+});
+exports.updateUserNotificationSettings = updateUserNotificationSettings;
+const getUserNotificationSettings = (appUserId) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
+    console.log("inside getUserNotificationSettings");
+    const appUser = yield User_1.User.createQueryBuilder("appUser")
+        // .select([
+        //   "appUser.notifyOfNewBusinesses",
+        //   "appUser.notifyOfMyRewardChanges",
+        //   "appUser.notifyOfPointChanges",
+        //   "appUser.zipCode",
+        //   "ST_ASTEXT('appUserId.locationPoint') AS locationPoint",
+        // ])
+        .where("appUser.id = :id", { id: appUserId })
+        .getOne();
+    var latitude;
+    var longitude;
+    if (appUser === null || appUser === void 0 ? void 0 : appUser.locationPoint) {
+        var locationPoint;
+        locationPoint = JSON.parse(JSON.stringify(appUser.locationPoint));
+        console.log("locationPoint: " + locationPoint);
+        if (locationPoint && locationPoint.coordinates.length == 2) {
+            latitude = locationPoint.coordinates[1];
+            longitude = locationPoint.coordinates[0];
+        }
+    }
+    if (appUser) {
+        const settings = {
+            latitude: latitude,
+            longitude: longitude,
+            notifyOfNewBusinesses: (_a = appUser.notifyOfNewBusinesses) !== null && _a !== void 0 ? _a : false,
+            notifyOfMyRewardChanges: (_b = appUser.notifyOfMyRewardChanges) !== null && _b !== void 0 ? _b : false,
+            notifyOfPointChanges: (_c = appUser.notifyOfPointChanges) !== null && _c !== void 0 ? _c : false,
+            zipCode: appUser.zipCode,
+        };
+        return settings;
+    }
+    return null;
+});
+exports.getUserNotificationSettings = getUserNotificationSettings;
 const getAllLoyaltyAccounts = (userId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getAllLoyaltyAccounts");
     try {
-        const customerAccounts = yield AppUser_1.AppUser.createQueryBuilder("appUser")
-            .innerJoinAndSelect("appUser.customer", "customer")
-            .where("appUser.id = :id", { id: userId })
-            .getMany();
-        return customerAccounts;
+        const enrolledLocations = yield Location_1.Location.query(`SELECT "customer"."balance" AS "balance", "customer"."lifetimePoints" AS "lifetimePoints", "customer"."enrolledAt" AS "enrolledAt", "customer"."id" AS "customerId", "location"."businessId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "location"."timezone" AS "timezone", "location"."timezone" AS "timezone", "location"."id" AS "locationId", "loyalty"."terminologyOne" as "terminologyOne", "loyalty"."terminologyMany" as "terminologyMany", "customerNotificationPreference"."notifyOfRewardChanges", "customerNotificationPreference"."notifyOfPromotionChanges", "customerNotificationPreference"."notifyOfSpecialsChanges" FROM "customer" "customer" INNER JOIN "location" "location" ON "customer"."locationId" = "location"."id" LEFT OUTER JOIN "loyalty" "loyalty" ON "loyalty"."businessId"
+      = "location"."businessId" LEFT OUTER JOIN "customer_notification_preference" "customerNotificationPreference" ON "customerNotificationPreference"."businessId"
+      = "location"."businessId" AND "customerNotificationPreference"."customerId" = "customer".id WHERE "customer"."appUserId" = '${userId}'`);
+        const pendingLocations = yield EnrollmentRequest_1.EnrollmentRequest.query(`SELECT "enrollmentRequest"."enrollRequestedAt" AS "enrollRequestedAt", "enrollmentRequest"."id" AS "enrollmentRequestId", "location"."businessId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "location"."timezone" AS "timezone", "location"."timezone" AS "timezone", "location"."id" AS "locationId" FROM "enrollment_request" "enrollmentRequest" INNER JOIN "location" "location" ON "enrollmentRequest"."locationId" = "location"."id" WHERE "enrollmentRequest"."appUserid" = '${userId}'`);
+        return {
+            enrolledLocations: enrolledLocations,
+            pendingLocations: pendingLocations,
+        };
     }
     catch (error) {
         console.log("Error thrown in getAllLoyaltyAccounts: " + error);
@@ -45,22 +189,21 @@ const getUserLoyaltyDetails = (businessId, userId) => __awaiter(void 0, void 0, 
             loyaltyId: loyalty.id,
         })
             .getMany();
-        const appUser = yield AppUser_1.AppUser.createQueryBuilder("appUser")
-            .innerJoinAndSelect("appUser.customer", "customer")
-            .where("appUser.id = :id", { id: userId })
+        const customer = yield Customer_1.Customer.createQueryBuilder("customer")
+            .where("customer.appUserId = :id", { id: userId })
             .andWhere("customer.businessId = :businessId", { businessId: businessId })
             .getOne();
-        if (appUser) {
-            const rewardDetails = (0, MerchantService_1.getAvailableRewardsForLoyaltyBalance)(appUser.customer.balance, loyaltyRewardTiers);
+        if (customer) {
+            const rewardDetails = (0, MerchantService_1.getAvailableRewardsForLoyaltyBalance)(customer.balance, loyaltyRewardTiers);
             const userLoyalty = {
-                id: appUser.id,
-                balance: appUser.customer.balance,
-                lifetimePoints: appUser.customer.lifetimePoints,
-                enrolledAt: appUser.customer.enrolledAt,
+                id: customer.appUserId,
+                balance: customer.balance,
+                lifetimePoints: customer.lifetimePoints,
+                enrolledAt: customer.enrolledAt,
                 terminologyOne: loyalty.terminologyOne,
                 terminologyMany: loyalty.terminologyMany,
-                businessId: appUser.customer.business,
-                locationId: appUser.customer.locationId,
+                businessId: customer.business,
+                locationId: customer.locationId,
                 rewardDetails: rewardDetails,
             };
             return userLoyalty;
@@ -79,7 +222,7 @@ const updateUserWithDetails = (ref, firstName, lastName, email) => __awaiter(voi
     return yield updateUser(ref, firstName, lastName, email);
 });
 exports.updateUserWithDetails = updateUserWithDetails;
-const sendSMSVerification = (countryCode, phoneNumber, businessId) => __awaiter(void 0, void 0, void 0, function* () {
+const sendSMSVerification = (countryCode, phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside sendSMSVerification");
     const client = require("twilio")(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     try {
@@ -97,7 +240,7 @@ const sendSMSVerification = (countryCode, phoneNumber, businessId) => __awaiter(
     }
 });
 exports.sendSMSVerification = sendSMSVerification;
-const verifyCodeIsValid = (countryCode, phoneNumber, businessId, code) => __awaiter(void 0, void 0, void 0, function* () {
+const verifyCodeIsValid = (countryCode, phoneNumber, code) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside verifyCodeIsValid");
     const client = require("twilio")(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
     try {
@@ -130,7 +273,7 @@ const upsertUser = (ref) => __awaiter(void 0, void 0, void 0, function* () {
         const appUser = yield getAppUserByRef(ref);
         if (appUser) {
             console.log("user already exists, updating last updated date");
-            yield appDataSource_1.AppDataSource.manager.update(AppUser_1.AppUser, {
+            yield appDataSource_1.AppDataSource.manager.update(User_1.User, {
                 ref: ref,
             }, {
                 lastUpdateDate: currentDate,
@@ -138,7 +281,7 @@ const upsertUser = (ref) => __awaiter(void 0, void 0, void 0, function* () {
             return appUser;
         }
         // AppUser not found, so create one
-        const newAppUser = appDataSource_1.AppDataSource.manager.create(AppUser_1.AppUser, {
+        const newAppUser = appDataSource_1.AppDataSource.manager.create(User_1.User, {
             ref: ref,
             createDate: currentDate,
             lastUpdateDate: currentDate,
@@ -155,7 +298,7 @@ const upsertUser = (ref) => __awaiter(void 0, void 0, void 0, function* () {
 const getAppUserByRef = (ref) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getAppUserByRef");
     try {
-        const appUser = yield AppUser_1.AppUser.createQueryBuilder("appUser")
+        const appUser = yield User_1.User.createQueryBuilder("appUser")
             .where("appUser.ref = :ref", {
             ref: ref,
         })
@@ -176,26 +319,26 @@ const updateUser = (ref, firstName, lastName, email) => __awaiter(void 0, void 0
         email: email,
     };
     const currentDate = new Date();
-    try {
-        yield appDataSource_1.AppDataSource.manager.update(AppUser_1.AppUser, {
-            ref: ref,
-        }, {
-            userDetails: details,
-            lastUpdateDate: currentDate,
-        });
-        console.log("AppUser details were updated successfully");
-        return "success";
-    }
-    catch (error) {
-        console.log("got error when updating user:" + error);
-        return null;
-    }
+    yield appDataSource_1.AppDataSource.manager.update(User_1.User, {
+        ref: ref,
+    }, {
+        userDetails: details,
+        lastUpdateDate: currentDate,
+    });
+    console.log("AppUser details were updated successfully");
+    return "success";
 });
 module.exports = {
     getAllLoyaltyAccounts: exports.getAllLoyaltyAccounts,
+    getUserDetails: exports.getUserDetails,
     getUserLoyaltyDetails: exports.getUserLoyaltyDetails,
+    getUserNotificationSettings: exports.getUserNotificationSettings,
+    insertCustomerNotificationPreference: exports.insertCustomerNotificationPreference,
     sendSMSVerification: exports.sendSMSVerification,
     verifyCodeIsValid: exports.verifyCodeIsValid,
+    updateUserBusinessNotificationSettings: exports.updateUserBusinessNotificationSettings,
+    updateUserNotificationSettings: exports.updateUserNotificationSettings,
+    updateUserDetails: exports.updateUserDetails,
     updateUserWithDetails: exports.updateUserWithDetails,
     upsertUser,
 };
