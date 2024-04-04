@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateAppLoyaltyAccrualsFromMerchant = exports.removeOldAccrualRules = exports.getMoneyCurrencyType = exports.rewardsRuleValue = exports.deleteAccrual = exports.updateLoyaltyItems = exports.updateLoyaltyStatuses = exports.updateAppLoyaltyFromMerchant = exports.isLoyaltyOrPromotionsOutOfDate = exports.updateBusinessLoyaltyCatalogIndicator = exports.createAppLoyaltyFromLoyaltyProgram = exports.updatePromotionsFromWebhook = exports.updateLoyaltyAccountFromWebhook = exports.updateLoyaltyFromWebhook = exports.enrollCustomerInLoyalty = exports.createEnrollmentRequest = exports.deleteRequestedEnrollment = exports.enrollRequestIntoLoyalty = exports.getPaginatedCustomers = exports.getPaginatedEnrollmentRequests = exports.getLoyaltyForLocation = exports.EnrollmentSourceType = exports.LoyaltyStatusType = void 0;
+exports.updateAppLoyaltyAccrualsFromMerchant = exports.removeOldAccrualRules = exports.getMoneyCurrencyType = exports.rewardsRuleValue = exports.deleteAccrual = exports.updateLoyaltyItems = exports.updateLoyaltyStatuses = exports.updateAppLoyaltyFromMerchant = exports.isLoyaltyOrPromotionsOutOfDate = exports.updateBusinessLoyaltyCatalogIndicator = exports.createAppLoyaltyFromLoyaltyProgram = exports.updatePromotionsFromWebhook = exports.updateLoyaltyAccountFromWebhook = exports.updateLoyaltyFromWebhook = exports.enrollCustomerInLoyalty = exports.createEnrollmentRequest = exports.deleteRequestedEnrollment = exports.enrollRequestIntoLoyalty = exports.getPaginatedCustomers = exports.getPaginatedEnrollmentRequests = exports.getLoyaltyForLocation = exports.notifyCustomersOfChanges = exports.EnrollmentSourceType = exports.LoyaltyStatusType = void 0;
 const Loyalty_1 = require("../entity/Loyalty");
 const LoyaltyAccrual_1 = require("../entity/LoyaltyAccrual");
 const LoyaltyRewardTier_1 = require("../entity/LoyaltyRewardTier");
@@ -24,6 +24,8 @@ const UserService_1 = require("./UserService");
 const typeorm_1 = require("typeorm");
 const EnrollmentRequest_1 = require("../entity/EnrollmentRequest");
 const Utility_1 = require("../utility/Utility");
+const CustomerNotificationPreference_1 = require("../entity/CustomerNotificationPreference");
+const NotificationService_1 = require("./NotificationService");
 var LoyaltyStatusType;
 (function (LoyaltyStatusType) {
     LoyaltyStatusType["Active"] = "Active";
@@ -35,6 +37,36 @@ var EnrollmentSourceType;
     EnrollmentSourceType[EnrollmentSourceType["RewardsApp"] = 1] = "RewardsApp";
     EnrollmentSourceType[EnrollmentSourceType["ManualFromRequest"] = 2] = "ManualFromRequest";
 })(EnrollmentSourceType || (exports.EnrollmentSourceType = EnrollmentSourceType = {}));
+const notifyCustomersOfChanges = (businessId, type, contents) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside notifyCustomersOfChanges");
+    const changeTypeWhereClause = type == NotificationService_1.NotificationChangeType.Rewards
+        ? "notificationPref.notifyOfRewardChanges = true"
+        : type == NotificationService_1.NotificationChangeType.Promotions
+            ? "notificationPref.notifyOfPromotionChanges = true"
+            : "notificationPref.notifyOfSpecialsChanges = true";
+    // Get all customers subscribed to reward changes for this business
+    const customers = yield CustomerNotificationPreference_1.CustomerNotificationPreference.createQueryBuilder("notificationPref")
+        .select(["notificationPref.appUserId"])
+        .innerJoin("notificationPref.appUser", "appUser")
+        .where("notificationPref.businessId = :businessId", {
+        businessId: businessId,
+    })
+        .andWhere(changeTypeWhereClause)
+        .andWhere("appUser.notifyOfMyRewardChanges = true")
+        .getMany();
+    console.log("count: " + customers.length);
+    if (customers && customers.length > 0) {
+        var customerIds = [];
+        for (var customer of customers) {
+            customerIds.push(customer.appUserId);
+        }
+        if (customerIds.length > 0) {
+            const locationImage = yield (0, BusinessService_1.getImageOrLogoForBusinessId)(businessId);
+            (0, NotificationService_1.sendNotifications)(contents, customerIds, locationImage);
+        }
+    }
+});
+exports.notifyCustomersOfChanges = notifyCustomersOfChanges;
 const getLoyaltyForLocation = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLoyaltyForLocation");
     const loyalty = yield Loyalty_1.Loyalty.createQueryBuilder("loyalty")
@@ -228,21 +260,35 @@ const enrollCustomerInLoyalty = (businessId, appUserId, token, enrollmentSource,
     const ref = (0, Utility_1.obsfucatePhoneNumber)(phoneNumber);
     if (!loyaltyCustomerAccountId) {
         // A null value could mean that the loyalty account already existed for this phone number
+        console.log("no loyaltyCustomerAccountId cause loyalty probably exists. updating customer");
         const customerId = yield updateExistingCustomer(token, enrollmentSource, businessId, appUserId, locationId, phoneNumber, firstName, lastName, email);
         const status = yield (0, UserService_1.updateUserWithDetails)(ref, firstName, lastName, email);
+        // if (customerId) {
+        //   console.log(
+        //     "got customerId of " + customerId + ". inserting notification prefs"
+        //   );
+        //   const notificationPref = await insertCustomerNotificationPreference(
+        //     appUserId,
+        //     businessId,
+        //     customerId,
+        //     true,
+        //     true,
+        //     true
+        //   );
+        // }
         // Ignoring any errors from the update for now
         return customerId;
     }
     let appCustomerId = yield insertCustomer(businessId, appUserId, loyaltyCustomerAccountId, ref, enrollmentSource, locationId);
     if (appCustomerId) {
-        const notificationPref = (0, UserService_1.insertCustomerNotificationPreference)(appUserId, businessId, appCustomerId, true, true, true);
+        const notificationPref = yield (0, UserService_1.insertCustomerNotificationPreference)(appUserId, businessId, appCustomerId, true, true, true);
     }
     var merchCustomerId;
     if (appCustomerId) {
         merchCustomerId = yield (0, MerchantService_1.upsertMerchantCustomerAccount)(token, loyaltyCustomerAccountId, appCustomerId, phoneNumber, firstName, lastName, email);
     }
     const status = yield (0, UserService_1.updateUserWithDetails)(ref, firstName, lastName, email);
-    return merchCustomerId;
+    return appCustomerId;
 });
 exports.enrollCustomerInLoyalty = enrollCustomerInLoyalty;
 /*  This function handles the case when a loyalty account already exists
@@ -251,17 +297,17 @@ exports.enrollCustomerInLoyalty = enrollCustomerInLoyalty;
 */
 const updateExistingCustomer = (token, enrollmentSource, businessId, appUserId, locationId, phoneNumber, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateExistingCustomer");
-    let existingCustomerId = yield (0, MerchantService_1.lookupCustomerIdByPhoneNumber)(token, phoneNumber);
-    if (existingCustomerId) {
+    let existingMerchantCustomerId = yield (0, MerchantService_1.lookupMerchantCustomerIdByPhoneNumber)(token, phoneNumber);
+    if (existingMerchantCustomerId) {
         // Add the customer to our db
-        let appCustomerId = yield insertCustomer(businessId, appUserId, existingCustomerId, (0, Utility_1.obsfucatePhoneNumber)(phoneNumber), enrollmentSource, locationId);
+        let appCustomerId = yield insertCustomer(businessId, appUserId, existingMerchantCustomerId, (0, Utility_1.obsfucatePhoneNumber)(phoneNumber), enrollmentSource, locationId);
         if (appCustomerId) {
-            (0, UserService_1.insertCustomerNotificationPreference)(appUserId, businessId, appCustomerId, true, true, true);
+            yield (0, UserService_1.insertCustomerNotificationPreference)(appUserId, businessId, appCustomerId, true, true, true);
         }
         // Finally, upsert the merchant's customer account
         if (appCustomerId) {
-            (0, MerchantService_1.upsertMerchantCustomerAccount)(token, existingCustomerId, appCustomerId, phoneNumber, firstName, lastName, email);
-            return existingCustomerId;
+            yield (0, MerchantService_1.upsertMerchantCustomerAccount)(token, existingMerchantCustomerId, appCustomerId, phoneNumber, firstName, lastName, email);
+            return appCustomerId;
         }
     }
     return null;
@@ -288,7 +334,13 @@ const insertCustomer = (businessId, appUserId, merchantCustomerId, ref, enrollme
         if (error instanceof typeorm_1.QueryFailedError &&
             error.message.includes("customer_id_UNIQUE")) {
             console.log("Ignoring duplicate customer error");
-            return merchantCustomerId;
+            //we need to return the customer id, so look it up by merch customer id
+            let existingCustomer = yield Customer_1.Customer.createQueryBuilder("customer")
+                .where("customer.merchantCustomerId = :merchantCustomerId", {
+                merchantCustomerId: merchantCustomerId,
+            })
+                .getOne();
+            return existingCustomer === null || existingCustomer === void 0 ? void 0 : existingCustomer.id;
         }
         else {
             console.log("got error when inserting customer:" + error);
@@ -323,6 +375,7 @@ const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetim
             });
             yield appDataSource_1.AppDataSource.manager.save(customer);
             console.log("just created customer with id:" + customer.id);
+            return balance;
         }
         else {
             console.log("customer with id:" + customer.id + " already exists");
@@ -333,7 +386,7 @@ const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetim
                 lifetimePoints: lifetimePoints,
             });
             console.log("just updated customer with id:" + customer.id);
-            return customerId;
+            return customer.balance - balance;
         }
     }
     catch (error) {
@@ -401,18 +454,25 @@ const updateLoyaltyFromWebhook = (merchantId, webhookLoyaltyProgram) => __awaite
     if (webhookLoyaltyProgram.rewardTiers && webhookLoyaltyProgram.terminology) {
         updateAppLoyaltyRewardTiersFromMerchant(webhookLoyaltyProgram.rewardTiers, webhookLoyaltyProgram.terminology, loyalty);
     }
+    var wasSuccessful = false;
     if (webhookLoyaltyProgram.accrualRules && webhookLoyaltyProgram.terminology) {
         const catalogItemNameMap = yield (0, MerchantService_1.getCatalogItemIdMapFromAccurals)(token, webhookLoyaltyProgram.accrualRules);
         yield (0, exports.updateAppLoyaltyAccrualsFromMerchant)(webhookLoyaltyProgram.accrualRules, webhookLoyaltyProgram.terminology, loyalty, catalogItemNameMap);
-        const wasSuccessful = yield cleanUpLoyaltyAndSaveChanges(loyalty, webhookLoyaltyProgram, catalogItemNameMap.size > 0);
+        wasSuccessful = yield cleanUpLoyaltyAndSaveChanges(loyalty, webhookLoyaltyProgram, catalogItemNameMap.size > 0);
         const status = (0, BusinessService_1.updateLocationsWithLoyaltySettings)(business.businessId, (_e = loyalty === null || loyalty === void 0 ? void 0 : loyalty.locations) !== null && _e !== void 0 ? _e : []);
-        return wasSuccessful;
     }
     else {
-        const wasSuccessful = yield cleanUpLoyaltyAndSaveChanges(loyalty, webhookLoyaltyProgram, false);
+        wasSuccessful = yield cleanUpLoyaltyAndSaveChanges(loyalty, webhookLoyaltyProgram, false);
         const status = (0, BusinessService_1.updateLocationsWithLoyaltySettings)(business.businessId, (_f = loyalty === null || loyalty === void 0 ? void 0 : loyalty.locations) !== null && _f !== void 0 ? _f : []);
-        return wasSuccessful;
     }
+    // Send notification about loyalty change to subscribed customers
+    if ((business === null || business === void 0 ? void 0 : business.businessId) &&
+        loyalty.showLoyaltyInApp &&
+        loyalty.loyaltyStatus == "Active") {
+        const notificationContents = (business === null || business === void 0 ? void 0 : business.businessName) + " has made some changes to its loyalty program.";
+        (0, exports.notifyCustomersOfChanges)(business === null || business === void 0 ? void 0 : business.businessId, NotificationService_1.NotificationChangeType.Rewards, notificationContents);
+    }
+    return wasSuccessful;
 });
 exports.updateLoyaltyFromWebhook = updateLoyaltyFromWebhook;
 const cleanUpLoyaltyAndSaveChanges = (loyalty, webhookLoyaltyProgram, loyaltyUsesCatalogItems) => __awaiter(void 0, void 0, void 0, function* () {
@@ -462,7 +522,25 @@ const updateLoyaltyAccountFromWebhook = (merchantId, webhookLoyaltyAccount) => _
     else {
         enrolledAt = new Date(enrolledAtValue);
     }
-    const customerId = yield upsertCustomerFromWebhook(business.businessId, webhookLoyaltyAccount.customerId, (0, Utility_1.obsfucatePhoneNumber)(webhookLoyaltyAccount.mapping.phoneNumber), webhookLoyaltyAccount.balance, webhookLoyaltyAccount.lifetimePoints, enrolledAt, EnrollmentSourceType.Merchant);
+    const pointAdjustment = yield upsertCustomerFromWebhook(business.businessId, webhookLoyaltyAccount.customerId, (0, Utility_1.obsfucatePhoneNumber)(webhookLoyaltyAccount.mapping.phoneNumber), webhookLoyaltyAccount.balance, webhookLoyaltyAccount.lifetimePoints, enrolledAt, EnrollmentSourceType.Merchant);
+    if (pointAdjustment && pointAdjustment > 0) {
+        // Check if user wants to receive a notification
+        const customer = yield Customer_1.Customer.createQueryBuilder("customer")
+            .select(["customer.appUserId"])
+            .innerJoin("customer.appUser", "appUser")
+            .where("customer.merchantCustomerId = :merchantCustomerId", {
+            merchantCustomerId: webhookLoyaltyAccount.customerId,
+        })
+            .andWhere("appUser.notifyOfMyRewardChanges = true")
+            .getOne();
+        if (customer) {
+            // Send a notification to customer about their point balance change
+            const pointLabel = pointAdjustment == 1 ? loyalty.terminologyOne : loyalty.terminologyMany;
+            const contents = "You just earned " + pointAdjustment + pointLabel;
+            const businessImage = yield (0, BusinessService_1.getImageOrLogoForBusinessId)(business.businessId);
+            (0, NotificationService_1.sendNotifications)(contents, [customer.appUserId], businessImage);
+        }
+    }
     return true;
 });
 exports.updateLoyaltyAccountFromWebhook = updateLoyaltyAccountFromWebhook;
@@ -499,15 +577,16 @@ const updatePromotionsFromWebhook = (merchantId, webhookLoyaltyPrmotion) => __aw
             promotionId: webhookLoyaltyPrmotion.id,
         },
     });
+    var wasSuccessful = false;
     if (promotion) {
         if (webhookLoyaltyPrmotion.status == "ACTIVE" ||
             webhookLoyaltyPrmotion.status == "SCHEDULED") {
             yield updatePromotion(webhookLoyaltyPrmotion, promotion, (_g = promotion.displayName) !== null && _g !== void 0 ? _g : undefined);
-            return true;
+            wasSuccessful = true;
         }
         else {
             yield deletePromotion(promotion.id);
-            return true;
+            wasSuccessful = true;
         }
     }
     else {
@@ -518,14 +597,22 @@ const updatePromotionsFromWebhook = (merchantId, webhookLoyaltyPrmotion) => __aw
             .getOne();
         if (existingLoyalty) {
             yield createPromotion(webhookLoyaltyPrmotion, existingLoyalty.id);
-            return true;
-            return true;
+            wasSuccessful = true;
         }
         else {
             console.log("unable to find loyalty for promotion");
-            return false;
+            wasSuccessful = false;
         }
     }
+    // Send notification about loyalty change to subscribed customers
+    if (wasSuccessful &&
+        (business === null || business === void 0 ? void 0 : business.businessId) &&
+        (loyalty === null || loyalty === void 0 ? void 0 : loyalty.showPromotionsInApp) &&
+        (loyalty === null || loyalty === void 0 ? void 0 : loyalty.loyaltyStatus) == "Active") {
+        const notificationContents = (business === null || business === void 0 ? void 0 : business.businessName) + " has made some changes to its promotions.";
+        (0, exports.notifyCustomersOfChanges)(business.businessId, NotificationService_1.NotificationChangeType.Promotions, notificationContents);
+    }
+    return true;
 });
 exports.updatePromotionsFromWebhook = updatePromotionsFromWebhook;
 const createAppLoyaltyFromLoyaltyProgram = (businessId, loyaltyProgram, loyaltyPromotions, catalogItemNameMap) => __awaiter(void 0, void 0, void 0, function* () {
@@ -1337,6 +1424,7 @@ module.exports = {
     getPaginatedCustomers: exports.getPaginatedCustomers,
     getPaginatedEnrollmentRequests: exports.getPaginatedEnrollmentRequests,
     isLoyaltyOrPromotionsOutOfDate: exports.isLoyaltyOrPromotionsOutOfDate,
+    notifyCustomersOfChanges: exports.notifyCustomersOfChanges,
     updateAppLoyaltyFromMerchant: exports.updateAppLoyaltyFromMerchant,
     updateLoyaltyAccountFromWebhook: exports.updateLoyaltyAccountFromWebhook,
     updateLoyaltyFromWebhook: exports.updateLoyaltyFromWebhook,

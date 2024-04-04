@@ -39,6 +39,7 @@ exports.updateUserBusinessNotificationSettings = updateUserBusinessNotificationS
 const insertCustomerNotificationPreference = (userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside insertCustomerNotificationPreference");
     const notificationPref = appDataSource_1.AppDataSource.manager.create(CustomerNotificationPreference_1.CustomerNotificationPreference, {
+        appUserId: userId,
         businessId: businessId,
         customerId: customerId,
         notifyOfRewardChanges: notifyOfRewardChanges,
@@ -285,6 +286,9 @@ const upsertUser = (ref) => __awaiter(void 0, void 0, void 0, function* () {
             ref: ref,
             createDate: currentDate,
             lastUpdateDate: currentDate,
+            notifyOfMyRewardChanges: true,
+            notifyOfNewBusinesses: true,
+            notifyOfPointChanges: true,
         });
         yield appDataSource_1.AppDataSource.manager.save(newAppUser);
         console.log("user was inserted");

@@ -22,6 +22,13 @@ const SpecialService_1 = require("../src/services/SpecialService");
 const Utility_1 = require("../src/utility/Utility");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const config_1 = __importDefault(require("../src/config"));
+const LoyaltyService_2 = require("../src/services/LoyaltyService");
+const NotificationService_1 = require("../src/services/NotificationService");
+const testPush = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside testPush");
+    (0, LoyaltyService_2.notifyCustomersOfChanges)("071f0036-ba5a-44f6-b75e-2ea18805b296", NotificationService_1.NotificationChangeType.Rewards, "Testinf reward change type");
+    response.sendStatus(200);
+});
 const getLocationDetails = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getLocationDetails");
     const { locationId } = request.params;
@@ -315,23 +322,23 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
     }
 });
 const generateJwt = (business) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        // Generate and sign a JWT that is valid for one hour.
-        const token = (0, jsonwebtoken_1.sign)({
-            merchantId: business.merchantId,
-            username: business.businessName,
-        }, config_1.default.jwt.secret, {
-            expiresIn: "1h",
-            notBefore: "0",
-            algorithm: "HS256",
-            audience: config_1.default.jwt.audience,
-            issuer: config_1.default.jwt.issuer,
-        });
-        return token;
-    }
-    catch (error) {
-        return null;
-    }
+    console.log("inside generateJwt");
+    // try {
+    // Generate and sign a JWT that is valid for one hour.
+    const token = (0, jsonwebtoken_1.sign)({
+        merchantId: business.merchantId,
+        username: business.businessName,
+    }, config_1.default.jwt.secret, {
+        expiresIn: "1h",
+        notBefore: "0",
+        algorithm: "HS256",
+        audience: config_1.default.jwt.audience,
+        issuer: config_1.default.jwt.issuer,
+    });
+    return token;
+    // } catch (error) {
+    //   return null;
+    // }
 });
 const updateBusiness = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateBusiness");
@@ -360,4 +367,5 @@ module.exports = {
     updateBusiness,
     updateLocation,
     search,
+    testPush,
 };

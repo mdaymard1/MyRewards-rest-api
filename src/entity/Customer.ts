@@ -12,6 +12,7 @@ import {
 import { Business } from "./Business";
 // import { AppUser } from "./AppUser";
 import { Location } from "./Location";
+import { User } from "./User";
 import { CustomerNotificationPreference } from "./CustomerNotificationPreference";
 
 @Index("customer_id_UNIQUE", ["merchantCustomerId", "businessId"], {
@@ -62,6 +63,12 @@ export class Customer extends BaseEntity {
   // })
   // @JoinColumn({ name: "appUserId" })
   // appUser: AppUser;
+
+  @ManyToOne(() => User, (user) => user.customers, {
+    nullable: true,
+  })
+  @JoinColumn({ name: "appUserId" })
+  appUser: User;
 
   @ManyToOne(() => Location, (location) => location.customers, { eager: true })
   @JoinColumn({ name: "locationId" })

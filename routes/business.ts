@@ -19,6 +19,19 @@ import { getSpecialsForLocation } from "../src/services/SpecialService";
 import { isBoolean } from "../src/utility/Utility";
 import { sign } from "jsonwebtoken";
 import config from "../src/config";
+import { notifyCustomersOfChanges } from "../src/services/LoyaltyService";
+import { NotificationChangeType } from "../src/services/NotificationService";
+
+const testPush = async (request: Request, response: Response) => {
+  console.log("inside testPush");
+
+  notifyCustomersOfChanges(
+    "071f0036-ba5a-44f6-b75e-2ea18805b296",
+    NotificationChangeType.Rewards,
+    "Testinf reward change type"
+  );
+  response.sendStatus(200);
+};
 
 const getLocationDetails = async (request: Request, response: Response) => {
   console.log("inside getLocationDetails");
@@ -415,26 +428,27 @@ const createBusiness = async (request: Request, response: Response) => {
 };
 
 const generateJwt = async (business: Business) => {
-  try {
-    // Generate and sign a JWT that is valid for one hour.
-    const token = sign(
-      {
-        merchantId: business.merchantId,
-        username: business.businessName,
-      },
-      config.jwt.secret!,
-      {
-        expiresIn: "1h",
-        notBefore: "0", // Cannot use before now, can be configured to be deferred.
-        algorithm: "HS256",
-        audience: config.jwt.audience,
-        issuer: config.jwt.issuer,
-      }
-    );
-    return token;
-  } catch (error) {
-    return null;
-  }
+  console.log("inside generateJwt");
+  // try {
+  // Generate and sign a JWT that is valid for one hour.
+  const token = sign(
+    {
+      merchantId: business.merchantId,
+      username: business.businessName,
+    },
+    config.jwt.secret!,
+    {
+      expiresIn: "1h",
+      notBefore: "0", // Cannot use before now, can be configured to be deferred.
+      algorithm: "HS256",
+      audience: config.jwt.audience,
+      issuer: config.jwt.issuer,
+    }
+  );
+  return token;
+  // } catch (error) {
+  //   return null;
+  // }
 };
 
 const updateBusiness = async (request: Request, response: Response) => {
@@ -510,4 +524,5 @@ module.exports = {
   updateBusiness,
   updateLocation,
   search,
+  testPush,
 };

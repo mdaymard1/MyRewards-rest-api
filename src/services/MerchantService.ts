@@ -147,7 +147,7 @@ export const createLoyaltyAccount = async (
   }
 };
 
-export const lookupCustomerIdByPhoneNumber = async (
+export const lookupMerchantCustomerIdByPhoneNumber = async (
   accessToken: string,
   phoneNumber: string
 ) => {
@@ -249,6 +249,7 @@ export const upsertMerchantCustomerAccount = async (
     } else {
       console.log("some unexpected error: " + error);
     }
+    return null;
   }
 };
 
@@ -597,7 +598,7 @@ module.exports = {
   getMerchantLocation,
   getMerchantLocations,
   getMainLoyaltyProgramFromMerchant,
-  lookupCustomerIdByPhoneNumber,
+  lookupMerchantCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
   verifyMerchantToken,
 };

@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerNotificationPreference = void 0;
 const typeorm_1 = require("typeorm");
 const Customer_1 = require("./Customer");
+const User_1 = require("./User");
 let CustomerNotificationPreference = class CustomerNotificationPreference extends typeorm_1.BaseEntity {
 };
 exports.CustomerNotificationPreference = CustomerNotificationPreference;
@@ -45,10 +46,17 @@ __decorate([
     __metadata("design:type", String)
 ], CustomerNotificationPreference.prototype, "appUserId", void 0);
 __decorate([
-    (0, typeorm_1.OneToOne)(() => Customer_1.Customer),
+    (0, typeorm_1.OneToOne)(() => Customer_1.Customer, { onDelete: "CASCADE" }),
     (0, typeorm_1.JoinColumn)(),
     __metadata("design:type", Customer_1.Customer)
 ], CustomerNotificationPreference.prototype, "customer", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.customerNotificationPrefs, {
+        nullable: true,
+    }),
+    (0, typeorm_1.JoinColumn)({ name: "appUserId" }),
+    __metadata("design:type", User_1.User)
+], CustomerNotificationPreference.prototype, "appUser", void 0);
 exports.CustomerNotificationPreference = CustomerNotificationPreference = __decorate([
     (0, typeorm_1.Entity)()
 ], CustomerNotificationPreference);

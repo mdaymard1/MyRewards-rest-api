@@ -14,6 +14,7 @@ const typeorm_1 = require("typeorm");
 const Business_1 = require("./Business");
 // import { AppUser } from "./AppUser";
 const Location_1 = require("./Location");
+const User_1 = require("./User");
 const CustomerNotificationPreference_1 = require("./CustomerNotificationPreference");
 let Customer = class Customer extends typeorm_1.BaseEntity {
 };
@@ -67,6 +68,13 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: "businessId" }),
     __metadata("design:type", Business_1.Business)
 ], Customer.prototype, "business", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.customers, {
+        nullable: true,
+    }),
+    (0, typeorm_1.JoinColumn)({ name: "appUserId" }),
+    __metadata("design:type", User_1.User)
+], Customer.prototype, "appUser", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Location_1.Location, (location) => location.customers, { eager: true }),
     (0, typeorm_1.JoinColumn)({ name: "locationId" }),

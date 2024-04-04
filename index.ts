@@ -33,6 +33,8 @@ app.use(logger("dev"));
 app.use(json());
 app.use(cookieParser());
 
+app.post("/business/sendTestPush", businessRoute.testPush);
+
 app.get("/business", businessRoute.getBusiness);
 app.post("/business", asyncHandler(businessRoute.createBusiness));
 app.post("/business/test", businessRoute.createTestBusiness);

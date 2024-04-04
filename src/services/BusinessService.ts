@@ -9,6 +9,7 @@ import {
 import { Business } from "../entity/Business";
 import { Location } from "../entity/Location";
 import { Loyalty } from "../entity/Loyalty";
+import { User } from "../entity/User";
 import {
   BusinessHoursPeriod,
   LoyaltyProgram,
@@ -26,6 +27,11 @@ import exp from "constants";
 import { error } from "console";
 import { off } from "process";
 import { CustomRequest } from "../middleware/checkJwt";
+import { notifyCustomersOfChanges } from "./LoyaltyService";
+import {
+  NotificationChangeType,
+  sendNotifications,
+} from "./NotificationService";
 
 export const getBusinessIdFromAuthToken = async (request: Request) => {
   const merchantId = (request as CustomRequest)?.token?.payload?.merchantId;
@@ -58,7 +64,7 @@ export const searchBusiness = async (
   const offset = (page - 1) * limit;
 
   const customerJoinClause = appUserId
-    ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from app_user where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from app_user where id = '${appUserId}')`
+    ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
     : "";
 
   const customerSelectClause = appUserId
@@ -89,7 +95,7 @@ export const getActiveLocationsForBusinessId = async (
   pageNumber: number,
   pageSize: number
 ) => {
-  console.log("inside getLocationsForBusinessId");
+  console.log("inside getActiveLocationsForBusinessId");
 
   try {
     const take = pageSize || 10;
@@ -109,6 +115,40 @@ export const getActiveLocationsForBusinessId = async (
   } catch (error) {
     console.log("Error thrown while getting locations");
     return null;
+  }
+};
+
+export const getImageOrLogoForBusinessId = async (businessId: string) => {
+  console.log("inside getImageOrLogoForBusinessId");
+
+  try {
+    const locations = await Location.createQueryBuilder("location")
+      .select(["location.firstImageUrl", "location.logoUrl"])
+      .where("location.businessId = :businessId", {
+        businessId: businessId,
+      })
+      .getMany();
+
+    // Get firstImageUrl, if available
+    if (locations && locations.length > 0) {
+      for (var location of locations) {
+        if (location.firstImageUrl) {
+          console.log("found firstImageUrl for location");
+          return location.firstImageUrl;
+        }
+      }
+      // Get logo, if available
+      for (var location of locations) {
+        if (location.logoUrl) {
+          console.log("found firstImageUrl for location");
+          return location.logoUrl;
+        }
+      }
+    }
+    return undefined;
+  } catch (error) {
+    console.log("Error thrown while getting locations");
+    return undefined;
   }
 };
 
@@ -245,6 +285,30 @@ export const createNewBusinessWithLoyalty = async (
           );
           if (!newLoyalty) {
             console.log("Failed to create app loyalty");
+          } else {
+            // Get all users subscribed to new business notification
+            const users = await User.createQueryBuilder("user")
+              .select(["user.id"])
+              .where("user.notifyOfNewBusinesses = true")
+              .getMany();
+
+            console.log("count: " + users.length);
+            if (users && users.length > 0) {
+              var userIds: string[] = [];
+              for (var user of users) {
+                userIds.push(user.id);
+              }
+              if (userIds.length > 0) {
+                // Send notification of new business to subscribers
+                const notificationContents =
+                  "Check out rewards and promotions at this new business: " +
+                  newBusiness.businessName;
+                const businessImage = await getImageOrLogoForBusinessId(
+                  newBusiness.businessId
+                );
+                sendNotifications(notificationContents, userIds, businessImage);
+              }
+            }
           }
           return newBusiness;
         } else {
@@ -798,6 +862,7 @@ module.exports = {
   createNewBusinessWithLoyalty,
   getBusinessIdFromAuthToken,
   getActiveLocationsForBusinessId,
+  getImageOrLogoForBusinessId,
   updateBusinessDetails,
   updateBusinessEntity,
   updateBusinessLocationFromWebhook,

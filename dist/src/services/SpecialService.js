@@ -22,6 +22,8 @@ const LoyaltyAccrual_1 = require("../entity/LoyaltyAccrual");
 const LoyaltyService_1 = require("./LoyaltyService");
 const MerchantService_1 = require("./MerchantService");
 // import superAgent from 'superagent';
+const LoyaltyService_2 = require("./LoyaltyService");
+const NotificationService_1 = require("./NotificationService");
 const getSpecialsForLocation = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getAllSpecials");
     const special = yield Special_1.Special.createQueryBuilder("special")
@@ -77,6 +79,14 @@ const createSpecial = (businessId, special) => __awaiter(void 0, void 0, void 0,
     if (special.items) {
         const wasSuccessful = yield createSpecialItems(newSpecial, special.items);
         updateBusinessSpecialCatalogIndicator(businessId);
+        // Send notification about loyalty change to subscribed customers
+        const business = yield Business_1.Business.createQueryBuilder("business")
+            .where("business.businessId = :businessId", { businessId: businessId })
+            .getOne();
+        if (business) {
+            const notificationContents = (business === null || business === void 0 ? void 0 : business.businessName) + " has added a new specials";
+            (0, LoyaltyService_2.notifyCustomersOfChanges)(business === null || business === void 0 ? void 0 : business.businessId, NotificationService_1.NotificationChangeType.Rewards, notificationContents);
+        }
         return newSpecial.id;
     }
     else {
@@ -167,6 +177,16 @@ const updateExistingSpecial = (specialId, special) => __awaiter(void 0, void 0, 
         }
     }
     updateBusinessSpecialCatalogIndicator(existingSpecial.businessId);
+    // Send notification about loyalty change to subscribed customers
+    const business = yield Business_1.Business.createQueryBuilder("business")
+        .where("business.businessId = :businessId", {
+        businessId: existingSpecial.businessId,
+    })
+        .getOne();
+    if (business) {
+        const notificationContents = (business === null || business === void 0 ? void 0 : business.businessName) + " has made some changes to its specials.";
+        (0, LoyaltyService_2.notifyCustomersOfChanges)(business === null || business === void 0 ? void 0 : business.businessId, NotificationService_1.NotificationChangeType.Rewards, notificationContents);
+    }
     return true;
 });
 exports.updateExistingSpecial = updateExistingSpecial;

@@ -62,6 +62,7 @@ export const insertCustomerNotificationPreference = async (
   const notificationPref = AppDataSource.manager.create(
     CustomerNotificationPreference,
     {
+      appUserId: userId,
       businessId: businessId,
       customerId: customerId,
       notifyOfRewardChanges: notifyOfRewardChanges,
@@ -398,6 +399,9 @@ const upsertUser = async (ref: string) => {
       ref: ref,
       createDate: currentDate,
       lastUpdateDate: currentDate,
+      notifyOfMyRewardChanges: true,
+      notifyOfNewBusinesses: true,
+      notifyOfPointChanges: true,
     });
     await AppDataSource.manager.save(newAppUser);
     console.log("user was inserted");

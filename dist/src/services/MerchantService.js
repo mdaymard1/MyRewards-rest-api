@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantLocation = exports.getMerchantLocations = exports.getMerchantInfo = exports.upsertMerchantCustomerAccount = exports.lookupCustomerIdByPhoneNumber = exports.createLoyaltyAccount = exports.getAvailableRewardsForLoyaltyBalance = exports.verifyMerchantToken = void 0;
+exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantLocation = exports.getMerchantLocations = exports.getMerchantInfo = exports.upsertMerchantCustomerAccount = exports.lookupMerchantCustomerIdByPhoneNumber = exports.createLoyaltyAccount = exports.getAvailableRewardsForLoyaltyBalance = exports.verifyMerchantToken = void 0;
 const square_1 = require("square");
 const EncryptionService_1 = require("./EncryptionService");
 const Utility_1 = require("../utility/Utility");
@@ -113,7 +113,7 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
     }
 });
 exports.createLoyaltyAccount = createLoyaltyAccount;
-const lookupCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
+const lookupMerchantCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside lookupCustomerByPhoneNumber");
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
@@ -154,7 +154,7 @@ const lookupCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __awaiter(vo
         return null;
     }
 });
-exports.lookupCustomerIdByPhoneNumber = lookupCustomerIdByPhoneNumber;
+exports.lookupMerchantCustomerIdByPhoneNumber = lookupMerchantCustomerIdByPhoneNumber;
 const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCustomerId, phone, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
     var _e, _f, _g;
     console.log("inside upsertMerchantCustomerAccount");
@@ -193,6 +193,7 @@ const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCusto
         else {
             console.log("some unexpected error: " + error);
         }
+        return null;
     }
 });
 exports.upsertMerchantCustomerAccount = upsertMerchantCustomerAccount;
@@ -456,7 +457,7 @@ module.exports = {
     getMerchantLocation: exports.getMerchantLocation,
     getMerchantLocations: exports.getMerchantLocations,
     getMainLoyaltyProgramFromMerchant: exports.getMainLoyaltyProgramFromMerchant,
-    lookupCustomerIdByPhoneNumber: exports.lookupCustomerIdByPhoneNumber,
+    lookupMerchantCustomerIdByPhoneNumber: exports.lookupMerchantCustomerIdByPhoneNumber,
     upsertMerchantCustomerAccount: exports.upsertMerchantCustomerAccount,
     verifyMerchantToken: exports.verifyMerchantToken,
 };

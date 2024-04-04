@@ -241,40 +241,42 @@ const enrollCustomer = async (request: Request, response: Response) => {
     return;
   }
 
-  try {
-    const business = await Business.createQueryBuilder("business")
-      .select(["business.merchantAccessToken"])
-      .where("business.businessId = :businessId", {
-        businessId: businessId,
-      })
-      .getOne();
-    if (!business) {
-      response.status(404);
-      response.end();
-      return;
-    }
-
-    var token: string | undefined = "";
-    token = decryptToken(business.merchantAccessToken);
-
-    if (token) {
-      await enrollCustomerInLoyalty(
-        businessId,
-        appUserId,
-        token,
-        EnrollmentSourceType.RewardsApp,
-        locationId,
-        phone,
-        firstName,
-        lastName,
-        email
-      );
-      response.status(201);
-      response.end();
-    }
-  } catch (error) {
-    console.log("Error thrown while enrolling customer in loyalty");
+  // try {
+  const business = await Business.createQueryBuilder("business")
+    .select(["business.merchantAccessToken"])
+    .where("business.businessId = :businessId", {
+      businessId: businessId,
+    })
+    .getOne();
+  if (!business) {
+    response.status(404);
+    response.end();
+    return;
   }
+
+  var token: string | undefined = "";
+  token = decryptToken(business.merchantAccessToken);
+
+  if (token) {
+    await enrollCustomerInLoyalty(
+      businessId,
+      appUserId,
+      token,
+      EnrollmentSourceType.RewardsApp,
+      locationId,
+      phone,
+      firstName,
+      lastName,
+      email
+    );
+    response.status(201);
+    response.end();
+  } else {
+    response.sendStatus(404);
+  }
+  // } catch (error) {
+  //   console.log("Error thrown while enrolling customer in loyalty" + error);
+  // }
 };
 
 const getLoyalty = async (request: Request, response: Response) => {

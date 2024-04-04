@@ -53,6 +53,7 @@ var specialRoute = require("./routes/special");
 app.use(logger("dev"));
 app.use((0, express_1.json)());
 app.use(cookieParser());
+app.post("/business/sendTestPush", businessRoute.testPush);
 app.get("/business", businessRoute.getBusiness);
 app.post("/business", (0, asyncHandler_1.asyncHandler)(businessRoute.createBusiness));
 app.post("/business/test", businessRoute.createTestBusiness);

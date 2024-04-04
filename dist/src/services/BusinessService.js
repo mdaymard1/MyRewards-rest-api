@@ -9,15 +9,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findBusinessByMerchantId = exports.updateBusinessDetails = exports.updateBusinessEntity = exports.updateBusinessLocationFromWebhook = exports.createBusinessFromMerchantInfo = exports.createNewBusinessWithLoyalty = exports.updateLocationsWithLoyaltySettings = exports.updateLocationSettingsAndImages = exports.getActiveLocationsForBusinessId = exports.searchBusiness = exports.getBusinessIdFromAuthToken = void 0;
+exports.findBusinessByMerchantId = exports.updateBusinessDetails = exports.updateBusinessEntity = exports.updateBusinessLocationFromWebhook = exports.createBusinessFromMerchantInfo = exports.createNewBusinessWithLoyalty = exports.updateLocationsWithLoyaltySettings = exports.updateLocationSettingsAndImages = exports.getImageOrLogoForBusinessId = exports.getActiveLocationsForBusinessId = exports.searchBusiness = exports.getBusinessIdFromAuthToken = void 0;
 const LoyaltyService_1 = require("./LoyaltyService");
 const EncryptionService_1 = require("./EncryptionService");
 const MerchantService_1 = require("./MerchantService");
 const Business_1 = require("../entity/Business");
 const Location_1 = require("../entity/Location");
+const User_1 = require("../entity/User");
 const appDataSource_1 = require("../../appDataSource");
 const Utility_1 = require("../utility/Utility");
 const typeorm_1 = require("typeorm");
+const NotificationService_1 = require("./NotificationService");
 const getBusinessIdFromAuthToken = (request) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     const merchantId = (_b = (_a = request === null || request === void 0 ? void 0 : request.token) === null || _a === void 0 ? void 0 : _a.payload) === null || _b === void 0 ? void 0 : _b.merchantId;
@@ -41,7 +43,7 @@ const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, a
     const page = pageNumber || 1;
     const offset = (page - 1) * limit;
     const customerJoinClause = appUserId
-        ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from app_user where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from app_user where id = '${appUserId}')`
+        ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
         : "";
     const customerSelectClause = appUserId
         ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
@@ -63,7 +65,7 @@ const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, a
 });
 exports.searchBusiness = searchBusiness;
 const getActiveLocationsForBusinessId = (businessId, pageNumber, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("inside getLocationsForBusinessId");
+    console.log("inside getActiveLocationsForBusinessId");
     try {
         const take = pageSize || 10;
         const page = pageNumber || 1;
@@ -83,6 +85,39 @@ const getActiveLocationsForBusinessId = (businessId, pageNumber, pageSize) => __
     }
 });
 exports.getActiveLocationsForBusinessId = getActiveLocationsForBusinessId;
+const getImageOrLogoForBusinessId = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getImageOrLogoForBusinessId");
+    try {
+        const locations = yield Location_1.Location.createQueryBuilder("location")
+            .select(["location.firstImageUrl", "location.logoUrl"])
+            .where("location.businessId = :businessId", {
+            businessId: businessId,
+        })
+            .getMany();
+        // Get firstImageUrl, if available
+        if (locations && locations.length > 0) {
+            for (var location of locations) {
+                if (location.firstImageUrl) {
+                    console.log("found firstImageUrl for location");
+                    return location.firstImageUrl;
+                }
+            }
+            // Get logo, if available
+            for (var location of locations) {
+                if (location.logoUrl) {
+                    console.log("found firstImageUrl for location");
+                    return location.logoUrl;
+                }
+            }
+        }
+        return undefined;
+    }
+    catch (error) {
+        console.log("Error thrown while getting locations");
+        return undefined;
+    }
+});
+exports.getImageOrLogoForBusinessId = getImageOrLogoForBusinessId;
 const updateLocationSettingsAndImages = (locationId, showThisLocationInApp, showLoyaltyInApp, showPromotionsInApp, firstImageUrl, secondImageUrl) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateLocation");
     try {
@@ -174,6 +209,27 @@ const createNewBusinessWithLoyalty = (name, merchantId, accessToken, refreshToke
                     const newLoyalty = yield (0, LoyaltyService_1.createAppLoyaltyFromLoyaltyProgram)(newBusiness.businessId, loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.program, loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.promotions, loyaltyResponse === null || loyaltyResponse === void 0 ? void 0 : loyaltyResponse.catalogItemNameMap);
                     if (!newLoyalty) {
                         console.log("Failed to create app loyalty");
+                    }
+                    else {
+                        // Get all users subscribed to new business notification
+                        const users = yield User_1.User.createQueryBuilder("user")
+                            .select(["user.id"])
+                            .where("user.notifyOfNewBusinesses = true")
+                            .getMany();
+                        console.log("count: " + users.length);
+                        if (users && users.length > 0) {
+                            var userIds = [];
+                            for (var user of users) {
+                                userIds.push(user.id);
+                            }
+                            if (userIds.length > 0) {
+                                // Send notification of new business to subscribers
+                                const notificationContents = "Check out rewards and promotions at this new business: " +
+                                    newBusiness.businessName;
+                                const businessImage = yield (0, exports.getImageOrLogoForBusinessId)(newBusiness.businessId);
+                                (0, NotificationService_1.sendNotifications)(notificationContents, userIds, businessImage);
+                            }
+                        }
                     }
                     return newBusiness;
                 }
@@ -501,6 +557,7 @@ module.exports = {
     createNewBusinessWithLoyalty: exports.createNewBusinessWithLoyalty,
     getBusinessIdFromAuthToken: exports.getBusinessIdFromAuthToken,
     getActiveLocationsForBusinessId: exports.getActiveLocationsForBusinessId,
+    getImageOrLogoForBusinessId: exports.getImageOrLogoForBusinessId,
     updateBusinessDetails: exports.updateBusinessDetails,
     updateBusinessEntity: exports.updateBusinessEntity,
     updateBusinessLocationFromWebhook: exports.updateBusinessLocationFromWebhook,

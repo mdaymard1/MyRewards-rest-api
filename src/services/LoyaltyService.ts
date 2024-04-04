@@ -20,12 +20,15 @@ import {
 } from "./entity/SquareWebhook";
 import { Business } from "../entity/Business";
 import { Customer } from "../entity/Customer";
-import { updateLocationsWithLoyaltySettings } from "./BusinessService";
+import {
+  updateLocationsWithLoyaltySettings,
+  getImageOrLogoForBusinessId,
+} from "./BusinessService";
 import { decryptToken } from "./EncryptionService";
 import {
   getCatalogItemIdMapFromAccurals,
   createLoyaltyAccount,
-  lookupCustomerIdByPhoneNumber,
+  lookupMerchantCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
 } from "./MerchantService";
 import {
@@ -40,6 +43,12 @@ import {
   unobsfucatePhoneNumber,
 } from "../utility/Utility";
 import { enrollRequest } from "../../routes/loyalty";
+import { CustomerNotificationPreference } from "../entity/CustomerNotificationPreference";
+import {
+  sendNotifications,
+  NotificationChangeType,
+} from "./NotificationService";
+import { string } from "square/dist/types/schema";
 
 export enum LoyaltyStatusType {
   Active = "Active",
@@ -51,6 +60,46 @@ export enum EnrollmentSourceType {
   RewardsApp = 1,
   ManualFromRequest = 2,
 }
+
+export const notifyCustomersOfChanges = async (
+  businessId: string,
+  type: NotificationChangeType,
+  contents: string
+) => {
+  console.log("inside notifyCustomersOfChanges");
+
+  const changeTypeWhereClause =
+    type == NotificationChangeType.Rewards
+      ? "notificationPref.notifyOfRewardChanges = true"
+      : type == NotificationChangeType.Promotions
+      ? "notificationPref.notifyOfPromotionChanges = true"
+      : "notificationPref.notifyOfSpecialsChanges = true";
+
+  // Get all customers subscribed to reward changes for this business
+  const customers = await CustomerNotificationPreference.createQueryBuilder(
+    "notificationPref"
+  )
+    .select(["notificationPref.appUserId"])
+    .innerJoin("notificationPref.appUser", "appUser")
+    .where("notificationPref.businessId = :businessId", {
+      businessId: businessId,
+    })
+    .andWhere(changeTypeWhereClause)
+    .andWhere("appUser.notifyOfMyRewardChanges = true")
+    .getMany();
+
+  console.log("count: " + customers.length);
+  if (customers && customers.length > 0) {
+    var customerIds: string[] = [];
+    for (var customer of customers) {
+      customerIds.push(customer.appUserId);
+    }
+    if (customerIds.length > 0) {
+      const locationImage = await getImageOrLogoForBusinessId(businessId);
+      sendNotifications(contents, customerIds, locationImage);
+    }
+  }
+};
 
 export const getLoyaltyForLocation = async (businessId: string) => {
   console.log("inside getLoyaltyForLocation");
@@ -343,6 +392,9 @@ export const enrollCustomerInLoyalty = async (
 
   if (!loyaltyCustomerAccountId) {
     // A null value could mean that the loyalty account already existed for this phone number
+    console.log(
+      "no loyaltyCustomerAccountId cause loyalty probably exists. updating customer"
+    );
     const customerId = await updateExistingCustomer(
       token,
       enrollmentSource,
@@ -355,6 +407,20 @@ export const enrollCustomerInLoyalty = async (
       email
     );
     const status = await updateUserWithDetails(ref, firstName, lastName, email);
+
+    // if (customerId) {
+    //   console.log(
+    //     "got customerId of " + customerId + ". inserting notification prefs"
+    //   );
+    //   const notificationPref = await insertCustomerNotificationPreference(
+    //     appUserId,
+    //     businessId,
+    //     customerId,
+    //     true,
+    //     true,
+    //     true
+    //   );
+    // }
     // Ignoring any errors from the update for now
     return customerId;
   }
@@ -369,7 +435,7 @@ export const enrollCustomerInLoyalty = async (
   );
 
   if (appCustomerId) {
-    const notificationPref = insertCustomerNotificationPreference(
+    const notificationPref = await insertCustomerNotificationPreference(
       appUserId,
       businessId,
       appCustomerId,
@@ -379,7 +445,7 @@ export const enrollCustomerInLoyalty = async (
     );
   }
 
-  var merchCustomerId: string | undefined;
+  var merchCustomerId: string | null | undefined;
   if (appCustomerId) {
     merchCustomerId = await upsertMerchantCustomerAccount(
       token,
@@ -394,7 +460,7 @@ export const enrollCustomerInLoyalty = async (
 
   const status = await updateUserWithDetails(ref, firstName, lastName, email);
 
-  return merchCustomerId;
+  return appCustomerId;
 };
 
 /*  This function handles the case when a loyalty account already exists
@@ -414,22 +480,22 @@ const updateExistingCustomer = async (
 ) => {
   console.log("inside updateExistingCustomer");
 
-  let existingCustomerId = await lookupCustomerIdByPhoneNumber(
+  let existingMerchantCustomerId = await lookupMerchantCustomerIdByPhoneNumber(
     token,
     phoneNumber
   );
-  if (existingCustomerId) {
+  if (existingMerchantCustomerId) {
     // Add the customer to our db
     let appCustomerId = await insertCustomer(
       businessId,
       appUserId,
-      existingCustomerId,
+      existingMerchantCustomerId,
       obsfucatePhoneNumber(phoneNumber),
       enrollmentSource,
       locationId
     );
     if (appCustomerId) {
-      insertCustomerNotificationPreference(
+      await insertCustomerNotificationPreference(
         appUserId,
         businessId,
         appCustomerId,
@@ -440,16 +506,16 @@ const updateExistingCustomer = async (
     }
     // Finally, upsert the merchant's customer account
     if (appCustomerId) {
-      upsertMerchantCustomerAccount(
+      await upsertMerchantCustomerAccount(
         token,
-        existingCustomerId,
+        existingMerchantCustomerId,
         appCustomerId,
         phoneNumber,
         firstName,
         lastName,
         email
       );
-      return existingCustomerId;
+      return appCustomerId;
     }
   }
   return null;
@@ -485,7 +551,13 @@ const insertCustomer = async (
       error.message.includes("customer_id_UNIQUE")
     ) {
       console.log("Ignoring duplicate customer error");
-      return merchantCustomerId;
+      //we need to return the customer id, so look it up by merch customer id
+      let existingCustomer = await Customer.createQueryBuilder("customer")
+        .where("customer.merchantCustomerId = :merchantCustomerId", {
+          merchantCustomerId: merchantCustomerId,
+        })
+        .getOne();
+      return existingCustomer?.id;
     } else {
       console.log("got error when inserting customer:" + error);
       return null;
@@ -532,6 +604,7 @@ const upsertCustomerFromWebhook = async (
       });
       await AppDataSource.manager.save(customer);
       console.log("just created customer with id:" + customer.id);
+      return balance;
     } else {
       console.log("customer with id:" + customer.id + " already exists");
       await AppDataSource.manager.update(
@@ -545,7 +618,7 @@ const upsertCustomerFromWebhook = async (
         }
       );
       console.log("just updated customer with id:" + customer.id);
-      return customerId;
+      return balance - customer.balance;
     }
   } catch (error) {
     console.log("Error while upserting customer: " + error);
@@ -631,6 +704,7 @@ export const updateLoyaltyFromWebhook = async (
     );
   }
 
+  var wasSuccessful = false;
   if (webhookLoyaltyProgram.accrualRules && webhookLoyaltyProgram.terminology) {
     const catalogItemNameMap = await getCatalogItemIdMapFromAccurals(
       token!,
@@ -642,7 +716,7 @@ export const updateLoyaltyFromWebhook = async (
       loyalty!,
       catalogItemNameMap
     );
-    const wasSuccessful = await cleanUpLoyaltyAndSaveChanges(
+    wasSuccessful = await cleanUpLoyaltyAndSaveChanges(
       loyalty!,
       webhookLoyaltyProgram,
       catalogItemNameMap.size > 0
@@ -651,9 +725,8 @@ export const updateLoyaltyFromWebhook = async (
       business.businessId,
       loyalty?.locations ?? []
     );
-    return wasSuccessful;
   } else {
-    const wasSuccessful = await cleanUpLoyaltyAndSaveChanges(
+    wasSuccessful = await cleanUpLoyaltyAndSaveChanges(
       loyalty!,
       webhookLoyaltyProgram,
       false
@@ -662,8 +735,23 @@ export const updateLoyaltyFromWebhook = async (
       business.businessId,
       loyalty?.locations ?? []
     );
-    return wasSuccessful;
   }
+  // Send notification about loyalty change to subscribed customers
+  if (
+    business?.businessId &&
+    loyalty.showLoyaltyInApp &&
+    loyalty.loyaltyStatus == "Active"
+  ) {
+    const notificationContents =
+      business?.businessName + " has made some changes to its loyalty program.";
+
+    notifyCustomersOfChanges(
+      business?.businessId,
+      NotificationChangeType.Rewards,
+      notificationContents
+    );
+  }
+  return wasSuccessful;
 };
 
 const cleanUpLoyaltyAndSaveChanges = async (
@@ -735,7 +823,7 @@ export const updateLoyaltyAccountFromWebhook = async (
   } else {
     enrolledAt = new Date(enrolledAtValue);
   }
-  const customerId = await upsertCustomerFromWebhook(
+  const pointAdjustment = await upsertCustomerFromWebhook(
     business.businessId,
     webhookLoyaltyAccount.customerId,
     obsfucatePhoneNumber(webhookLoyaltyAccount.mapping.phoneNumber),
@@ -745,6 +833,35 @@ export const updateLoyaltyAccountFromWebhook = async (
     EnrollmentSourceType.Merchant
   );
 
+  if (pointAdjustment && pointAdjustment > 0) {
+    // Check if user wants to receive a notification
+    const customer = await Customer.createQueryBuilder("customer")
+      .select(["customer.appUserId"])
+      .innerJoin("customer.appUser", "appUser")
+      .where("customer.merchantCustomerId = :merchantCustomerId", {
+        merchantCustomerId: webhookLoyaltyAccount.customerId,
+      })
+      .andWhere("appUser.notifyOfMyRewardChanges = true")
+      .getOne();
+
+    if (customer) {
+      // Send a notification to customer about their point balance change
+      const pointLabel =
+        pointAdjustment == 1 ? loyalty.terminologyOne : loyalty.terminologyMany;
+      const contents =
+        "You just earned " +
+        pointAdjustment +
+        " " +
+        pointLabel +
+        " at " +
+        business.businessName +
+        "!";
+      const businessImage = await getImageOrLogoForBusinessId(
+        business.businessId
+      );
+      sendNotifications(contents, [customer.appUserId], businessImage);
+    }
+  }
   return true;
 };
 
@@ -790,6 +907,7 @@ export const updatePromotionsFromWebhook = async (
     },
   });
 
+  var wasSuccessful = false;
   if (promotion) {
     if (
       webhookLoyaltyPrmotion.status == "ACTIVE" ||
@@ -800,10 +918,10 @@ export const updatePromotionsFromWebhook = async (
         promotion,
         promotion.displayName ?? undefined
       );
-      return true;
+      wasSuccessful = true;
     } else {
       await deletePromotion(promotion.id);
-      return true;
+      wasSuccessful = true;
     }
   } else {
     const existingLoyalty = await Loyalty.createQueryBuilder("loyalty")
@@ -813,13 +931,29 @@ export const updatePromotionsFromWebhook = async (
       .getOne();
     if (existingLoyalty) {
       await createPromotion(webhookLoyaltyPrmotion, existingLoyalty.id);
-      return true;
-      return true;
+      wasSuccessful = true;
     } else {
       console.log("unable to find loyalty for promotion");
-      return false;
+      wasSuccessful = false;
     }
   }
+  // Send notification about loyalty change to subscribed customers
+  if (
+    wasSuccessful &&
+    business?.businessId &&
+    loyalty?.showPromotionsInApp &&
+    loyalty?.loyaltyStatus == "Active"
+  ) {
+    const notificationContents =
+      business?.businessName + " has made some changes to its promotions.";
+
+    notifyCustomersOfChanges(
+      business.businessId,
+      NotificationChangeType.Promotions,
+      notificationContents
+    );
+  }
+  return true;
 };
 
 export const createAppLoyaltyFromLoyaltyProgram = async (
@@ -1955,6 +2089,7 @@ module.exports = {
   getPaginatedCustomers,
   getPaginatedEnrollmentRequests,
   isLoyaltyOrPromotionsOutOfDate,
+  notifyCustomersOfChanges,
   updateAppLoyaltyFromMerchant,
   updateLoyaltyAccountFromWebhook,
   updateLoyaltyFromWebhook,

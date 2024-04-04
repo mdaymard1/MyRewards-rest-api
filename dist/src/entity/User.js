@@ -11,8 +11,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const typeorm_1 = require("typeorm");
+const Customer_1 = require("./Customer");
 const typeorm_encrypted_1 = require("typeorm-encrypted");
 const encryption_config_1 = require("../../encryption-config");
+const CustomerNotificationPreference_1 = require("./CustomerNotificationPreference");
 let User = class User extends typeorm_1.BaseEntity {
 };
 exports.User = User;
@@ -65,8 +67,16 @@ __decorate([
     (0, typeorm_1.Column)({ type: "timestamp", nullable: false }),
     __metadata("design:type", Date)
 ], User.prototype, "lastUpdateDate", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Customer_1.Customer, (customer) => customer.appUser, { eager: true }),
+    __metadata("design:type", Array)
+], User.prototype, "customers", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => CustomerNotificationPreference_1.CustomerNotificationPreference, (customerNotificationPref) => customerNotificationPref.appUser, { eager: true }),
+    __metadata("design:type", Array)
+], User.prototype, "customerNotificationPrefs", void 0);
 exports.User = User = __decorate([
-    (0, typeorm_1.Index)("appuser_ref_UNIQUE", ["ref"], {
+    (0, typeorm_1.Index)("user_ref_UNIQUE", ["ref"], {
         unique: true,
     }),
     (0, typeorm_1.Entity)()

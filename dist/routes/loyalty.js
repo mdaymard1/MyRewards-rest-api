@@ -161,29 +161,31 @@ const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, 
         response.end();
         return;
     }
-    try {
-        const business = yield Business_1.Business.createQueryBuilder("business")
-            .select(["business.merchantAccessToken"])
-            .where("business.businessId = :businessId", {
-            businessId: businessId,
-        })
-            .getOne();
-        if (!business) {
-            response.status(404);
-            response.end();
-            return;
-        }
-        var token = "";
-        token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
-        if (token) {
-            yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, appUserId, token, LoyaltyService_1.EnrollmentSourceType.RewardsApp, locationId, phone, firstName, lastName, email);
-            response.status(201);
-            response.end();
-        }
+    // try {
+    const business = yield Business_1.Business.createQueryBuilder("business")
+        .select(["business.merchantAccessToken"])
+        .where("business.businessId = :businessId", {
+        businessId: businessId,
+    })
+        .getOne();
+    if (!business) {
+        response.status(404);
+        response.end();
+        return;
     }
-    catch (error) {
-        console.log("Error thrown while enrolling customer in loyalty");
+    var token = "";
+    token = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
+    if (token) {
+        yield (0, LoyaltyService_1.enrollCustomerInLoyalty)(businessId, appUserId, token, LoyaltyService_1.EnrollmentSourceType.RewardsApp, locationId, phone, firstName, lastName, email);
+        response.status(201);
+        response.end();
     }
+    else {
+        response.sendStatus(404);
+    }
+    // } catch (error) {
+    //   console.log("Error thrown while enrolling customer in loyalty" + error);
+    // }
 });
 const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c;

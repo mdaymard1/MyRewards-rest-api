@@ -11,8 +11,9 @@ import {
 import { Customer } from "./Customer";
 import { JSONEncryptionTransformer } from "typeorm-encrypted";
 import { EncryptionTransformerConfig } from "../../encryption-config";
+import { CustomerNotificationPreference } from "./CustomerNotificationPreference";
 
-@Index("appuser_ref_UNIQUE", ["ref"], {
+@Index("user_ref_UNIQUE", ["ref"], {
   unique: true,
 })
 @Entity()
@@ -58,6 +59,13 @@ export class User extends BaseEntity {
   @Column({ type: "timestamp", nullable: false })
   lastUpdateDate: Date;
 
-  // @OneToMany(() => Customer, (customer) => customer.appUser, { eager: true })
-  // customers: Customer[];
+  @OneToMany(() => Customer, (customer) => customer.appUser, { eager: true })
+  customers: Customer[];
+
+  @OneToMany(
+    () => CustomerNotificationPreference,
+    (customerNotificationPref) => customerNotificationPref.appUser,
+    { eager: true }
+  )
+  customerNotificationPrefs: CustomerNotificationPreference[];
 }

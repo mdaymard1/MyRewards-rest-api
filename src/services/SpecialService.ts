@@ -30,6 +30,8 @@ import {
 } from "./MerchantService";
 import { UUID } from "crypto";
 // import superAgent from 'superagent';
+import { notifyCustomersOfChanges } from "./LoyaltyService";
+import { NotificationChangeType } from "./NotificationService";
 
 export const getSpecialsForLocation = async (businessId: string) => {
   console.log("inside getAllSpecials");
@@ -91,6 +93,20 @@ export const createSpecial = async (businessId: string, special: Special) => {
   if (special.items) {
     const wasSuccessful = await createSpecialItems(newSpecial, special.items);
     updateBusinessSpecialCatalogIndicator(businessId);
+
+    // Send notification about loyalty change to subscribed customers
+    const business = await Business.createQueryBuilder("business")
+      .where("business.businessId = :businessId", { businessId: businessId })
+      .getOne();
+    if (business) {
+      const notificationContents =
+        business?.businessName + " has added a new specials";
+      notifyCustomersOfChanges(
+        business?.businessId,
+        NotificationChangeType.Rewards,
+        notificationContents
+      );
+    }
     return newSpecial.id;
   } else {
     return undefined;
@@ -209,6 +225,21 @@ export const updateExistingSpecial = async (
     }
   }
   updateBusinessSpecialCatalogIndicator(existingSpecial.businessId);
+  // Send notification about loyalty change to subscribed customers
+  const business = await Business.createQueryBuilder("business")
+    .where("business.businessId = :businessId", {
+      businessId: existingSpecial.businessId,
+    })
+    .getOne();
+  if (business) {
+    const notificationContents =
+      business?.businessName + " has made some changes to its specials.";
+    notifyCustomersOfChanges(
+      business?.businessId,
+      NotificationChangeType.Rewards,
+      notificationContents
+    );
+  }
   return true;
 };
 
