@@ -57,6 +57,17 @@ export const getSpecialsForLocation = async (businessId: string) => {
   return special;
 };
 
+export const getSpecialById = async (specialId: string) => {
+  console.log("inside getSpecial");
+
+  const special = await AppDataSource.manager.findOne(Special, {
+    where: {
+      id: specialId,
+    },
+  });
+  return special;
+};
+
 export const getAllSpecials = async (businessId: string) => {
   console.log("inside getAllSpecials");
 
@@ -98,7 +109,7 @@ export const createSpecial = async (businessId: string, special: Special) => {
     const business = await Business.createQueryBuilder("business")
       .where("business.businessId = :businessId", { businessId: businessId })
       .getOne();
-    if (business) {
+    if (business && business.notifyWhenSpecialsChange) {
       const notificationContents =
         business?.businessName + " has added a new specials";
       notifyCustomersOfChanges(
@@ -231,7 +242,7 @@ export const updateExistingSpecial = async (
       businessId: existingSpecial.businessId,
     })
     .getOne();
-  if (business) {
+  if (business && business.notifyWhenSpecialsChange) {
     const notificationContents =
       business?.businessName + " has made some changes to its specials.";
     notifyCustomersOfChanges(
@@ -816,6 +827,7 @@ const getCatalogItemsLastUpdated = async (
 module.exports = {
   deleteExistingSpecial,
   getAllSpecials,
+  getSpecialById,
   createSpecial,
   getSpecialsForLocation,
   updateExistingSpecial,

@@ -49,6 +49,38 @@ export const getBusinessIdFromAuthToken = async (request: Request) => {
   return undefined;
 };
 
+export const updateBusinessSettings = async (
+  businessId: string,
+  showInApp: boolean,
+  showSpecials: boolean,
+  notifyWhenCustomerEnrolls: boolean,
+  notifyWhenCustomerRequestsEnrollment: boolean,
+  notifyWhenRewardsChange: boolean,
+  notifyWhenPromotionsChange: boolean,
+  notifyWhenSpecialsChange: boolean
+) => {
+  console.log("inside searchBusiness");
+
+  const updatedBusiness = await AppDataSource.manager.update(
+    Business,
+    {
+      businessId: businessId,
+    },
+    {
+      showInApp: showInApp,
+      showSpecials: showSpecials,
+      notifyWhenCustomerEnrolls: notifyWhenCustomerEnrolls,
+      notifyWhenCustomerRequestsEnrollment:
+        notifyWhenCustomerRequestsEnrollment,
+      notifyWhenRewardsChange: notifyWhenRewardsChange,
+      notifyWhenPromotionsChange: notifyWhenPromotionsChange,
+      notifyWhenSpecialsChange: notifyWhenSpecialsChange,
+    }
+  );
+  console.log("Updated business with settings");
+  return updateBusinessDetails;
+};
+
 export const searchBusiness = async (
   latitude: number,
   longitude: number,
@@ -64,13 +96,13 @@ export const searchBusiness = async (
   const offset = (page - 1) * limit;
 
   const customerJoinClause = appUserId
-    ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
+    ? `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
     : "";
 
   const customerSelectClause = appUserId
     ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
     : "";
-  var selectClause = `SELECT location."id" as "locationId", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+  var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
 
   if (searchTerm) {
     selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";
@@ -88,6 +120,17 @@ export const searchBusiness = async (
   //   console.log("Error thrown while getting nearby businesses: " + error);
   //   return null;
   // }
+};
+
+export const getLocationById = async (locationId: string) => {
+  console.log("inside getActiveLocationsForBusinessId");
+
+  const location = await AppDataSource.manager.findOne(Location, {
+    where: {
+      id: locationId,
+    },
+  });
+  return location;
 };
 
 export const getActiveLocationsForBusinessId = async (
@@ -388,6 +431,13 @@ const createBusinessEntity = async (
     accessTokenExpirationDate: expirationDate,
     loyaltyUsesCatalogItems: false,
     specialsUseCatalogItems: false,
+    showInApp: true,
+    showSpecials: true,
+    notifyWhenCustomerEnrolls: true,
+    notifyWhenCustomerRequestsEnrollment: true,
+    notifyWhenRewardsChange: true,
+    notifyWhenPromotionsChange: true,
+    notifyWhenSpecialsChange: true,
     createDate: new Date(),
     lastUpdateDate: new Date(),
   });
@@ -863,9 +913,11 @@ module.exports = {
   getBusinessIdFromAuthToken,
   getActiveLocationsForBusinessId,
   getImageOrLogoForBusinessId,
+  getLocationById,
   updateBusinessDetails,
   updateBusinessEntity,
   updateBusinessLocationFromWebhook,
+  updateBusinessSettings,
   updateLocationSettingsAndImages,
   updateLocationsWithLoyaltySettings,
   findBusinessByMerchantId,

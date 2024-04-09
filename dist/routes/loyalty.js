@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEnrollmentRequest = exports.enrollRequest = exports.getCustomers = exports.getEnrollmentRequests = void 0;
+exports.deleteEnrollmentRequest = exports.enrollRequest = exports.getCustomers = exports.getEnrollmentRequests = exports.getEnrollmentAvailability = exports.updateEnrollmentAvailability = void 0;
 const appDataSource_1 = require("../appDataSource");
 const Business_1 = require("../src/entity/Business");
 const Loyalty_1 = require("../src/entity/Loyalty");
@@ -17,6 +17,50 @@ const MerchantService_1 = require("../src/services/MerchantService");
 const BusinessService_1 = require("../src/services/BusinessService");
 const EncryptionService_1 = require("../src/services/EncryptionService");
 const LoyaltyService_1 = require("../src/services/LoyaltyService");
+const Utility_1 = require("../src/utility/Utility");
+const updateEnrollmentAvailability = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateEnrollmentAvailability");
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    if (!businessId) {
+        response.status(401);
+        response.end();
+        return;
+    }
+    const { showLoyaltyInApp, showPromotionsInApp, showLoyaltyEnrollmentInApp, enrollInSquareLoyaltyDirectly, } = request.body;
+    if (!(0, Utility_1.isBoolean)(showLoyaltyInApp) ||
+        !(0, Utility_1.isBoolean)(showPromotionsInApp) ||
+        !(0, Utility_1.isBoolean)(showLoyaltyEnrollmentInApp || !(0, Utility_1.isBoolean)(enrollInSquareLoyaltyDirectly))) {
+        response.status(401);
+        response.end();
+        return;
+    }
+    const loyalty = yield (0, LoyaltyService_1.updateLoyaltyEnrollmentSettings)(businessId, showLoyaltyInApp, showPromotionsInApp, showLoyaltyEnrollmentInApp, enrollInSquareLoyaltyDirectly);
+    if (loyalty) {
+        response.sendStatus(200);
+    }
+    else {
+        response.sendStatus(404);
+    }
+});
+exports.updateEnrollmentAvailability = updateEnrollmentAvailability;
+const getEnrollmentAvailability = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getEnrollmentAvailability");
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    if (!businessId) {
+        response.status(401);
+        response.end();
+        return;
+    }
+    const loyalty = yield (0, LoyaltyService_1.getLoyaltyEnrollmentSettings)(businessId);
+    const enrollmentSettings = {
+        showLoyaltyInApp: loyalty === null || loyalty === void 0 ? void 0 : loyalty.showLoyaltyInApp,
+        showPromotionsInApp: loyalty === null || loyalty === void 0 ? void 0 : loyalty.showPromotionsInApp,
+        showLoyaltyEnrollmentInApp: loyalty === null || loyalty === void 0 ? void 0 : loyalty.showLoyaltyEnrollmentInApp,
+        enrollInSquareLoyaltyDirectly: loyalty === null || loyalty === void 0 ? void 0 : loyalty.enrollInSquareLoyaltyDirectly,
+    };
+    response.send(enrollmentSettings);
+});
+exports.getEnrollmentAvailability = getEnrollmentAvailability;
 const getEnrollmentRequests = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getEnrollmentRequests");
     const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
@@ -191,7 +235,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
     var _a, _b, _c;
     console.log("inside getLoyalty");
     const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    console.log("merchantId: " + businessId);
+    console.log("businessId: " + businessId);
     if (!businessId) {
         response.status(401);
         response.end();
@@ -199,7 +243,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
     }
     try {
         const business = yield Business_1.Business.createQueryBuilder("business")
-            .select(["business.merchantAccessToken"])
+            .select(["business.businessId", "business.merchantAccessToken"])
             .where("business.businessId = :businessId", {
             businessId: businessId,
         })
@@ -209,6 +253,7 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
             response.end();
             return;
         }
+        console.log("about to get loyalty for businessId: " + business.businessId);
         const loyalty = yield appDataSource_1.AppDataSource.manager.findOne(Loyalty_1.Loyalty, {
             where: {
                 businessId: business.businessId,
@@ -353,9 +398,11 @@ module.exports = {
     enrollCustomer,
     enrollRequest: exports.enrollRequest,
     getEnrollmentRequests: exports.getEnrollmentRequests,
+    getEnrollmentAvailability: exports.getEnrollmentAvailability,
     getCustomers: exports.getCustomers,
     getLoyalty,
     requestEnrollment,
+    updateEnrollmentAvailability: exports.updateEnrollmentAvailability,
     updateLoyalty,
     updateLoyaltyStatus,
 };

@@ -20,7 +20,7 @@ import { Loyalty } from "../entity/Loyalty";
 import { RewardDetails } from "./entity/RewardDetails";
 import { LoyaltyRewardTier } from "../entity/LoyaltyRewardTier";
 
-export const verifyMerchantToken = async (
+export const getMerchantForToken = async (
   merchantId: string,
   accessToken: string
 ) => {
@@ -40,9 +40,9 @@ export const verifyMerchantToken = async (
 
   const merchantResponse = await merchantsApi.retrieveMerchant(merchantId);
   if (merchantResponse?.result?.merchant) {
-    return true;
+    return merchantResponse.result.merchant;
   } else {
-    return false;
+    return null;
   }
 };
 
@@ -600,5 +600,5 @@ module.exports = {
   getMainLoyaltyProgramFromMerchant,
   lookupMerchantCustomerIdByPhoneNumber,
   upsertMerchantCustomerAccount,
-  verifyMerchantToken,
+  getMerchantForToken,
 };

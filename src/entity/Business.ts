@@ -41,11 +41,32 @@ export class Business extends BaseEntity {
   @Column({ type: "timestamp", nullable: true })
   accessTokenExpirationDate: Date;
 
+  @Column({ type: "boolean", nullable: true })
+  showInApp: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  showSpecials: boolean;
+
   @Column({ type: "boolean", nullable: false })
   loyaltyUsesCatalogItems: boolean;
 
   @Column({ type: "boolean", nullable: false })
   specialsUseCatalogItems: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyWhenCustomerEnrolls: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyWhenCustomerRequestsEnrollment: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyWhenRewardsChange: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyWhenPromotionsChange: boolean;
+
+  @Column({ type: "boolean", nullable: true })
+  notifyWhenSpecialsChange: boolean;
 
   @Column({ type: "text", nullable: true })
   businessName: string;

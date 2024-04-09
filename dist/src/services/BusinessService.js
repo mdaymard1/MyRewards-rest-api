@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findBusinessByMerchantId = exports.updateBusinessDetails = exports.updateBusinessEntity = exports.updateBusinessLocationFromWebhook = exports.createBusinessFromMerchantInfo = exports.createNewBusinessWithLoyalty = exports.updateLocationsWithLoyaltySettings = exports.updateLocationSettingsAndImages = exports.getImageOrLogoForBusinessId = exports.getActiveLocationsForBusinessId = exports.searchBusiness = exports.getBusinessIdFromAuthToken = void 0;
+exports.findBusinessByMerchantId = exports.updateBusinessDetails = exports.updateBusinessEntity = exports.updateBusinessLocationFromWebhook = exports.createBusinessFromMerchantInfo = exports.createNewBusinessWithLoyalty = exports.updateLocationsWithLoyaltySettings = exports.updateLocationSettingsAndImages = exports.getImageOrLogoForBusinessId = exports.getActiveLocationsForBusinessId = exports.getLocationById = exports.searchBusiness = exports.updateBusinessSettings = exports.getBusinessIdFromAuthToken = void 0;
 const LoyaltyService_1 = require("./LoyaltyService");
 const EncryptionService_1 = require("./EncryptionService");
 const MerchantService_1 = require("./MerchantService");
@@ -37,18 +37,35 @@ const getBusinessIdFromAuthToken = (request) => __awaiter(void 0, void 0, void 0
     return undefined;
 });
 exports.getBusinessIdFromAuthToken = getBusinessIdFromAuthToken;
+const updateBusinessSettings = (businessId, showInApp, showSpecials, notifyWhenCustomerEnrolls, notifyWhenCustomerRequestsEnrollment, notifyWhenRewardsChange, notifyWhenPromotionsChange, notifyWhenSpecialsChange) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside searchBusiness");
+    const updatedBusiness = yield appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
+        businessId: businessId,
+    }, {
+        showInApp: showInApp,
+        showSpecials: showSpecials,
+        notifyWhenCustomerEnrolls: notifyWhenCustomerEnrolls,
+        notifyWhenCustomerRequestsEnrollment: notifyWhenCustomerRequestsEnrollment,
+        notifyWhenRewardsChange: notifyWhenRewardsChange,
+        notifyWhenPromotionsChange: notifyWhenPromotionsChange,
+        notifyWhenSpecialsChange: notifyWhenSpecialsChange,
+    });
+    console.log("Updated business with settings");
+    return exports.updateBusinessDetails;
+});
+exports.updateBusinessSettings = updateBusinessSettings;
 const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, appUserId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside searchBusiness");
     const limit = pageSize || 10;
     const page = pageNumber || 1;
     const offset = (page - 1) * limit;
     const customerJoinClause = appUserId
-        ? `LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
+        ? `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
         : "";
     const customerSelectClause = appUserId
         ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
         : "";
-    var selectClause = `SELECT location."id" as "locationId", "name", "businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+    var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
     if (searchTerm) {
         selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";
     }
@@ -64,6 +81,16 @@ const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, a
     // }
 });
 exports.searchBusiness = searchBusiness;
+const getLocationById = (locationId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getActiveLocationsForBusinessId");
+    const location = yield appDataSource_1.AppDataSource.manager.findOne(Location_1.Location, {
+        where: {
+            id: locationId,
+        },
+    });
+    return location;
+});
+exports.getLocationById = getLocationById;
 const getActiveLocationsForBusinessId = (businessId, pageNumber, pageSize) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getActiveLocationsForBusinessId");
     try {
@@ -289,6 +316,13 @@ const createBusinessEntity = (merchantId, merchantName, accessToken, refreshToke
         accessTokenExpirationDate: expirationDate,
         loyaltyUsesCatalogItems: false,
         specialsUseCatalogItems: false,
+        showInApp: true,
+        showSpecials: true,
+        notifyWhenCustomerEnrolls: true,
+        notifyWhenCustomerRequestsEnrollment: true,
+        notifyWhenRewardsChange: true,
+        notifyWhenPromotionsChange: true,
+        notifyWhenSpecialsChange: true,
         createDate: new Date(),
         lastUpdateDate: new Date(),
     });
@@ -558,9 +592,11 @@ module.exports = {
     getBusinessIdFromAuthToken: exports.getBusinessIdFromAuthToken,
     getActiveLocationsForBusinessId: exports.getActiveLocationsForBusinessId,
     getImageOrLogoForBusinessId: exports.getImageOrLogoForBusinessId,
+    getLocationById: exports.getLocationById,
     updateBusinessDetails: exports.updateBusinessDetails,
     updateBusinessEntity: exports.updateBusinessEntity,
     updateBusinessLocationFromWebhook: exports.updateBusinessLocationFromWebhook,
+    updateBusinessSettings: exports.updateBusinessSettings,
     updateLocationSettingsAndImages: exports.updateLocationSettingsAndImages,
     updateLocationsWithLoyaltySettings: exports.updateLocationsWithLoyaltySettings,
     findBusinessByMerchantId: exports.findBusinessByMerchantId,

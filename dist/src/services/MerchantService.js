@@ -12,13 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantLocation = exports.getMerchantLocations = exports.getMerchantInfo = exports.upsertMerchantCustomerAccount = exports.lookupMerchantCustomerIdByPhoneNumber = exports.createLoyaltyAccount = exports.getAvailableRewardsForLoyaltyBalance = exports.verifyMerchantToken = void 0;
+exports.getCatalogItemIdMapFromAccurals = exports.getMainLoyaltyProgramFromMerchant = exports.getMerchantLocation = exports.getMerchantLocations = exports.getMerchantInfo = exports.upsertMerchantCustomerAccount = exports.lookupMerchantCustomerIdByPhoneNumber = exports.createLoyaltyAccount = exports.getAvailableRewardsForLoyaltyBalance = exports.getMerchantForToken = void 0;
 const square_1 = require("square");
 const EncryptionService_1 = require("./EncryptionService");
 const Utility_1 = require("../utility/Utility");
 const dotenv_1 = __importDefault(require("dotenv"));
 const RewardDetails_1 = require("./entity/RewardDetails");
-const verifyMerchantToken = (merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
+const getMerchantForToken = (merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     console.log("inside verifyMerchantToken");
     const decryptedToken = (0, EncryptionService_1.decryptToken)(accessToken);
@@ -31,13 +31,13 @@ const verifyMerchantToken = (merchantId, accessToken) => __awaiter(void 0, void 
     const { merchantsApi } = client;
     const merchantResponse = yield merchantsApi.retrieveMerchant(merchantId);
     if ((_a = merchantResponse === null || merchantResponse === void 0 ? void 0 : merchantResponse.result) === null || _a === void 0 ? void 0 : _a.merchant) {
-        return true;
+        return merchantResponse.result.merchant;
     }
     else {
-        return false;
+        return null;
     }
 });
-exports.verifyMerchantToken = verifyMerchantToken;
+exports.getMerchantForToken = getMerchantForToken;
 const getAvailableRewardsForLoyaltyBalance = (customerBalance, rewardTiers) => {
     var _a;
     console.log("inside getAvailableRewardsForLoyaltyBalance");
@@ -459,5 +459,5 @@ module.exports = {
     getMainLoyaltyProgramFromMerchant: exports.getMainLoyaltyProgramFromMerchant,
     lookupMerchantCustomerIdByPhoneNumber: exports.lookupMerchantCustomerIdByPhoneNumber,
     upsertMerchantCustomerAccount: exports.upsertMerchantCustomerAccount,
-    verifyMerchantToken: exports.verifyMerchantToken,
+    getMerchantForToken: exports.getMerchantForToken,
 };

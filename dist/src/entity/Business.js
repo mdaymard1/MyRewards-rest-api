@@ -52,6 +52,14 @@ __decorate([
     __metadata("design:type", Date)
 ], Business.prototype, "accessTokenExpirationDate", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "showInApp", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "showSpecials", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: "boolean", nullable: false }),
     __metadata("design:type", Boolean)
 ], Business.prototype, "loyaltyUsesCatalogItems", void 0);
@@ -59,6 +67,26 @@ __decorate([
     (0, typeorm_1.Column)({ type: "boolean", nullable: false }),
     __metadata("design:type", Boolean)
 ], Business.prototype, "specialsUseCatalogItems", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "notifyWhenCustomerEnrolls", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "notifyWhenCustomerRequestsEnrollment", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "notifyWhenRewardsChange", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "notifyWhenPromotionsChange", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "boolean", nullable: true }),
+    __metadata("design:type", Boolean)
+], Business.prototype, "notifyWhenSpecialsChange", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "text", nullable: true }),
     __metadata("design:type", String)

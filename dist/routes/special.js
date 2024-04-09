@@ -9,9 +9,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteSpecial = exports.updateSpecial = exports.createNewSpecial = exports.getSpecials = void 0;
+exports.deleteSpecial = exports.updateSpecial = exports.createNewSpecial = exports.getSpecials = exports.getSpecial = void 0;
 const BusinessService_1 = require("../src/services/BusinessService");
 const SpecialService_1 = require("../src/services/SpecialService");
+const getSpecial = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
+    if (!businessId) {
+        response.status(401);
+        response.end();
+        return;
+    }
+    const { specialId } = request.params;
+    if (!specialId) {
+        response.status(404);
+        response.end();
+        return;
+    }
+    const special = yield (0, SpecialService_1.getSpecialById)(specialId);
+    response.send(special);
+    return;
+});
+exports.getSpecial = getSpecial;
 const getSpecials = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
     if (!businessId) {
@@ -108,6 +126,7 @@ const deleteSpecial = (request, response) => __awaiter(void 0, void 0, void 0, f
 exports.deleteSpecial = deleteSpecial;
 module.exports = {
     deleteSpecial: exports.deleteSpecial,
+    getSpecial: exports.getSpecial,
     getSpecials: exports.getSpecials,
     createNewSpecial: exports.createNewSpecial,
     updateSpecial: exports.updateSpecial,

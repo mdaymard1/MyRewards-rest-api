@@ -4,9 +4,30 @@ import {
   createSpecial,
   deleteExistingSpecial,
   getAllSpecials,
+  getSpecialById,
   updateExistingSpecial,
 } from "../src/services/SpecialService";
 import { Special } from "../src/entity/Special";
+
+export const getSpecial = async (request: Request, response: Response) => {
+  const businessId = await getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+  const { specialId } = request.params;
+
+  if (!specialId) {
+    response.status(404);
+    response.end();
+    return;
+  }
+  const special = await getSpecialById(specialId);
+  response.send(special);
+  return;
+};
 
 export const getSpecials = async (request: Request, response: Response) => {
   const businessId = await getBusinessIdFromAuthToken(request);
@@ -122,6 +143,7 @@ export const deleteSpecial = async (request: Request, response: Response) => {
 
 module.exports = {
   deleteSpecial,
+  getSpecial,
   getSpecials,
   createNewSpecial,
   updateSpecial,

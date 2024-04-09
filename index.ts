@@ -33,14 +33,22 @@ app.use(logger("dev"));
 app.use(json());
 app.use(cookieParser());
 
-app.post("/business/sendTestPush", businessRoute.testPush);
+/* Business */
+// app.post("/business/sendTestPush", businessRoute.testPush);
 
-app.get("/business", businessRoute.getBusiness);
+app.get("/business", [checkJwt, asyncHandler(businessRoute.getBusiness)]);
+app.post("/business/refreshToken", asyncHandler(businessRoute.refreshToken));
 app.post("/business", asyncHandler(businessRoute.createBusiness));
 app.post("/business/test", businessRoute.createTestBusiness);
+app.post("/business/availability", [
+  checkJwt,
+  asyncHandler(businessRoute.updateAvailability),
+]);
 app.put("/business", businessRoute.updateBusiness);
-app.get("/business/search", businessRoute.search);
 
+app.get("/business/search", asyncHandler(businessRoute.search));
+
+/* User - called by app */
 app.get("/user/:userId/loyalty", asyncHandler(userRoute.getLoyalty));
 app.get(
   "/user/:userId/notificationSettings",
@@ -66,32 +74,78 @@ app.post(
 );
 app.post("/user/verifyCode", asyncHandler(userRoute.verifyUserCode));
 
-app.get("/locations", businessRoute.getLocations);
+/* Locations */
+app.get("/locations", [checkJwt, asyncHandler(businessRoute.getLocations)]);
+app.get("/location/:locationId", [
+  checkJwt,
+  asyncHandler(businessRoute.getLocation),
+]);
+app.post("/location/:locationId", [
+  checkJwt,
+  asyncHandler(businessRoute.updateLocation),
+]);
+
+/* Loyalty and Specials for a Location - called by app */
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);
-app.post("/location/:locationId", businessRoute.updateLocation);
 
-app.get("/loyalty", [checkJwt, loyaltyRoute.getLoyalty]);
+/* Loyalty */
+app.get("/loyalty", [checkJwt, asyncHandler(loyaltyRoute.getLoyalty)]);
+app.delete("/loyalty/requestEnrollment/:enrollmentRequestId", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.deleteEnrollmentRequest),
+]);
+app.get("/loyalty/enrollmentRequests", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.getEnrollmentRequests),
+]);
+app.get("/loyalty/customers", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.getCustomers),
+]);
+app.post("/loyalty/enrollRequest/:enrollmentRequestId", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.enrollRequest),
+]);
+app.post("/loyalty/:loyaltyId", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.updateLoyalty),
+]);
+app.put("/loyalty/:loyaltyId/status", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.updateLoyaltyStatus),
+]);
+app.get("/loyalty/enrollment/availability", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.getEnrollmentAvailability),
+]);
+app.post("/loyalty/enrollment/availability", [
+  checkJwt,
+  asyncHandler(loyaltyRoute.updateEnrollmentAvailability),
+]);
+
+/* User Enrollment - called by app  */
 app.post("/loyalty/enroll", loyaltyRoute.enrollCustomer);
-app.delete(
-  "/loyalty/requestEnrollment/:enrollmentRequestId",
-  loyaltyRoute.deleteEnrollmentRequest
-);
-app.get("/loyalty/enrollmentRequests", loyaltyRoute.getEnrollmentRequests);
-app.get("/loyalty/customers", loyaltyRoute.getCustomers);
 app.post("/loyalty/requestEnrollment", loyaltyRoute.requestEnrollment);
-app.post(
-  "/loyalty/enrollRequest/:enrollmentRequestId",
-  loyaltyRoute.enrollRequest
-);
-app.post("/loyalty/:loyaltyId", loyaltyRoute.updateLoyalty);
-app.put("/loyalty/:loyaltyId/status", loyaltyRoute.updateLoyaltyStatus);
 
+/* Webhook */
 app.post("/webhook", webhookRoute.handleSquareWebhook);
 
-app.get("/special", specialRoute.getSpecials);
-app.post("/special", specialRoute.createNewSpecial);
-app.post("/special/:specialId", specialRoute.updateSpecial);
-app.delete("/special/:specialId", specialRoute.deleteSpecial);
+/* Specials */
+app.get("/special/:specialId", [
+  checkJwt,
+  asyncHandler(specialRoute.getSpecial),
+]);
+app.get("/specials", [checkJwt, asyncHandler(specialRoute.getSpecials)]);
+app.post("/special", [checkJwt, asyncHandler(specialRoute.createNewSpecial)]);
+app.post("/special/:specialId", [
+  checkJwt,
+  asyncHandler(specialRoute.updateSpecial),
+]);
+app.delete("/special/:specialId", [
+  checkJwt,
+  asyncHandler(specialRoute.deleteSpecial),
+]);
+
 app.listen(port, () => {
   console.log(`My Rewards app is running on port ${port}.`);
 });

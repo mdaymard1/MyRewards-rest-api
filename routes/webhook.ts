@@ -8,6 +8,22 @@ import {
 import { updateSpecialsFromWebhook } from "../src/services/SpecialService";
 import { updateBusinessLocationFromWebhook } from "../src/services/BusinessService";
 import { stat } from "fs";
+import { WebhooksHelper } from "square";
+
+const SIGNATURE_KEY = process.env.SIGNATURE_KEY;
+const NOTIFICATION_URL = process.env.NOTIFICATION_URL;
+
+const isFromSquare = (signature: any, body: any) => {
+  if (!SIGNATURE_KEY || !NOTIFICATION_URL) {
+    return false;
+  }
+  return WebhooksHelper.isValidWebhookEventSignature(
+    body,
+    signature,
+    SIGNATURE_KEY,
+    NOTIFICATION_URL
+  );
+};
 
 const handleSquareWebhook = async (request: Request, response: Response) => {
   const { body } = request;
@@ -34,6 +50,27 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
     response.end();
     return;
   }
+  console.log("payload is valid. Validating signature");
+
+  // let bdy = "";
+
+  // request.setEncoding("utf8");
+
+  // request.on("data", function (chunk) {
+  //   bdy += chunk;
+  // });
+
+  // request.on("end", function () {
+  const signature = request.headers["x-square-hmacsha256-signature"];
+  if (!isFromSquare(signature, body)) {
+    // Signature is invvalid
+    console.log("signature is invalid");
+    response.sendStatus(401);
+    response.end();
+    return;
+  }
+  response.end();
+  // });
 
   console.log("payload is valid.");
 

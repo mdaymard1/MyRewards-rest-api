@@ -53,12 +53,19 @@ var specialRoute = require("./routes/special");
 app.use(logger("dev"));
 app.use((0, express_1.json)());
 app.use(cookieParser());
-app.post("/business/sendTestPush", businessRoute.testPush);
-app.get("/business", businessRoute.getBusiness);
+/* Business */
+// app.post("/business/sendTestPush", businessRoute.testPush);
+app.get("/business", [checkJwt_1.checkJwt, (0, asyncHandler_1.asyncHandler)(businessRoute.getBusiness)]);
+app.post("/business/refreshToken", (0, asyncHandler_1.asyncHandler)(businessRoute.refreshToken));
 app.post("/business", (0, asyncHandler_1.asyncHandler)(businessRoute.createBusiness));
 app.post("/business/test", businessRoute.createTestBusiness);
+app.post("/business/availability", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(businessRoute.updateAvailability),
+]);
 app.put("/business", businessRoute.updateBusiness);
-app.get("/business/search", businessRoute.search);
+app.get("/business/search", (0, asyncHandler_1.asyncHandler)(businessRoute.search));
+/* User - called by app */
 app.get("/user/:userId/loyalty", (0, asyncHandler_1.asyncHandler)(userRoute.getLoyalty));
 app.get("/user/:userId/notificationSettings", (0, asyncHandler_1.asyncHandler)(userRoute.getNotificationSettings));
 app.post("/user/:userId/notificationSettings", (0, asyncHandler_1.asyncHandler)(userRoute.updateNotificationSettings));
@@ -68,23 +75,72 @@ app.post("/user/:userId/details", (0, asyncHandler_1.asyncHandler)(userRoute.upd
 app.get("/user/:userId/enrolledAndPending", (0, asyncHandler_1.asyncHandler)(userRoute.getEnrolledAndPendingLoyalty));
 app.post("/user/requestVerification", (0, asyncHandler_1.asyncHandler)(userRoute.requestUserPhoneNumberVerification));
 app.post("/user/verifyCode", (0, asyncHandler_1.asyncHandler)(userRoute.verifyUserCode));
-app.get("/locations", businessRoute.getLocations);
+/* Locations */
+app.get("/locations", [checkJwt_1.checkJwt, (0, asyncHandler_1.asyncHandler)(businessRoute.getLocations)]);
+app.get("/location/:locationId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(businessRoute.getLocation),
+]);
+app.post("/location/:locationId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(businessRoute.updateLocation),
+]);
+/* Loyalty and Specials for a Location - called by app */
 app.get("/location/:locationId/details", businessRoute.getLocationDetails);
-app.post("/location/:locationId", businessRoute.updateLocation);
-app.get("/loyalty", [checkJwt_1.checkJwt, loyaltyRoute.getLoyalty]);
+/* Loyalty */
+app.get("/loyalty", [checkJwt_1.checkJwt, (0, asyncHandler_1.asyncHandler)(loyaltyRoute.getLoyalty)]);
+app.delete("/loyalty/requestEnrollment/:enrollmentRequestId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.deleteEnrollmentRequest),
+]);
+app.get("/loyalty/enrollmentRequests", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.getEnrollmentRequests),
+]);
+app.get("/loyalty/customers", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.getCustomers),
+]);
+app.post("/loyalty/enrollRequest/:enrollmentRequestId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.enrollRequest),
+]);
+app.post("/loyalty/:loyaltyId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.updateLoyalty),
+]);
+app.put("/loyalty/:loyaltyId/status", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.updateLoyaltyStatus),
+]);
+app.get("/loyalty/enrollment/availability", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.getEnrollmentAvailability),
+]);
+app.post("/loyalty/enrollment/availability", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(loyaltyRoute.updateEnrollmentAvailability),
+]);
+/* User Enrollment - called by app  */
 app.post("/loyalty/enroll", loyaltyRoute.enrollCustomer);
-app.delete("/loyalty/requestEnrollment/:enrollmentRequestId", loyaltyRoute.deleteEnrollmentRequest);
-app.get("/loyalty/enrollmentRequests", loyaltyRoute.getEnrollmentRequests);
-app.get("/loyalty/customers", loyaltyRoute.getCustomers);
 app.post("/loyalty/requestEnrollment", loyaltyRoute.requestEnrollment);
-app.post("/loyalty/enrollRequest/:enrollmentRequestId", loyaltyRoute.enrollRequest);
-app.post("/loyalty/:loyaltyId", loyaltyRoute.updateLoyalty);
-app.put("/loyalty/:loyaltyId/status", loyaltyRoute.updateLoyaltyStatus);
+/* Webhook */
 app.post("/webhook", webhookRoute.handleSquareWebhook);
-app.get("/special", specialRoute.getSpecials);
-app.post("/special", specialRoute.createNewSpecial);
-app.post("/special/:specialId", specialRoute.updateSpecial);
-app.delete("/special/:specialId", specialRoute.deleteSpecial);
+/* Specials */
+app.get("/special/:specialId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(specialRoute.getSpecial),
+]);
+app.get("/specials", [checkJwt_1.checkJwt, (0, asyncHandler_1.asyncHandler)(specialRoute.getSpecials)]);
+app.post("/special", [checkJwt_1.checkJwt, (0, asyncHandler_1.asyncHandler)(specialRoute.createNewSpecial)]);
+app.post("/special/:specialId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(specialRoute.updateSpecial),
+]);
+app.delete("/special/:specialId", [
+    checkJwt_1.checkJwt,
+    (0, asyncHandler_1.asyncHandler)(specialRoute.deleteSpecial),
+]);
 app.listen(port, () => {
     console.log(`My Rewards app is running on port ${port}.`);
 });

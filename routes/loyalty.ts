@@ -21,8 +21,83 @@ import {
   getPaginatedCustomers,
   getPaginatedEnrollmentRequests,
   EnrollmentSourceType,
+  getLoyaltyEnrollmentSettings,
+  updateLoyaltyEnrollmentSettings,
 } from "../src/services/LoyaltyService";
 import { LoyaltyProgram, LoyaltyPromotion } from "square";
+import { isBoolean } from "../src/utility/Utility";
+
+export const updateEnrollmentAvailability = async (
+  request: Request,
+  response: Response
+) => {
+  console.log("inside updateEnrollmentAvailability");
+
+  const businessId = await getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const {
+    showLoyaltyInApp,
+    showPromotionsInApp,
+    showLoyaltyEnrollmentInApp,
+    enrollInSquareLoyaltyDirectly,
+  } = request.body;
+
+  if (
+    !isBoolean(showLoyaltyInApp) ||
+    !isBoolean(showPromotionsInApp) ||
+    !isBoolean(
+      showLoyaltyEnrollmentInApp || !isBoolean(enrollInSquareLoyaltyDirectly)
+    )
+  ) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const loyalty = await updateLoyaltyEnrollmentSettings(
+    businessId,
+    showLoyaltyInApp,
+    showPromotionsInApp,
+    showLoyaltyEnrollmentInApp,
+    enrollInSquareLoyaltyDirectly
+  );
+
+  if (loyalty) {
+    response.sendStatus(200);
+  } else {
+    response.sendStatus(404);
+  }
+};
+
+export const getEnrollmentAvailability = async (
+  request: Request,
+  response: Response
+) => {
+  console.log("inside getEnrollmentAvailability");
+
+  const businessId = await getBusinessIdFromAuthToken(request);
+
+  if (!businessId) {
+    response.status(401);
+    response.end();
+    return;
+  }
+
+  const loyalty = await getLoyaltyEnrollmentSettings(businessId);
+  const enrollmentSettings = {
+    showLoyaltyInApp: loyalty?.showLoyaltyInApp,
+    showPromotionsInApp: loyalty?.showPromotionsInApp,
+    showLoyaltyEnrollmentInApp: loyalty?.showLoyaltyEnrollmentInApp,
+    enrollInSquareLoyaltyDirectly: loyalty?.enrollInSquareLoyaltyDirectly,
+  };
+  response.send(enrollmentSettings);
+};
 
 export const getEnrollmentRequests = async (
   request: Request,
@@ -283,7 +358,7 @@ const getLoyalty = async (request: Request, response: Response) => {
   console.log("inside getLoyalty");
 
   const businessId = await getBusinessIdFromAuthToken(request);
-  console.log("merchantId: " + businessId);
+  console.log("businessId: " + businessId);
 
   if (!businessId) {
     response.status(401);
@@ -293,7 +368,7 @@ const getLoyalty = async (request: Request, response: Response) => {
 
   try {
     const business = await Business.createQueryBuilder("business")
-      .select(["business.merchantAccessToken"])
+      .select(["business.businessId", "business.merchantAccessToken"])
       .where("business.businessId = :businessId", {
         businessId: businessId,
       })
@@ -305,6 +380,7 @@ const getLoyalty = async (request: Request, response: Response) => {
       return;
     }
 
+    console.log("about to get loyalty for businessId: " + business.businessId);
     const loyalty = await AppDataSource.manager.findOne(Loyalty, {
       where: {
         businessId: business.businessId,
@@ -497,9 +573,11 @@ module.exports = {
   enrollCustomer,
   enrollRequest,
   getEnrollmentRequests,
+  getEnrollmentAvailability,
   getCustomers,
   getLoyalty,
   requestEnrollment,
+  updateEnrollmentAvailability,
   updateLoyalty,
   updateLoyaltyStatus,
 };

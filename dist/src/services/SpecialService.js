@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateSpecialsFromWebhook = exports.deleteExistingSpecial = exports.updateExistingSpecial = exports.createSpecial = exports.getAllSpecials = exports.getSpecialsForLocation = void 0;
+exports.updateSpecialsFromWebhook = exports.deleteExistingSpecial = exports.updateExistingSpecial = exports.createSpecial = exports.getAllSpecials = exports.getSpecialById = exports.getSpecialsForLocation = void 0;
 const appDataSource_1 = require("../../appDataSource");
 const EncryptionService_1 = require("./EncryptionService");
 const Loyalty_1 = require("../entity/Loyalty");
@@ -46,6 +46,16 @@ const getSpecialsForLocation = (businessId) => __awaiter(void 0, void 0, void 0,
     return special;
 });
 exports.getSpecialsForLocation = getSpecialsForLocation;
+const getSpecialById = (specialId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getSpecial");
+    const special = yield appDataSource_1.AppDataSource.manager.findOne(Special_1.Special, {
+        where: {
+            id: specialId,
+        },
+    });
+    return special;
+});
+exports.getSpecialById = getSpecialById;
 const getAllSpecials = (businessId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside getAllSpecials");
     const specials = yield appDataSource_1.AppDataSource.manager.find(Special_1.Special, {
@@ -83,7 +93,7 @@ const createSpecial = (businessId, special) => __awaiter(void 0, void 0, void 0,
         const business = yield Business_1.Business.createQueryBuilder("business")
             .where("business.businessId = :businessId", { businessId: businessId })
             .getOne();
-        if (business) {
+        if (business && business.notifyWhenSpecialsChange) {
             const notificationContents = (business === null || business === void 0 ? void 0 : business.businessName) + " has added a new specials";
             (0, LoyaltyService_2.notifyCustomersOfChanges)(business === null || business === void 0 ? void 0 : business.businessId, NotificationService_1.NotificationChangeType.Rewards, notificationContents);
         }
@@ -183,7 +193,7 @@ const updateExistingSpecial = (specialId, special) => __awaiter(void 0, void 0, 
         businessId: existingSpecial.businessId,
     })
         .getOne();
-    if (business) {
+    if (business && business.notifyWhenSpecialsChange) {
         const notificationContents = (business === null || business === void 0 ? void 0 : business.businessName) + " has made some changes to its specials.";
         (0, LoyaltyService_2.notifyCustomersOfChanges)(business === null || business === void 0 ? void 0 : business.businessId, NotificationService_1.NotificationChangeType.Rewards, notificationContents);
     }
@@ -631,6 +641,7 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token) => __awaiter(void 0, 
 module.exports = {
     deleteExistingSpecial: exports.deleteExistingSpecial,
     getAllSpecials: exports.getAllSpecials,
+    getSpecialById: exports.getSpecialById,
     createSpecial: exports.createSpecial,
     getSpecialsForLocation: exports.getSpecialsForLocation,
     updateExistingSpecial: exports.updateExistingSpecial,
