@@ -18,6 +18,7 @@ const SIGNATURE_KEY = process.env.SIGNATURE_KEY;
 const NOTIFICATION_URL = process.env.NOTIFICATION_URL;
 const isFromSquare = (signature, body) => {
     if (!SIGNATURE_KEY || !NOTIFICATION_URL) {
+        console.log("input is invalid");
         return false;
     }
     return square_1.WebhooksHelper.isValidWebhookEventSignature(body, signature, SIGNATURE_KEY, NOTIFICATION_URL);
@@ -40,23 +41,15 @@ const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, voi
         response.end();
         return;
     }
-    console.log("payload is valid. Validating signature");
-    // let bdy = "";
-    // request.setEncoding("utf8");
-    // request.on("data", function (chunk) {
-    //   bdy += chunk;
-    // });
-    // request.on("end", function () {
+    // Validate that this post came from Square
     const signature = request.headers["x-square-hmacsha256-signature"];
-    if (!isFromSquare(signature, body)) {
-        // Signature is invvalid
+    if (!isFromSquare(signature, requestBody)) {
         console.log("signature is invalid");
         response.sendStatus(401);
         response.end();
         return;
     }
     response.end();
-    // });
     console.log("payload is valid.");
     if (webhook.loyaltyProgram) {
         const wasSuccessful = yield (0, LoyaltyService_1.updateLoyaltyFromWebhook)(webhook.merchantId, webhook.loyaltyProgram);

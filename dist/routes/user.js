@@ -9,9 +9,59 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getEnrolledAndPendingLoyalty = exports.getNotificationSettings = exports.updateNotificationSettings = exports.updateDetails = exports.getDetails = exports.updateBusinessNotificationSettings = void 0;
+exports.getEnrolledAndPendingLoyalty = exports.getNotificationSettings = exports.updateNotificationSettings = exports.updateDetails = exports.getDetails = exports.updateBusinessNotificationSettings = exports.addFavorite = exports.deleteFavorite = exports.getFavorites = void 0;
 const UserService_1 = require("../src/services/UserService");
 const Utility_1 = require("../src/utility/Utility");
+const getFavorites = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getFavorites");
+    const { userId } = request.params;
+    const { idsOnly } = request.query;
+    console.log("idsOnly: " + idsOnly);
+    if (!userId || !idsOnly) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    var onlyReturnIds = false;
+    if (idsOnly == "true") {
+        onlyReturnIds = true;
+    }
+    response.send(yield (0, UserService_1.getUserFavorites)(userId, onlyReturnIds));
+});
+exports.getFavorites = getFavorites;
+const deleteFavorite = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside deleteFavorite");
+    const { userId } = request.params;
+    const { locationId } = request.body;
+    if (!userId || !locationId) {
+        response.status(404);
+        response.end();
+        return;
+    }
+    yield (0, UserService_1.deleteUserFavorite)(userId, locationId);
+    response.status(200);
+    response.end();
+});
+exports.deleteFavorite = deleteFavorite;
+const addFavorite = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside addFavorite");
+    const { userId } = request.params;
+    if (!userId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const { locationId } = request.body;
+    if (!locationId) {
+        response.status(400);
+        response.end();
+        return;
+    }
+    const wasSuccessful = yield (0, UserService_1.addUserFavorite)(userId, locationId);
+    response.sendStatus(wasSuccessful ? 200 : 404);
+    response.end();
+});
+exports.addFavorite = addFavorite;
 const updateBusinessNotificationSettings = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateBusinessNotificationSettings");
     const { userId } = request.params;
@@ -195,8 +245,11 @@ const verifyUserCode = (request, response) => __awaiter(void 0, void 0, void 0, 
     response.end();
 });
 module.exports = {
+    addFavorite: exports.addFavorite,
+    deleteFavorite: exports.deleteFavorite,
     getDetails: exports.getDetails,
     getEnrolledAndPendingLoyalty: exports.getEnrolledAndPendingLoyalty,
+    getFavorites: exports.getFavorites,
     getLoyalty,
     getNotificationSettings: exports.getNotificationSettings,
     requestUserPhoneNumberVerification,

@@ -1,8 +1,11 @@
 import { Request, Response } from "express";
 import { getBusinessIdFromAuthToken } from "../src/services/BusinessService";
 import {
+  addUserFavorite,
+  deleteUserFavorite,
   getAllLoyaltyAccounts,
   getUserDetails,
+  getUserFavorites,
   getUserLoyaltyDetails,
   getUserNotificationSettings,
   sendSMSVerification,
@@ -16,6 +19,69 @@ import { AppDataSource } from "../appDataSource";
 import { Business } from "../src/entity/Business";
 import { decryptToken } from "../src/services/EncryptionService";
 import { isBoolean } from "../src/utility/Utility";
+
+export const getFavorites = async (request: Request, response: Response) => {
+  console.log("inside getFavorites");
+
+  const { userId } = request.params;
+  const { idsOnly } = request.query;
+
+  console.log("idsOnly: " + idsOnly);
+
+  if (!userId || !idsOnly) {
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  var onlyReturnIds = false;
+  if (idsOnly == "true") {
+    onlyReturnIds = true;
+  }
+
+  response.send(await getUserFavorites(userId, onlyReturnIds));
+};
+
+export const deleteFavorite = async (request: Request, response: Response) => {
+  console.log("inside deleteFavorite");
+
+  const { userId } = request.params;
+  const { locationId } = request.body;
+
+  if (!userId || !locationId) {
+    response.status(404);
+    response.end();
+    return;
+  }
+
+  await deleteUserFavorite(userId, locationId);
+  response.status(200);
+  response.end();
+};
+
+export const addFavorite = async (request: Request, response: Response) => {
+  console.log("inside addFavorite");
+
+  const { userId } = request.params;
+
+  if (!userId) {
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  const { locationId } = request.body;
+
+  if (!locationId) {
+    response.status(400);
+    response.end();
+    return;
+  }
+
+  const wasSuccessful = await addUserFavorite(userId, locationId);
+  response.sendStatus(wasSuccessful ? 200 : 404);
+  response.end();
+};
 
 export const updateBusinessNotificationSettings = async (
   request: Request,
@@ -290,8 +356,11 @@ const verifyUserCode = async (request: Request, response: Response) => {
 };
 
 module.exports = {
+  addFavorite,
+  deleteFavorite,
   getDetails,
   getEnrolledAndPendingLoyalty,
+  getFavorites,
   getLoyalty,
   getNotificationSettings,
   requestUserPhoneNumberVerification,

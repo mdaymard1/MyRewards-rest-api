@@ -75,6 +75,9 @@ app.post("/user/:userId/details", (0, asyncHandler_1.asyncHandler)(userRoute.upd
 app.get("/user/:userId/enrolledAndPending", (0, asyncHandler_1.asyncHandler)(userRoute.getEnrolledAndPendingLoyalty));
 app.post("/user/requestVerification", (0, asyncHandler_1.asyncHandler)(userRoute.requestUserPhoneNumberVerification));
 app.post("/user/verifyCode", (0, asyncHandler_1.asyncHandler)(userRoute.verifyUserCode));
+app.get("/user/:userId/favorites", (0, asyncHandler_1.asyncHandler)(userRoute.getFavorites));
+app.post("/user/:userId/favorite", (0, asyncHandler_1.asyncHandler)(userRoute.addFavorite));
+app.delete("/user/:userId/favorite", (0, asyncHandler_1.asyncHandler)(userRoute.deleteFavorite));
 /* Locations */
 app.get("/locations", [checkJwt_1.checkJwt, (0, asyncHandler_1.asyncHandler)(businessRoute.getLocations)]);
 app.get("/location/:locationId", [

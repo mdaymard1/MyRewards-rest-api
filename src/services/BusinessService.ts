@@ -97,7 +97,7 @@ export const searchBusiness = async (
 
   const customerJoinClause = appUserId
     ? `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
-    : "";
+    : `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true"`;
 
   const customerSelectClause = appUserId
     ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
@@ -105,7 +105,8 @@ export const searchBusiness = async (
   var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
 
   if (searchTerm) {
-    selectClause += ' AND "businessName" ILIKE \'%' + searchTerm + "%'";
+    selectClause +=
+      ' AND location."businessName" ILIKE \'%' + searchTerm + "%'";
   }
   selectClause += " ORDER BY distance LIMIT ";
 
@@ -526,6 +527,17 @@ const createBusinessLocations = async (
         coordinates: [
           merchantLocation.coordinates?.longitude,
           merchantLocation.coordinates?.latitude,
+        ],
+      };
+    } else {
+      locationPoint = {
+        type: "Point",
+        coordinates: [
+          -122.465683, 37.7407,
+          // 37.7407, -122.465683,
+          // -122.47649, 37.72638,
+          // merchantLocation.coordinates?.longitude,
+          // merchantLocation.coordinates?.latitude,
         ],
       };
     }

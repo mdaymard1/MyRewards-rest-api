@@ -6,11 +6,13 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   Point,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Business } from "./Business";
 import { Customer } from "./Customer";
+import { Favorite } from "./Favorite";
 
 @Entity()
 export class Location extends BaseEntity {
@@ -113,4 +115,8 @@ export class Location extends BaseEntity {
   })
   @JoinColumn({ name: "customerId" })
   customers: Customer[];
+
+  // @OneToOne(() => Favorite)
+  // @JoinColumn()
+  // favorite: Favorite;
 }

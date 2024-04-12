@@ -15,6 +15,7 @@ const Customer_1 = require("./Customer");
 const typeorm_encrypted_1 = require("typeorm-encrypted");
 const encryption_config_1 = require("../../encryption-config");
 const CustomerNotificationPreference_1 = require("./CustomerNotificationPreference");
+const Favorite_1 = require("./Favorite");
 let User = class User extends typeorm_1.BaseEntity {
 };
 exports.User = User;
@@ -75,6 +76,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => CustomerNotificationPreference_1.CustomerNotificationPreference, (customerNotificationPref) => customerNotificationPref.appUser, { eager: true }),
     __metadata("design:type", Array)
 ], User.prototype, "customerNotificationPrefs", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => Favorite_1.Favorite, (favorite) => favorite.appUser, { eager: true }),
+    __metadata("design:type", Array)
+], User.prototype, "favorites", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Index)("user_ref_UNIQUE", ["ref"], {
         unique: true,

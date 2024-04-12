@@ -9,17 +9,76 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyCodeIsValid = exports.sendSMSVerification = exports.updateUserWithDetails = exports.getUserLoyaltyDetails = exports.getAllLoyaltyAccounts = exports.getUserNotificationSettings = exports.updateUserNotificationSettings = exports.updateUserDetails = exports.getUserDetails = exports.insertCustomerNotificationPreference = exports.updateUserBusinessNotificationSettings = void 0;
+exports.verifyCodeIsValid = exports.sendSMSVerification = exports.updateUserWithDetails = exports.getUserLoyaltyDetails = exports.getAllLoyaltyAccounts = exports.getUserNotificationSettings = exports.updateUserNotificationSettings = exports.updateUserDetails = exports.getUserDetails = exports.insertCustomerNotificationPreference = exports.updateUserBusinessNotificationSettings = exports.addUserFavorite = exports.deleteUserFavorite = exports.getUserFavorites = void 0;
 const Utility_1 = require("../utility/Utility");
 const appDataSource_1 = require("../../appDataSource");
 const User_1 = require("../entity/User");
 const Customer_1 = require("../entity/Customer");
+const Favorite_1 = require("../entity/Favorite");
 const Loyalty_1 = require("../entity/Loyalty");
 const Location_1 = require("../entity/Location");
 const MerchantService_1 = require("./MerchantService");
 const LoyaltyRewardTier_1 = require("../entity/LoyaltyRewardTier");
 const EnrollmentRequest_1 = require("../entity/EnrollmentRequest");
 const CustomerNotificationPreference_1 = require("../entity/CustomerNotificationPreference");
+const typeorm_1 = require("typeorm");
+const getUserFavorites = (userId, idsOnly) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside getUserFavorite with idsonly: " + idsOnly);
+    if (idsOnly) {
+        const favoriteIds = yield Favorite_1.Favorite.createQueryBuilder("favorite")
+            .where("favorite.appUserId = :userId", { userId: userId })
+            .getMany();
+        return favoriteIds;
+    }
+    else {
+        const query = `SELECT "favorite"."id" AS "favoriteId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."timezone" AS "timezone", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", "location"."businessId" AS "businessId", "location"."id" AS "locationId", ST_ASTEXT("locationPoint") as "locationpoint" FROM "favorite" "favorite" INNER JOIN "location" "location" ON "location"."id"="favorite"."locationId" WHERE "favorite"."appUserId" = '${userId}'`;
+        const favorites = yield Location_1.Location.query(query);
+        console.log("favorites: " + favorites);
+        return favorites;
+    }
+});
+exports.getUserFavorites = getUserFavorites;
+const deleteUserFavorite = (userId, locationId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside deleteUserFavorite");
+    yield appDataSource_1.AppDataSource.manager.delete(Favorite_1.Favorite, {
+        appUserId: userId,
+        locationId: locationId,
+    });
+    return;
+});
+exports.deleteUserFavorite = deleteUserFavorite;
+const addUserFavorite = (userId, locationId) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside updateUserBusinessNotificationSettings");
+    // Make sure userId is valid
+    const user = yield User_1.User.createQueryBuilder("user")
+        .where("user.id = :userId", { userId: userId })
+        .getOne();
+    if (!user) {
+        return false;
+    }
+    try {
+        const favorite = appDataSource_1.AppDataSource.manager.create(Favorite_1.Favorite, {
+            appUserId: userId,
+            locationId: locationId,
+        });
+        yield appDataSource_1.AppDataSource.manager.save(favorite);
+        if (favorite) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    catch (error) {
+        if (error instanceof typeorm_1.QueryFailedError &&
+            error.message.includes("appUser_locationId_id_UNIQUE")) {
+            console.log("Ignoring duplicate favorite error");
+            return true;
+        }
+        return false;
+    }
+});
+exports.addUserFavorite = addUserFavorite;
 const updateUserBusinessNotificationSettings = (userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside updateUserBusinessNotificationSettings");
     const notificationPref = yield CustomerNotificationPreference_1.CustomerNotificationPreference.createQueryBuilder("notificationPref")
@@ -333,8 +392,11 @@ const updateUser = (ref, firstName, lastName, email) => __awaiter(void 0, void 0
     return "success";
 });
 module.exports = {
+    addUserFavorite: exports.addUserFavorite,
+    deleteUserFavorite: exports.deleteUserFavorite,
     getAllLoyaltyAccounts: exports.getAllLoyaltyAccounts,
     getUserDetails: exports.getUserDetails,
+    getUserFavorites: exports.getUserFavorites,
     getUserLoyaltyDetails: exports.getUserLoyaltyDetails,
     getUserNotificationSettings: exports.getUserNotificationSettings,
     insertCustomerNotificationPreference: exports.insertCustomerNotificationPreference,

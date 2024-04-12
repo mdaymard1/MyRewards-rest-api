@@ -73,6 +73,9 @@ app.post(
   asyncHandler(userRoute.requestUserPhoneNumberVerification)
 );
 app.post("/user/verifyCode", asyncHandler(userRoute.verifyUserCode));
+app.get("/user/:userId/favorites", asyncHandler(userRoute.getFavorites));
+app.post("/user/:userId/favorite", asyncHandler(userRoute.addFavorite));
+app.delete("/user/:userId/favorite", asyncHandler(userRoute.deleteFavorite));
 
 /* Locations */
 app.get("/locations", [checkJwt, asyncHandler(businessRoute.getLocations)]);

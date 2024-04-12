@@ -3,6 +3,7 @@ import { AppDataSource } from "../../appDataSource";
 import { User } from "../entity/User";
 import { Business } from "../entity/Business";
 import { Customer } from "../entity/Customer";
+import { Favorite } from "../entity/Favorite";
 import { Loyalty } from "../entity/Loyalty";
 import { Location } from "../entity/Location";
 import { getAvailableRewardsForLoyaltyBalance } from "./MerchantService";
@@ -11,6 +12,71 @@ import exp from "constants";
 import { EnrollmentRequest } from "../entity/EnrollmentRequest";
 import { Point } from "typeorm";
 import { CustomerNotificationPreference } from "../entity/CustomerNotificationPreference";
+import { QueryFailedError } from "typeorm";
+
+export const getUserFavorites = async (userId: string, idsOnly: boolean) => {
+  console.log("inside getUserFavorite with idsonly: " + idsOnly);
+
+  if (idsOnly) {
+    const favoriteIds = await Favorite.createQueryBuilder("favorite")
+      .where("favorite.appUserId = :userId", { userId: userId })
+      .getMany();
+    return favoriteIds;
+  } else {
+    const query = `SELECT "favorite"."id" AS "favoriteId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."timezone" AS "timezone", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", "location"."businessId" AS "businessId", "location"."id" AS "locationId", ST_ASTEXT("locationPoint") as "locationpoint" FROM "favorite" "favorite" INNER JOIN "location" "location" ON "location"."id"="favorite"."locationId" WHERE "favorite"."appUserId" = '${userId}'`;
+    const favorites = await Location.query(query);
+    console.log("favorites: " + favorites);
+    return favorites;
+  }
+};
+
+export const deleteUserFavorite = async (
+  userId: string,
+  locationId: string
+) => {
+  console.log("inside deleteUserFavorite");
+
+  await AppDataSource.manager.delete(Favorite, {
+    appUserId: userId,
+    locationId: locationId,
+  });
+  return;
+};
+
+export const addUserFavorite = async (userId: string, locationId: string) => {
+  console.log("inside updateUserBusinessNotificationSettings");
+
+  // Make sure userId is valid
+  const user = await User.createQueryBuilder("user")
+    .where("user.id = :userId", { userId: userId })
+    .getOne();
+
+  if (!user) {
+    return false;
+  }
+
+  try {
+    const favorite = AppDataSource.manager.create(Favorite, {
+      appUserId: userId,
+      locationId: locationId,
+    });
+    await AppDataSource.manager.save(favorite);
+    if (favorite) {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    if (
+      error instanceof QueryFailedError &&
+      error.message.includes("appUser_locationId_id_UNIQUE")
+    ) {
+      console.log("Ignoring duplicate favorite error");
+      return true;
+    }
+    return false;
+  }
+};
 
 export const updateUserBusinessNotificationSettings = async (
   userId: string,
@@ -460,8 +526,11 @@ const updateUser = async (
 };
 
 module.exports = {
+  addUserFavorite,
+  deleteUserFavorite,
   getAllLoyaltyAccounts,
   getUserDetails,
+  getUserFavorites,
   getUserLoyaltyDetails,
   getUserNotificationSettings,
   insertCustomerNotificationPreference,

@@ -12,6 +12,7 @@ import { Customer } from "./Customer";
 import { JSONEncryptionTransformer } from "typeorm-encrypted";
 import { EncryptionTransformerConfig } from "../../encryption-config";
 import { CustomerNotificationPreference } from "./CustomerNotificationPreference";
+import { Favorite } from "./Favorite";
 
 @Index("user_ref_UNIQUE", ["ref"], {
   unique: true,
@@ -68,4 +69,7 @@ export class User extends BaseEntity {
     { eager: true }
   )
   customerNotificationPrefs: CustomerNotificationPreference[];
+
+  @OneToMany(() => Favorite, (favorite) => favorite.appUser, { eager: true })
+  favorites: Favorite[];
 }
