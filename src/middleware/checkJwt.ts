@@ -7,6 +7,8 @@ export interface CustomRequest extends Request {
 }
 
 export const checkJwt = (req: Request, res: Response, next: NextFunction) => {
+  console.log("inside checkJwt");
+
   // Get the JWT from the request header.
   const token = <string>req.headers["authorization"];
   let jwtPayload;

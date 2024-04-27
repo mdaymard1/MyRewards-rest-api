@@ -121,6 +121,12 @@ export const createLoyaltyAccount = async (
   };
   const { loyaltyApi } = client;
 
+  console.log(
+    "calling createLoyaltyAccount with body of " +
+      createLoyaltyBody +
+      ", and phone number of " +
+      phoneNumber
+  );
   try {
     let createLoyaltyAccountResponse = await loyaltyApi.createLoyaltyAccount(
       createLoyaltyBody

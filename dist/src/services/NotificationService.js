@@ -25,8 +25,8 @@ const configuration = OneSignal.createConfiguration({
     },
 });
 const client = new OneSignal.DefaultApi(configuration);
-const sendNotifications = (contents, ids, image) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("inside sendNotifications with image: " + image);
+const sendNotifications = (contents, ids, image, deepLink) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("inside sendNotifications with ids: " + ids);
     const notification = new OneSignal.Notification();
     notification.app_id = ONESIGNAL_APP_ID;
     notification.include_external_user_ids = ids;
@@ -36,15 +36,25 @@ const sendNotifications = (contents, ids, image) => __awaiter(void 0, void 0, vo
     notification.contents = {
         en: contents,
     };
-    const response = yield client.createNotification(notification);
-    console.log("response id: " + response.id + "external_id: " + response.external_id);
-    if (response.errors && response.errors.invalid_external_user_ids.length > 0) {
-        console.log("Error sending notifications due to invalid external ids");
-        return null;
+    if (deepLink) {
+        notification.custom_data = { deepLink: deepLink };
+        notification.data = { deepLink: deepLink };
     }
-    else {
-        console.log("notification sent to " + response.recipients + " sent.");
-        return "sent";
+    try {
+        const response = yield client.createNotification(notification);
+        console.log("response id: " + response.id + "external_id: " + response.external_id);
+        if (response.errors &&
+            response.errors.invalid_external_user_ids.length > 0) {
+            console.log("Error sending notifications due to invalid external ids");
+            return null;
+        }
+        else {
+            console.log("notification sent to " + response.recipients + " sent.");
+            return "sent";
+        }
+    }
+    catch (error) {
+        console.log("Error thrown while sending notification: " + error);
     }
 });
 exports.sendNotifications = sendNotifications;

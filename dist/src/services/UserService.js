@@ -97,17 +97,23 @@ const updateUserBusinessNotificationSettings = (userId, businessId, customerId, 
 exports.updateUserBusinessNotificationSettings = updateUserBusinessNotificationSettings;
 const insertCustomerNotificationPreference = (userId, businessId, customerId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside insertCustomerNotificationPreference");
-    const notificationPref = appDataSource_1.AppDataSource.manager.create(CustomerNotificationPreference_1.CustomerNotificationPreference, {
-        appUserId: userId,
-        businessId: businessId,
-        customerId: customerId,
-        notifyOfRewardChanges: notifyOfRewardChanges,
-        notifyOfPromotionChanges: notifyOfPromotionChanges,
-        notifyOfSpecialsChanges: notifyOfSpecialsChanges,
-    });
-    yield appDataSource_1.AppDataSource.manager.save(notificationPref);
-    console.log("notificationPref created");
-    return notificationPref;
+    try {
+        const notificationPref = appDataSource_1.AppDataSource.manager.create(CustomerNotificationPreference_1.CustomerNotificationPreference, {
+            appUserId: userId,
+            businessId: businessId,
+            customerId: customerId,
+            notifyOfRewardChanges: notifyOfRewardChanges,
+            notifyOfPromotionChanges: notifyOfPromotionChanges,
+            notifyOfSpecialsChanges: notifyOfSpecialsChanges,
+        });
+        yield appDataSource_1.AppDataSource.manager.save(notificationPref);
+        console.log("notificationPref created");
+        return notificationPref;
+    }
+    catch (error) {
+        // customer pref already exists, so we can ignore this error
+        return null;
+    }
 });
 exports.insertCustomerNotificationPreference = insertCustomerNotificationPreference;
 const updateCustomerNotificationPreference = (notificationPrefId, notifyOfRewardChanges, notifyOfPromotionChanges, notifyOfSpecialsChanges) => __awaiter(void 0, void 0, void 0, function* () {
@@ -183,13 +189,6 @@ const getUserNotificationSettings = (appUserId) => __awaiter(void 0, void 0, voi
     var _a, _b, _c;
     console.log("inside getUserNotificationSettings");
     const appUser = yield User_1.User.createQueryBuilder("appUser")
-        // .select([
-        //   "appUser.notifyOfNewBusinesses",
-        //   "appUser.notifyOfMyRewardChanges",
-        //   "appUser.notifyOfPointChanges",
-        //   "appUser.zipCode",
-        //   "ST_ASTEXT('appUserId.locationPoint') AS locationPoint",
-        // ])
         .where("appUser.id = :id", { id: appUserId })
         .getOne();
     var latitude;

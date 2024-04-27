@@ -7,6 +7,7 @@ exports.checkJwt = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const index_1 = __importDefault(require("../config/index"));
 const checkJwt = (req, res, next) => {
+    console.log("inside checkJwt");
     // Get the JWT from the request header.
     const token = req.headers["authorization"];
     let jwtPayload;

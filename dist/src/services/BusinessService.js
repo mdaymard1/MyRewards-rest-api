@@ -61,11 +61,11 @@ const searchBusiness = (latitude, longitude, pageNumber, pageSize, searchTerm, a
     const offset = (page - 1) * limit;
     const customerJoinClause = appUserId
         ? `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
-        : `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true"`;
+        : `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true`;
     const customerSelectClause = appUserId
         ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
         : "";
-    var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+    var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", location."phoneNumber", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
     if (searchTerm) {
         selectClause +=
             ' AND location."businessName" ILIKE \'%' + searchTerm + "%'";
@@ -175,7 +175,7 @@ const updateLocationSettingsAndImages = (locationId, showThisLocationInApp, show
 });
 exports.updateLocationSettingsAndImages = updateLocationSettingsAndImages;
 const updateLocationsWithLoyaltySettings = (businessId, merchantLocationIds) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("creating new business");
+    console.log("inside updateLocationsWithLoyaltySettings");
     try {
         const locations = yield Location_1.Location.createQueryBuilder("location")
             .where("location.businessId = :businessId", { businessId: businessId })
@@ -198,12 +198,15 @@ const updateLocationsWithLoyaltySettings = (businessId, merchantLocationIds) => 
                 : location.showLoyaltyInApp == undefined
                     ? true
                     : location.showLoyaltyInApp;
+            // Defaulting showPromotionsInApp to same as show loyalty for now
+            const showPromotionsInApp = showLoyaltyInApp;
             yield appDataSource_1.AppDataSource.manager.update(Location_1.Location, {
                 businessId: businessId,
                 merchantLocationId: location.merchantLocationId,
             }, {
                 showLoyaltyInApp: showLoyaltyInApp,
                 isLoyaltyActive: isLoyaltyActive,
+                showPromotionsInApp: showPromotionsInApp,
             });
         }
         return true;
@@ -411,7 +414,7 @@ const createBusinessLocations = (businessId, merchantId, accessToken) => __await
     }
 });
 const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updateType) => __awaiter(void 0, void 0, void 0, function* () {
-    var _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5;
+    var _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4, _5, _6, _7, _8;
     console.log("inside updateBusinessLocationFromWebhook");
     const business = yield Business_1.Business.createQueryBuilder("business")
         .where("business.merchantId = :merchantId", { merchantId: merchantId })
@@ -430,35 +433,35 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
         console.log("Could not find merchant location");
         return;
     }
-    // let xx = merchantLocation.locationPoint.coordinates
     let hours;
     if ((_r = merchantLocation.businessHours) === null || _r === void 0 ? void 0 : _r.periods) {
         hours = createLocationHours(merchantLocation.businessHours.periods);
     }
     let locationPoint;
-    // if (
-    //   merchantLocation.coordinates?.longitude &&
-    //   merchantLocation.coordinates.latitude
-    // ) {
-    locationPoint = {
-        type: "Point",
-        coordinates: [
-            -122.465683, 37.7407,
-            // 37.7407, -122.465683,
-            // -122.47649, 37.72638,
-            // merchantLocation.coordinates?.longitude,
-            // merchantLocation.coordinates?.latitude,
-        ],
-    };
-    // }
+    if (((_s = merchantLocation.coordinates) === null || _s === void 0 ? void 0 : _s.longitude) &&
+        merchantLocation.coordinates.latitude) {
+        locationPoint = {
+            type: "Point",
+            coordinates: [
+                (_t = merchantLocation.coordinates) === null || _t === void 0 ? void 0 : _t.longitude,
+                (_u = merchantLocation.coordinates) === null || _u === void 0 ? void 0 : _u.latitude,
+            ],
+        };
+    }
+    else {
+        locationPoint = {
+            type: "Point",
+            coordinates: [-122.465683, 37.7407],
+        };
+    }
     if (updateType == "create") {
-        const newLocation = yield insertBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_s = merchantLocation.address) === null || _s === void 0 ? void 0 : _s.addressLine1, (_t = merchantLocation.address) === null || _t === void 0 ? void 0 : _t.addressLine2, (_u = merchantLocation.address) === null || _u === void 0 ? void 0 : _u.locality, (_v = merchantLocation.address) === null || _v === void 0 ? void 0 : _v.administrativeDistrictLevel1, (_w = merchantLocation.address) === null || _w === void 0 ? void 0 : _w.postalCode, (_x = merchantLocation.address) === null || _x === void 0 ? void 0 : _x.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_y = merchantLocation.timezone) !== null && _y !== void 0 ? _y : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+        const newLocation = yield insertBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_v = merchantLocation.address) === null || _v === void 0 ? void 0 : _v.addressLine1, (_w = merchantLocation.address) === null || _w === void 0 ? void 0 : _w.addressLine2, (_x = merchantLocation.address) === null || _x === void 0 ? void 0 : _x.locality, (_y = merchantLocation.address) === null || _y === void 0 ? void 0 : _y.administrativeDistrictLevel1, (_z = merchantLocation.address) === null || _z === void 0 ? void 0 : _z.postalCode, (_0 = merchantLocation.address) === null || _0 === void 0 ? void 0 : _0.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_1 = merchantLocation.timezone) !== null && _1 !== void 0 ? _1 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
         if (newLocation) {
             return true;
         }
     }
     // Either it's an update for insert failed. Either way we'll try to update it
-    const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_z = merchantLocation.address) === null || _z === void 0 ? void 0 : _z.addressLine1, (_0 = merchantLocation.address) === null || _0 === void 0 ? void 0 : _0.addressLine2, (_1 = merchantLocation.address) === null || _1 === void 0 ? void 0 : _1.locality, (_2 = merchantLocation.address) === null || _2 === void 0 ? void 0 : _2.administrativeDistrictLevel1, (_3 = merchantLocation.address) === null || _3 === void 0 ? void 0 : _3.postalCode, (_4 = merchantLocation.address) === null || _4 === void 0 ? void 0 : _4.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_5 = merchantLocation.timezone) !== null && _5 !== void 0 ? _5 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
+    const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_2 = merchantLocation.address) === null || _2 === void 0 ? void 0 : _2.addressLine1, (_3 = merchantLocation.address) === null || _3 === void 0 ? void 0 : _3.addressLine2, (_4 = merchantLocation.address) === null || _4 === void 0 ? void 0 : _4.locality, (_5 = merchantLocation.address) === null || _5 === void 0 ? void 0 : _5.administrativeDistrictLevel1, (_6 = merchantLocation.address) === null || _6 === void 0 ? void 0 : _6.postalCode, (_7 = merchantLocation.address) === null || _7 === void 0 ? void 0 : _7.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_8 = merchantLocation.timezone) !== null && _8 !== void 0 ? _8 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
     console.log("");
     return status;
 });

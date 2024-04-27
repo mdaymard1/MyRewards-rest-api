@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.paginateResponseWithoutTotal = exports.paginateResponse = exports.unobsfucatePhoneNumber = exports.obsfucatePhoneNumber = exports.isBoolean = exports.getMerchantEnvironment = void 0;
 const square_1 = require("square");
 const getMerchantEnvironment = () => {
-    return process.env.NODE_ENV == "production2222"
+    return process.env.NODE_ENV == "production"
         ? square_1.Environment.Production
         : square_1.Environment.Sandbox;
 };

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 import { Environment } from "square";
 
 export const getMerchantEnvironment = () => {
-  return process.env.NODE_ENV == "production2222"
+  return process.env.NODE_ENV == "production"
     ? Environment.Production
     : Environment.Sandbox;
 };

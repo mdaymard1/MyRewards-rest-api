@@ -46,6 +46,7 @@ import { enrollRequest } from "../../routes/loyalty";
 import { CustomerNotificationPreference } from "../entity/CustomerNotificationPreference";
 import {
   sendNotifications,
+  sendMerchantNotifications,
   NotificationChangeType,
 } from "./NotificationService";
 import { string } from "square/dist/types/schema";
@@ -149,7 +150,11 @@ export const getLoyaltyForLocation = async (businessId: string) => {
   const loyalty = await Loyalty.createQueryBuilder("loyalty")
     .leftJoinAndSelect("loyalty.loyaltyAccruals", "loyalty_accrual")
     .leftJoinAndSelect("loyalty.loyaltyRewardTiers", "loyalty_reward_tier")
-    .leftJoinAndSelect("loyalty.promotions", "loyalty_promotions")
+    .leftJoinAndSelect(
+      "loyalty.promotions",
+      "loyalty_promotions",
+      "loyalty_promotions.status = 'ACTIVE'"
+    )
     .select([
       "loyalty.showLoyaltyEnrollmentInApp",
       "loyalty.terminologyOne",
@@ -167,7 +172,7 @@ export const getLoyaltyForLocation = async (businessId: string) => {
       "loyalty_promotions.displayName",
     ])
     .where("loyalty.businessId = :businessId", { businessId: businessId })
-    .andWhere("loyalty_promotions.status = :status", { status: "ACTIVE" })
+    // .andWhere("loyalty_promotions.status = :status", { status: "ACTIVE" })
     .getOne();
 
   if (!loyalty) {
@@ -347,7 +352,12 @@ export const createEnrollmentRequest = async (
   if (lastName) {
     customerName += lastName;
   }
-  await sendEnrollmentNotification(businessId, false, customerName);
+  await sendEnrollmentNotification(
+    businessId,
+    false,
+    customerName,
+    newEnrollmentRequest.id
+  );
 
   return newEnrollmentRequest.id;
 };
@@ -469,7 +479,12 @@ export const enrollCustomerInLoyalty = async (
     if (lastName) {
       customerName += lastName;
     }
-    await sendEnrollmentNotification(businessId, true, customerName);
+    await sendEnrollmentNotification(
+      businessId,
+      true,
+      customerName,
+      customerId ?? undefined
+    );
     return customerId;
   }
 
@@ -483,7 +498,7 @@ export const enrollCustomerInLoyalty = async (
   );
 
   if (appCustomerId) {
-    const notificationPref = await insertCustomerNotificationPreference(
+    await insertCustomerNotificationPreference(
       appUserId,
       businessId,
       appCustomerId,
@@ -512,7 +527,12 @@ export const enrollCustomerInLoyalty = async (
   if (lastName) {
     customerName += lastName;
   }
-  await sendEnrollmentNotification(businessId, true, customerName);
+  await sendEnrollmentNotification(
+    businessId,
+    true,
+    customerName,
+    appCustomerId ?? undefined
+  );
 
   return appCustomerId;
 };
@@ -520,24 +540,32 @@ export const enrollCustomerInLoyalty = async (
 const sendEnrollmentNotification = async (
   businessId: string,
   wasEnrolledDirectly: boolean,
-  customerName?: string
+  customerName?: string,
+  id?: string
 ) => {
   console.log("inside sendEnrollmentNotification");
 
-  // Send notification about loyalty change to subscribed customers
+  // Send notification about loyalty change to subscribed merchant
   const business = await Business.createQueryBuilder("business")
     .where("business.businessId = :businessId", {
       businessId: businessId,
     })
     .getOne();
   if (business) {
+    const locationImage = await getImageOrLogoForBusinessId(businessId);
+
     if (wasEnrolledDirectly && business.notifyWhenCustomerEnrolls) {
       const notificationContents =
         customerName + " has just enrolled in your Loyalty program.";
-      notifyCustomersOfChanges(
-        business?.businessId,
-        NotificationChangeType.Rewards,
-        notificationContents
+
+      var subscriberIds: string[] = [];
+      subscriberIds.push(business.merchantId);
+      const deepLink = "rewardmemerchant://enrolled?customerId=" + id;
+      sendMerchantNotifications(
+        notificationContents,
+        subscriberIds,
+        locationImage,
+        deepLink
       );
     } else {
       if (
@@ -547,10 +575,13 @@ const sendEnrollmentNotification = async (
         const notificationContents =
           customerName +
           " has just requested to enroll in your Loyalty program.";
-        notifyCustomersOfChanges(
-          business?.merchantId,
-          NotificationChangeType.Rewards,
-          notificationContents
+        const deepLink =
+          "rewardmemerchant://requestedEnrollment?enrollmentRequestId=" + id;
+        sendMerchantNotifications(
+          notificationContents,
+          [business.merchantId],
+          locationImage,
+          deepLink
         );
       }
     }
@@ -954,7 +985,13 @@ export const updateLoyaltyAccountFromWebhook = async (
       const businessImage = await getImageOrLogoForBusinessId(
         business.businessId
       );
-      sendNotifications(contents, [customer.appUserId], businessImage);
+      const deepLink = "rewardme://track?locationId=" + customer.locationId;
+      sendNotifications(
+        contents,
+        [customer.appUserId],
+        businessImage,
+        deepLink
+      );
     }
   }
   return true;
@@ -1063,78 +1100,73 @@ export const createAppLoyaltyFromLoyaltyProgram = async (
     return undefined;
   }
 
-  try {
-    const loyalty = AppDataSource.manager.create(Loyalty, {
-      showLoyaltyInApp: true,
-      showPromotionsInApp: true,
-      automaticallyUpdateChangesFromMerchant: true,
-      enrollInSquareLoyaltyDirectly: true,
-      showLoyaltyEnrollmentInApp: true,
-      processLoyaltyAccountWebhookEvents: true,
-      loyaltyStatus: "Active",
-      terminologyOne: loyaltyProgram.terminology?.one,
-      terminologyMany: loyaltyProgram.terminology?.other,
-      businessId: businessId,
-      merchantLoyaltyId: loyaltyProgram.id,
-      createDate: new Date(),
+  const loyalty = AppDataSource.manager.create(Loyalty, {
+    showLoyaltyInApp: true,
+    showPromotionsInApp: true,
+    automaticallyUpdateChangesFromMerchant: true,
+    enrollInSquareLoyaltyDirectly: true,
+    showLoyaltyEnrollmentInApp: true,
+    processLoyaltyAccountWebhookEvents: true,
+    loyaltyStatus: "Active",
+    terminologyOne: loyaltyProgram.terminology?.one,
+    terminologyMany: loyaltyProgram.terminology?.other,
+    businessId: businessId,
+    merchantLoyaltyId: loyaltyProgram.id,
+    createDate: new Date(),
+  });
+  await AppDataSource.manager.save(loyalty);
+
+  console.log("created new loyalty with id: " + loyalty.id);
+
+  const loyaltyId = loyalty.id;
+
+  let loyaltyUsesCatalogItems = false;
+
+  if (loyaltyProgram.accrualRules) {
+    loyaltyProgram.accrualRules.forEach(async function (loyaltyAccrualRule) {
+      const accr = await createAccrual(
+        loyaltyAccrualRule,
+        catalogItemNameMap,
+        loyaltyProgram.terminology!,
+        loyaltyId
+      );
+      if (
+        loyaltyAccrualRule.accrualType == "CATEGORY" ||
+        loyaltyAccrualRule.accrualType == "ITEM_VARIATION"
+      )
+        loyaltyUsesCatalogItems = true;
     });
-    await AppDataSource.manager.save(loyalty);
+  }
 
-    console.log("created new loyalty with id: " + loyalty.id);
-
-    const loyaltyId = loyalty.id;
-
-    let loyaltyUsesCatalogItems = false;
-
-    if (loyaltyProgram.accrualRules) {
-      loyaltyProgram.accrualRules.forEach(function (loyaltyAccrualRule) {
-        createAccrual(
-          loyaltyAccrualRule,
-          catalogItemNameMap,
+  if (loyaltyProgram.rewardTiers) {
+    loyaltyProgram.rewardTiers.forEach(async function (loyaltyRewardTier) {
+      if (loyaltyRewardTier.id && loyaltyProgram.terminology) {
+        await createRewardTier(
+          loyaltyRewardTier,
           loyaltyProgram.terminology!,
           loyaltyId
         );
-        if (
-          loyaltyAccrualRule.accrualType == "CATEGORY" ||
-          loyaltyAccrualRule.accrualType == "ITEM_VARIATION"
-        )
-          loyaltyUsesCatalogItems = true;
-      });
-    }
-
-    if (loyaltyProgram.rewardTiers) {
-      loyaltyProgram.rewardTiers.forEach(function (loyaltyRewardTier) {
-        if (loyaltyRewardTier.id && loyaltyProgram.terminology) {
-          createRewardTier(
-            loyaltyRewardTier,
-            loyaltyProgram.terminology!,
-            loyaltyId
-          );
-        }
-      });
-    }
-
-    // var promotions: Promotion[] = [];
-    if (loyaltyPromotions) {
-      loyaltyPromotions.forEach(function (loyaltyPromotion) {
-        createPromotion(loyaltyPromotion, loyaltyId);
-      });
-    }
-
-    await updateBusinessLoyaltyCatalogIndicator(
-      businessId,
-      loyaltyUsesCatalogItems
-    );
-
-    const status = await updateLocationsWithLoyaltySettings(
-      businessId,
-      loyaltyProgram.locationIds ?? []
-    );
-    return loyalty;
-  } catch (error) {
-    console.log("Error thrown while creating loyaly program: " + error);
-    return undefined;
+      }
+    });
   }
+
+  // var promotions: Promotion[] = [];
+  if (loyaltyPromotions) {
+    loyaltyPromotions.forEach(function (loyaltyPromotion) {
+      createPromotion(loyaltyPromotion, loyaltyId);
+    });
+  }
+
+  await updateBusinessLoyaltyCatalogIndicator(
+    businessId,
+    loyaltyUsesCatalogItems
+  );
+
+  const status = await updateLocationsWithLoyaltySettings(
+    businessId,
+    loyaltyProgram.locationIds ?? []
+  );
+  return loyalty;
 };
 
 export const updateBusinessLoyaltyCatalogIndicator = async (
@@ -1518,7 +1550,7 @@ const createAccrual = async (
   );
   console.log("ruleValues: " + ruleValues);
 
-  const accrual = await AppDataSource.manager.create(LoyaltyAccrual, {
+  const accrual = AppDataSource.manager.create(LoyaltyAccrual, {
     loyaltyId: loyaltyId,
     accrualType: loyaltyAccrualRule.accrualType,
     categoryId: loyaltyAccrualRule.categoryData?.categoryId,
@@ -1528,6 +1560,7 @@ const createAccrual = async (
   });
   await AppDataSource.manager.save(accrual);
   console.log("just created accral with id:" + accrual.id);
+  return accrual;
 };
 
 const updateAccrual = async (
@@ -2164,12 +2197,19 @@ export const updateAppLoyaltyAccrualsFromMerchant = async (
 };
 
 const accrualIsValid = (accrualType: string, itemName: string | undefined) => {
+  console.log(
+    "inside accrualIsValid. accrualType: + " +
+      accrualType +
+      ", itemName: " +
+      itemName
+  );
   if (
-    (accrualType == "CATEGORY" || "ITEM_VARIATION") &&
+    (accrualType == "CATEGORY" || accrualType == "ITEM_VARIATION") &&
     itemName == undefined
   ) {
     return false;
   }
+  console.log("returning true");
   return true;
 };
 

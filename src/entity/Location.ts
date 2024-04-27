@@ -23,7 +23,7 @@ export class Location extends BaseEntity {
     type: "geography",
     spatialFeatureType: "Point",
     srid: 4326,
-    nullable: true,
+    nullable: false,
   })
   locationPoint: Point;
 

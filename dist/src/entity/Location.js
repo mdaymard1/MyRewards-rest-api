@@ -25,7 +25,7 @@ __decorate([
         type: "geography",
         spatialFeatureType: "Point",
         srid: 4326,
-        nullable: true,
+        nullable: false,
     }),
     __metadata("design:type", Object)
 ], Location.prototype, "locationPoint", void 0);

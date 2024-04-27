@@ -90,6 +90,10 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
         idempotencyKey: idempotencyKey,
     };
     const { loyaltyApi } = client;
+    console.log("calling createLoyaltyAccount with body of " +
+        createLoyaltyBody +
+        ", and phone number of " +
+        phoneNumber);
     try {
         let createLoyaltyAccountResponse = yield loyaltyApi.createLoyaltyAccount(createLoyaltyBody);
         if (createLoyaltyAccountResponse) {

@@ -124,21 +124,25 @@ export const insertCustomerNotificationPreference = async (
   notifyOfSpecialsChanges: boolean
 ) => {
   console.log("inside insertCustomerNotificationPreference");
-
-  const notificationPref = AppDataSource.manager.create(
-    CustomerNotificationPreference,
-    {
-      appUserId: userId,
-      businessId: businessId,
-      customerId: customerId,
-      notifyOfRewardChanges: notifyOfRewardChanges,
-      notifyOfPromotionChanges: notifyOfPromotionChanges,
-      notifyOfSpecialsChanges: notifyOfSpecialsChanges,
-    }
-  );
-  await AppDataSource.manager.save(notificationPref);
-  console.log("notificationPref created");
-  return notificationPref;
+  try {
+    const notificationPref = AppDataSource.manager.create(
+      CustomerNotificationPreference,
+      {
+        appUserId: userId,
+        businessId: businessId,
+        customerId: customerId,
+        notifyOfRewardChanges: notifyOfRewardChanges,
+        notifyOfPromotionChanges: notifyOfPromotionChanges,
+        notifyOfSpecialsChanges: notifyOfSpecialsChanges,
+      }
+    );
+    await AppDataSource.manager.save(notificationPref);
+    console.log("notificationPref created");
+    return notificationPref;
+  } catch (error) {
+    // customer pref already exists, so we can ignore this error
+    return null;
+  }
 };
 
 const updateCustomerNotificationPreference = async (
@@ -164,7 +168,7 @@ const updateCustomerNotificationPreference = async (
 };
 
 export const getUserDetails = async (userId: string) => {
-  console.log("inside updateUserDetails");
+  console.log("inside getUserDetails");
 
   const user = await User.createQueryBuilder("appUser")
     .where("appUser.id = :id", { id: userId })
@@ -250,13 +254,6 @@ export const getUserNotificationSettings = async (appUserId: string) => {
   console.log("inside getUserNotificationSettings");
 
   const appUser = await User.createQueryBuilder("appUser")
-    // .select([
-    //   "appUser.notifyOfNewBusinesses",
-    //   "appUser.notifyOfMyRewardChanges",
-    //   "appUser.notifyOfPointChanges",
-    //   "appUser.zipCode",
-    //   "ST_ASTEXT('appUserId.locationPoint') AS locationPoint",
-    // ])
     .where("appUser.id = :id", { id: appUserId })
     .getOne();
 

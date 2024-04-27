@@ -97,12 +97,12 @@ export const searchBusiness = async (
 
   const customerJoinClause = appUserId
     ? `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true LEFT OUTER JOIN customer ON location."businessId" = customer."businessId" and customer."ref" = (select ref from "user" where id = '${appUserId}') LEFT OUTER JOIN enrollment_request ON location."businessId" = enrollment_request."businessId" and enrollment_request."ref" = (select ref from "user" where id = '${appUserId}')`
-    : `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true"`;
+    : `INNER JOIN business ON location."businessId" = business."businessId" AND business."showInApp" = true`;
 
   const customerSelectClause = appUserId
     ? `, customer."balance", customer."lifetimePoints", customer."enrolledAt", customer."locationId" as enrolledLocationId, enrollment_request."enrollRequestedAt"`
     : "";
-  var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
+  var selectClause = `SELECT business."showInApp", business."showSpecials", location."id" as "locationId", location."name", location."businessName", "description", location."phoneNumber", "addressLine1", "addressLine2", "city", "state", "zipCode", "phoneNumber", "hoursOfOperation", "businessEmail", location."businessId", "merchantLocationId", "isLoyaltyActive", "showLoyaltyInApp", "showPromotionsInApp", "firstImageUrl", "secondImageUrl", "logoUrl", "fullFormatLogoUrl", ST_ASTEXT("locationPoint") AS locationPoint, "timezone", ST_Distance(ST_MakePoint(${longitude}, ${latitude} )::geography, "locationPoint"::geography) / 1600 AS distance ${customerSelectClause} FROM location ${customerJoinClause} WHERE "status" = \'ACTIVE\' AND "showThisLocationInApp" = true `;
 
   if (searchTerm) {
     selectClause +=
@@ -241,7 +241,7 @@ export const updateLocationsWithLoyaltySettings = async (
   businessId: string,
   merchantLocationIds: string[]
 ) => {
-  console.log("creating new business");
+  console.log("inside updateLocationsWithLoyaltySettings");
 
   try {
     const locations = await Location.createQueryBuilder("location")
@@ -267,6 +267,10 @@ export const updateLocationsWithLoyaltySettings = async (
           : location.showLoyaltyInApp == undefined
           ? true
           : location.showLoyaltyInApp;
+
+      // Defaulting showPromotionsInApp to same as show loyalty for now
+      const showPromotionsInApp = showLoyaltyInApp;
+
       await AppDataSource.manager.update(
         Location,
         {
@@ -276,6 +280,7 @@ export const updateLocationsWithLoyaltySettings = async (
         {
           showLoyaltyInApp: showLoyaltyInApp,
           isLoyaltyActive: isLoyaltyActive,
+          showPromotionsInApp: showPromotionsInApp,
         }
       );
     }
@@ -594,8 +599,6 @@ export const updateBusinessLocationFromWebhook = async (
     return;
   }
 
-  // let xx = merchantLocation.locationPoint.coordinates
-
   let hours:
     | { dayOfWeek: string; startLocalTime: string; endLocalTime: string }[]
     | undefined;
@@ -604,22 +607,23 @@ export const updateBusinessLocationFromWebhook = async (
   }
 
   let locationPoint: Point | undefined;
-
-  // if (
-  //   merchantLocation.coordinates?.longitude &&
-  //   merchantLocation.coordinates.latitude
-  // ) {
-  locationPoint = {
-    type: "Point",
-    coordinates: [
-      -122.465683, 37.7407,
-      // 37.7407, -122.465683,
-      // -122.47649, 37.72638,
-      // merchantLocation.coordinates?.longitude,
-      // merchantLocation.coordinates?.latitude,
-    ],
-  };
-  // }
+  if (
+    merchantLocation.coordinates?.longitude &&
+    merchantLocation.coordinates.latitude
+  ) {
+    locationPoint = {
+      type: "Point",
+      coordinates: [
+        merchantLocation.coordinates?.longitude,
+        merchantLocation.coordinates?.latitude,
+      ],
+    };
+  } else {
+    locationPoint = {
+      type: "Point",
+      coordinates: [-122.465683, 37.7407],
+    };
+  }
 
   if (updateType == "create") {
     const newLocation = await insertBusinessLocation(
@@ -815,6 +819,8 @@ const insertBusinessLocation = async (
       timezone: timezone,
       logoUrl: logUrl,
       fullFormatLogoUrl: fullFormatLogoUrl,
+      showLoyaltyInApp: status == "ACTIVE",
+      showPromotionsInApp: status == "ACTIVE",
     });
     await AppDataSource.manager.save(location);
     console.log(
