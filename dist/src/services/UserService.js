@@ -128,7 +128,7 @@ const updateCustomerNotificationPreference = (notificationPrefId, notifyOfReward
     return updatedPref;
 });
 const getUserDetails = (userId) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("inside updateUserDetails");
+    console.log("inside getUserDetails");
     const user = yield User_1.User.createQueryBuilder("appUser")
         .where("appUser.id = :id", { id: userId })
         .getOne();

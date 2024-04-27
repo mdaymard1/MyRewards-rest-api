@@ -342,17 +342,17 @@ const sendEnrollmentNotification = (businessId, wasEnrolledDirectly, customerNam
         if (wasEnrolledDirectly && business.notifyWhenCustomerEnrolls) {
             const notificationContents = customerName + " has just enrolled in your Loyalty program.";
             var subscriberIds = [];
-            subscriberIds.push(business.businessId);
-            const deepLink = "rewardme://enrolled?customerId=" + id;
-            (0, NotificationService_1.sendNotifications)(notificationContents, subscriberIds, locationImage, deepLink);
+            subscriberIds.push(business.merchantId);
+            const deepLink = "rewardmemerchant://enrolled?customerId=" + id;
+            (0, NotificationService_1.sendMerchantNotifications)(notificationContents, subscriberIds, locationImage, deepLink);
         }
         else {
             if (!wasEnrolledDirectly &&
                 business.notifyWhenCustomerRequestsEnrollment) {
                 const notificationContents = customerName +
                     " has just requested to enroll in your Loyalty program.";
-                const deepLink = "rewardme://requestedEnrollment?enrollmentRequestId=" + id;
-                (0, NotificationService_1.sendNotifications)(notificationContents, [business.merchantId], locationImage);
+                const deepLink = "rewardmemerchant://requestedEnrollment?enrollmentRequestId=" + id;
+                (0, NotificationService_1.sendMerchantNotifications)(notificationContents, [business.merchantId], locationImage, deepLink);
             }
         }
     }

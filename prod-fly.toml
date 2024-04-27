@@ -37,19 +37,4 @@ primary_region = 'sjc'
   #DATABASE = "my_rewards_prod" 
   
   NODE_ENV = "development"
-  ENCRYPTION_KEY = "e41c966f21f9e1577802463f8924e6a3fe3e9751f201304213b2f845d8841d61"
-  SIGNATURE_KEY = 'ywljy5P2L63o6pujhH9gDQ'
-  NOTIFICATION_URL = 'https://my-rewards.fly.dev/webhook'
-
-  # Twilio settings for phone number validation
-  TWILIO_ACCOUNT_SID='AC1bbfba608f9718d9230d6e6bc14f9fe7'
-  TWILIO_AUTH_TOKEN='8dcca3a59cf00f3661f0ca3b2edd3a87'
-  VERIFY_SERVICE_SID='VAed9207a297a5e0995db5834fb7b3f1ae'
-
-  # JWT secret
-  JWT_SECRET='AABBCCDDAABBCCDDAABBCCDDAABBCCDDAABBCCDD'
-  JWT_ISSUER='ISSUER'
-  JWT_AUDIENCE='AUDIENCE'
-
-  # API prefix for endpoints
-  API_PREFIX='api'
+  

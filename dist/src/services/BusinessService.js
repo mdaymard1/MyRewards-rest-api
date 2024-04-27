@@ -537,6 +537,8 @@ const insertBusinessLocation = (businessId, merchantLocationId, status, name, bu
             timezone: timezone,
             logoUrl: logUrl,
             fullFormatLogoUrl: fullFormatLogoUrl,
+            showLoyaltyInApp: status == "ACTIVE",
+            showPromotionsInApp: status == "ACTIVE",
         });
         yield appDataSource_1.AppDataSource.manager.save(location);
         console.log("just created business location with id: " + location.merchantLocationId);

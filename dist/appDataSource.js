@@ -28,7 +28,6 @@ exports.AppDataSource = new typeorm_1.DataSource({
     // port: 5432,
     // username: 'admin',
     // password: 'myrewards',
-    database: "postgres",
-    // database: "rewards",
-    // database: "my_rewards_prod",
+    // database: "postgres",
+    database: "rewards",
 });
