@@ -182,14 +182,7 @@ const search = async (request: Request, response: Response) => {
   const searchPhrase: string | undefined = searchTerm as string;
   const userId: string | undefined = appUserId as string;
 
-  console.log(
-    "searchTerm: " +
-      searchTerm +
-      ", searchPhrase: " +
-      searchPhrase +
-      ", appUserId: " +
-      userId
-  );
+  console.log("searchTerm: " + searchTerm + ", searchPhrase: " + searchPhrase);
 
   const results = await searchBusiness(
     lat,
@@ -200,7 +193,7 @@ const search = async (request: Request, response: Response) => {
     userId
   );
   if (results) {
-    console.log("results:" + results);
+    // console.log("results:" + results);
     response.send(results);
   } else {
     response.status(400);
@@ -431,10 +424,6 @@ const createBusiness = async (request: Request, response: Response) => {
     console.log("handling missing businessId");
   }
 
-  console.log("businessId: " + businessId);
-  console.log("accessToken: " + accessToken);
-  console.log("refreshToken: " + refreshToken);
-
   var date: Date | undefined;
   console.log("expirationDate: " + expirationDate);
   if (expirationDate) {
@@ -587,12 +576,6 @@ const updateBusiness = async (request: Request, response: Response) => {
     response.sendStatus(400);
     return;
   }
-
-  console.log("businessId: " + businessId);
-
-  console.log(
-    "firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl
-  );
 
   const wasUpdated: boolean = await updateBusinessDetails(
     businessId,

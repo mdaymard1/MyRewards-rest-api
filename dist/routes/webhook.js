@@ -26,9 +26,9 @@ const isFromSquare = (signature, body) => {
 const handleSquareWebhook = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { body } = request;
     const webhook = new SquareWebhook_1.SquareWebhook(body);
-    console.log("webhook type: " + webhook.type + " for merchant: " + webhook.merchantId);
+    console.log("webhook type: " + webhook.type);
     const requestBody = JSON.stringify(request.body);
-    console.log("requestBody: " + requestBody);
+    // console.log("requestBody: " + requestBody);
     if (!webhook) {
         console.log("webhook payload was empty");
         response.status(200);

@@ -43,7 +43,7 @@ export const sendNotifications = async (
   image?: string,
   deepLink?: string
 ) => {
-  console.log("inside sendNotifications with ids: " + ids);
+  console.log("inside sendNotifications");
 
   const notification = new OneSignal.Notification();
   notification.app_id = ONESIGNAL_APP_ID;
@@ -89,7 +89,7 @@ export const sendMerchantNotifications = async (
   image?: string,
   deepLink?: string
 ) => {
-  console.log("inside sendMerchantNotifications with ids: " + ids);
+  console.log("inside sendMerchantNotifications");
 
   const notification = new OneSignal.Notification();
   notification.app_id = ONESIGNAL_MERCHANT_APP_ID;

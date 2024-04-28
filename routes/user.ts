@@ -26,8 +26,6 @@ export const getFavorites = async (request: Request, response: Response) => {
   const { userId } = request.params;
   const { idsOnly } = request.query;
 
-  console.log("idsOnly: " + idsOnly);
-
   if (!userId || !idsOnly) {
     response.status(400);
     response.end();
@@ -303,8 +301,6 @@ const requestUserPhoneNumberVerification = async (
   console.log("inside requestCustomerPhoneNumberVerification");
 
   const { countryCode, phoneNumber } = request.body;
-
-  console.log("countryCode: " + countryCode + ", phoneNumber: " + phoneNumber);
 
   if (!countryCode || !phoneNumber) {
     response.status(400);

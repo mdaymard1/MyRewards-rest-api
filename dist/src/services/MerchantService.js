@@ -66,11 +66,8 @@ const getAvailableRewardsForLoyaltyBalance = (customerBalance, rewardTiers) => {
 };
 exports.getAvailableRewardsForLoyaltyBalance = getAvailableRewardsForLoyaltyBalance;
 const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __awaiter(void 0, void 0, void 0, function* () {
-    var _b, _c, _d;
-    console.log("inside createLoyaltyAccount with loyaltyProgramId: " +
-        loyaltyProgramId +
-        ", phoneNumber: " +
-        phoneNumber);
+    var _b;
+    console.log("inside createLoyaltyAccount with");
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
         squareVersion: "2024-01-18",
@@ -79,7 +76,6 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
     });
     const crypto = require("crypto");
     let idempotencyKey = crypto.randomUUID();
-    console.log("idempotencyKey: " + idempotencyKey);
     const createLoyaltyBody = {
         loyaltyAccount: {
             programId: loyaltyProgramId,
@@ -90,19 +86,13 @@ const createLoyaltyAccount = (accessToken, loyaltyProgramId, phoneNumber) => __a
         idempotencyKey: idempotencyKey,
     };
     const { loyaltyApi } = client;
-    console.log("calling createLoyaltyAccount with body of " +
-        createLoyaltyBody +
-        ", and phone number of " +
-        phoneNumber);
+    console.log("calling createLoyaltyAccount");
     try {
         let createLoyaltyAccountResponse = yield loyaltyApi.createLoyaltyAccount(createLoyaltyBody);
         if (createLoyaltyAccountResponse) {
-            console.log("just created loyalty account in square. Loyalty account id: " +
-                ((_b = createLoyaltyAccountResponse.result.loyaltyAccount) === null || _b === void 0 ? void 0 : _b.id) +
-                ", customerId: " +
-                ((_c = createLoyaltyAccountResponse.result.loyaltyAccount) === null || _c === void 0 ? void 0 : _c.customerId));
+            console.log("just created loyalty account in square");
         }
-        return (_d = createLoyaltyAccountResponse.result.loyaltyAccount) === null || _d === void 0 ? void 0 : _d.customerId;
+        return (_b = createLoyaltyAccountResponse.result.loyaltyAccount) === null || _b === void 0 ? void 0 : _b.customerId;
     }
     catch (error) {
         if (error instanceof square_1.ApiError) {
@@ -139,8 +129,7 @@ const lookupMerchantCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __aw
         let searchCustomerResponse = yield customersApi.searchCustomers(body);
         if (searchCustomerResponse.result.customers &&
             searchCustomerResponse.result.customers.length > 0) {
-            console.log("found customer with id of " +
-                searchCustomerResponse.result.customers[0].id);
+            console.log("found customer");
             return searchCustomerResponse.result.customers[0].id;
         }
         console.log("customer not found");
@@ -160,7 +149,7 @@ const lookupMerchantCustomerIdByPhoneNumber = (accessToken, phoneNumber) => __aw
 });
 exports.lookupMerchantCustomerIdByPhoneNumber = lookupMerchantCustomerIdByPhoneNumber;
 const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCustomerId, phone, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
-    var _e, _f, _g;
+    var _c, _d, _e;
     console.log("inside upsertMerchantCustomerAccount");
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
@@ -176,9 +165,9 @@ const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCusto
         if (existingCustomer) {
             console.log("found customer account. updating...");
             const body = {
-                givenName: (_e = existingCustomer.givenName) !== null && _e !== void 0 ? _e : firstName,
-                familyName: (_f = existingCustomer.familyName) !== null && _f !== void 0 ? _f : lastName,
-                emailAddress: (_g = existingCustomer.emailAddress) !== null && _g !== void 0 ? _g : email,
+                givenName: (_c = existingCustomer.givenName) !== null && _c !== void 0 ? _c : firstName,
+                familyName: (_d = existingCustomer.familyName) !== null && _d !== void 0 ? _d : lastName,
+                emailAddress: (_e = existingCustomer.emailAddress) !== null && _e !== void 0 ? _e : email,
                 referenceId: appCustomerId,
             };
             let updateCustomerResponse = yield customersApi.updateCustomer(merchantCustomerId, body);
@@ -202,13 +191,10 @@ const upsertMerchantCustomerAccount = (accessToken, merchantCustomerId, appCusto
 });
 exports.upsertMerchantCustomerAccount = upsertMerchantCustomerAccount;
 const getMerchantInfo = (merchantId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
-    var _h, _j, _k;
+    var _f;
     console.log("inside getMerchantInfo");
     var token = "";
     token = (0, EncryptionService_1.decryptToken)(accessToken);
-    console.log("converted encrypted token: " + accessToken + " to " + token);
-    console.log("merchantId: " + merchantId);
-    console.log("process.env.NODE_ENV: " + process.env.NODE_ENV);
     const env = (0, Utility_1.getMerchantEnvironment)();
     console.log("env: " + env);
     const client = new square_1.Client({
@@ -219,8 +205,8 @@ const getMerchantInfo = (merchantId, accessToken) => __awaiter(void 0, void 0, v
     const { merchantsApi } = client;
     try {
         const merchantResponse = yield merchantsApi.retrieveMerchant(merchantId);
-        if ((_h = merchantResponse === null || merchantResponse === void 0 ? void 0 : merchantResponse.result) === null || _h === void 0 ? void 0 : _h.merchant) {
-            console.log("returning merchant for id: " + ((_k = (_j = merchantResponse === null || merchantResponse === void 0 ? void 0 : merchantResponse.result) === null || _j === void 0 ? void 0 : _j.merchant) === null || _k === void 0 ? void 0 : _k.id));
+        if ((_f = merchantResponse === null || merchantResponse === void 0 ? void 0 : merchantResponse.result) === null || _f === void 0 ? void 0 : _f.merchant) {
+            console.log("returning merchant");
             return merchantResponse.result.merchant;
         }
         else {
@@ -256,7 +242,6 @@ const getMerchantLocations = (merchantId, accessToken) => __awaiter(void 0, void
 });
 exports.getMerchantLocations = getMerchantLocations;
 const getMerchantLocation = (merchantLocationId, accessToken) => __awaiter(void 0, void 0, void 0, function* () {
-    var _l;
     console.log("inside getMerchantLocation");
     const env = (0, Utility_1.getMerchantEnvironment)();
     console.log("env: " + env);
@@ -268,7 +253,7 @@ const getMerchantLocation = (merchantLocationId, accessToken) => __awaiter(void 
     const { locationsApi } = client;
     try {
         const listLocationsResponse = yield locationsApi.retrieveLocation(merchantLocationId);
-        console.log("Returning location with id: " + ((_l = listLocationsResponse.result.location) === null || _l === void 0 ? void 0 : _l.id));
+        console.log("Returning location");
         return listLocationsResponse.result.location;
     }
     catch (error) {
@@ -278,7 +263,7 @@ const getMerchantLocation = (merchantLocationId, accessToken) => __awaiter(void 
 });
 exports.getMerchantLocation = getMerchantLocation;
 const getMerchantsMainLoyaltyProgram = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    var _m;
+    var _g;
     console.log("inside getMerchantsMainLoyaltyProgram");
     dotenv_1.default.config();
     const env = (0, Utility_1.getMerchantEnvironment)();
@@ -290,8 +275,8 @@ const getMerchantsMainLoyaltyProgram = (token) => __awaiter(void 0, void 0, void
     const { catalogApi, loyaltyApi } = client;
     try {
         const loyaltyProgramResponse = yield loyaltyApi.retrieveLoyaltyProgram("main");
-        console.log("response: " + (loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result));
-        return (_m = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _m === void 0 ? void 0 : _m.program;
+        console.log("returning loyalty");
+        return (_g = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _g === void 0 ? void 0 : _g.program;
     }
     catch (error) {
         console.log("Error thrown in getMerchantsMainLoyaltyProgram: " + error);
@@ -299,8 +284,8 @@ const getMerchantsMainLoyaltyProgram = (token) => __awaiter(void 0, void 0, void
     }
 });
 const getMainLoyaltyProgramFromMerchant = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    var _o, _p, _q;
-    console.log("token: " + token);
+    var _h, _j, _k;
+    console.log("inside getMainLoyaltyProgramFromMerchant");
     dotenv_1.default.config();
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
@@ -311,24 +296,21 @@ const getMainLoyaltyProgramFromMerchant = (token) => __awaiter(void 0, void 0, v
     const { catalogApi, loyaltyApi } = client;
     try {
         const loyaltyProgramResponse = yield loyaltyApi.retrieveLoyaltyProgram("main");
-        console.log("response: " + (loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result));
-        const program = (_o = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _o === void 0 ? void 0 : _o.program;
+        const program = (_h = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _h === void 0 ? void 0 : _h.program;
         if (!program) {
             return undefined;
         }
-        console.log("program id: " + program.id);
         var promotions = [];
         let promotionsResponse = yield loyaltyApi.listLoyaltyPromotions(program.id, "ACTIVE");
-        console.log("response: " + (promotionsResponse === null || promotionsResponse === void 0 ? void 0 : promotionsResponse.result));
         if (!promotionsResponse) {
             return undefined;
         }
-        if ((_p = promotionsResponse.result) === null || _p === void 0 ? void 0 : _p.loyaltyPromotions) {
+        if ((_j = promotionsResponse.result) === null || _j === void 0 ? void 0 : _j.loyaltyPromotions) {
             promotions = promotionsResponse.result.loyaltyPromotions;
         }
         let scheduledPromotionsResponse = yield loyaltyApi.listLoyaltyPromotions(program.id, "SCHEDULED");
-        console.log("scheduledPromotionsResponse: " + (scheduledPromotionsResponse === null || scheduledPromotionsResponse === void 0 ? void 0 : scheduledPromotionsResponse.result));
-        if ((_q = scheduledPromotionsResponse.result) === null || _q === void 0 ? void 0 : _q.loyaltyPromotions) {
+        console.log("scheduledPromotionsResponse");
+        if ((_k = scheduledPromotionsResponse.result) === null || _k === void 0 ? void 0 : _k.loyaltyPromotions) {
             scheduledPromotionsResponse.result.loyaltyPromotions.forEach(function (promo) {
                 promotions.push(promo);
             });
@@ -373,7 +355,7 @@ const getMainLoyaltyProgramFromMerchant = (token) => __awaiter(void 0, void 0, v
 });
 exports.getMainLoyaltyProgramFromMerchant = getMainLoyaltyProgramFromMerchant;
 const getCatalogItemIdMapFromAccurals = (token, accrualRules) => __awaiter(void 0, void 0, void 0, function* () {
-    var _r, _s, _t, _u, _v, _w;
+    var _l, _m, _o, _p, _q;
     console.log("inside getCatalogItemIdMapFromAccurals");
     var catalogItemIds = [];
     var itemNameMap = new Map();
@@ -381,18 +363,12 @@ const getCatalogItemIdMapFromAccurals = (token, accrualRules) => __awaiter(void 
     console.log("accrualRules size: " + accrualRules.length);
     // Loop through each accrual rule to determine its type
     for (var accrualRule of accrualRules) {
-        console.log(accrualRule.accrualType +
-            ", categoryId: " +
-            ((_r = accrualRule.categoryData) === null || _r === void 0 ? void 0 : _r.categoryId));
         if (accrualRule.accrualType == "CATEGORY" &&
-            ((_s = accrualRule.categoryData) === null || _s === void 0 ? void 0 : _s.categoryId)) {
+            ((_l = accrualRule.categoryData) === null || _l === void 0 ? void 0 : _l.categoryId)) {
             catalogItemIds.push(accrualRule.categoryData.categoryId);
-            console.log("adding categoryId: " +
-                accrualRule.categoryData.categoryId +
-                " to lookup list");
         }
         else if (accrualRule.accrualType == "ITEM_VARIATION" &&
-            ((_t = accrualRule.itemVariationData) === null || _t === void 0 ? void 0 : _t.itemVariationId)) {
+            ((_m = accrualRule.itemVariationData) === null || _m === void 0 ? void 0 : _m.itemVariationId)) {
             catalogItemIds.push(accrualRule.itemVariationData.itemVariationId);
             variantItemMap.set(accrualRule.itemVariationData.itemVariationId, accrualRule.itemVariationData.itemVariationId);
             console.log("adding itemId: " +
@@ -417,12 +393,12 @@ const getCatalogItemIdMapFromAccurals = (token, accrualRules) => __awaiter(void 
             includeDeletedObjects: false,
         };
         var categoryResults = yield catalogApi.batchRetrieveCatalogObjects(body);
-        if ((_u = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _u === void 0 ? void 0 : _u.objects) {
-            (_v = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _v === void 0 ? void 0 : _v.objects.forEach(function (catalogObject) {
+        if ((_o = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _o === void 0 ? void 0 : _o.objects) {
+            (_p = categoryResults === null || categoryResults === void 0 ? void 0 : categoryResults.result) === null || _p === void 0 ? void 0 : _p.objects.forEach(function (catalogObject) {
                 var _a;
                 if (catalogObject.type == "CATEGORY" &&
                     ((_a = catalogObject.categoryData) === null || _a === void 0 ? void 0 : _a.name)) {
-                    console.log("received a category back: " + catalogObject.categoryData.name);
+                    console.log("received a category back");
                     itemNameMap.set(catalogObject.id, catalogObject.categoryData.name);
                 }
             });
@@ -433,12 +409,12 @@ const getCatalogItemIdMapFromAccurals = (token, accrualRules) => __awaiter(void 
         if (categoryResults.result.relatedObjects) {
             for (var relatedObject of categoryResults.result.relatedObjects) {
                 if (relatedObject.type == "ITEM" &&
-                    ((_w = relatedObject.itemData) === null || _w === void 0 ? void 0 : _w.variations)) {
+                    ((_q = relatedObject.itemData) === null || _q === void 0 ? void 0 : _q.variations)) {
                     for (var variant of relatedObject.itemData.variations) {
                         const variantFromMap = variantItemMap.get(variant.id);
                         if (variantFromMap) {
                             if (relatedObject.itemData.name) {
-                                console.log("received an item back: " + relatedObject.itemData.name);
+                                console.log("received an item back");
                                 itemNameMap.set(variant.id, relatedObject.itemData.name);
                             }
                         }

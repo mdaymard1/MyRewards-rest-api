@@ -13,8 +13,6 @@ export const checkJwt = (req: Request, res: Response, next: NextFunction) => {
   const token = <string>req.headers["authorization"];
   let jwtPayload;
 
-  console.log("token: " + token);
-
   // Validate the token and retrieve its data.
   try {
     // Verify the payload fields.
@@ -30,7 +28,6 @@ export const checkJwt = (req: Request, res: Response, next: NextFunction) => {
     // Add the payload to the request so controllers may access it.
     console.log("jwt token validated");
     (req as CustomRequest).token = jwtPayload;
-    console.log("jwt token " + (req as CustomRequest).token.payload.merchantId);
   } catch (error) {
     console.log("Error thrown while verifying jwt token: " + error);
     res

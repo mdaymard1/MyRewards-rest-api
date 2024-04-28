@@ -213,9 +213,6 @@ export const updateLocationSettingsAndImages = async (
     if (!location) {
       return false;
     }
-    console.log(
-      "firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl
-    );
     await AppDataSource.manager.update(
       Location,
       {
@@ -400,9 +397,7 @@ export const createBusinessFromMerchantInfo = async (
       refreshToken,
       expirationDate
     );
-    console.log(
-      "returned from createBusinessEntity with business: " + business
-    );
+    console.log("returned from createBusinessEntity");
     if (business) {
       const wereLocationsCreated = await createBusinessLocations(
         business.businessId,
@@ -448,7 +443,7 @@ const createBusinessEntity = async (
     lastUpdateDate: new Date(),
   });
   await AppDataSource.manager.save(business);
-  console.log("just created business with id: " + business.businessId);
+  console.log("just created business");
   return business;
 };
 
@@ -673,7 +668,6 @@ export const updateBusinessLocationFromWebhook = async (
     merchantLocation.logoUrl,
     merchantLocation.fullFormatLogoUrl
   );
-  console.log("");
   return status;
 };
 
@@ -700,14 +694,7 @@ const updateBusinessLocation = async (
   logUrl?: string | undefined,
   fullFormatLogoUrl?: string | undefined
 ) => {
-  console.log(
-    "inside updateBusinessLocation with merchantLocationId: " +
-      merchantLocationId +
-      ", businessId: " +
-      businessId +
-      ", locationPoint: " +
-      locationPoint?.coordinates
-  );
+  console.log("inside updateBusinessLocation");
 
   try {
     const result = await AppDataSource.manager.update(
@@ -823,9 +810,7 @@ const insertBusinessLocation = async (
       showPromotionsInApp: status == "ACTIVE",
     });
     await AppDataSource.manager.save(location);
-    console.log(
-      "just created business location with id: " + location.merchantLocationId
-    );
+    console.log("just created business location");
     return location;
   } catch (error) {
     console.log("Errow thrown while creating business location: " + error);
@@ -852,7 +837,7 @@ export const updateBusinessEntity = async (
       accessTokenExpirationDate: expirationDate,
     }
   );
-  console.log("just updated business with id: " + business.businessId);
+  console.log("just updated business");
   return business;
 };
 
@@ -886,10 +871,6 @@ export const updateBusinessDetails = async (
     }
 
     const lastUpdate = new Date(lastUpdateDate);
-
-    console.log(
-      "firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl
-    );
 
     // Now update its values
     AppDataSource.manager.update(

@@ -26,4 +26,5 @@ primary_region = "sjc"
   USERNAME = "postgres"
   PASSWORD = "BffCZMdZQ7ZLvxg"
   DATABASE = "postgres" 
-  NODE_ENV = "development"
+  NODE_ENV = "production"
+ 

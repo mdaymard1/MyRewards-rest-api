@@ -11,7 +11,6 @@ const checkJwt = (req, res, next) => {
     // Get the JWT from the request header.
     const token = req.headers["authorization"];
     let jwtPayload;
-    console.log("token: " + token);
     // Validate the token and retrieve its data.
     try {
         // Verify the payload fields.
@@ -27,7 +26,6 @@ const checkJwt = (req, res, next) => {
         // Add the payload to the request so controllers may access it.
         console.log("jwt token validated");
         req.token = jwtPayload;
-        console.log("jwt token " + req.token.payload.merchantId);
     }
     catch (error) {
         console.log("Error thrown while verifying jwt token: " + error);

@@ -33,24 +33,6 @@ export function paginateResponse(data: any, page: number, limit: number) {
   const lastPage = Math.ceil(total / limit);
   const nextPage = page + 1 > lastPage ? null : page + 1;
   const prevPage = page - 1 < 1 ? null : page - 1;
-  console.log(
-    "inside paginateResponse with data: " +
-      data +
-      ", page:" +
-      page +
-      ", limit: " +
-      limit
-  );
-  console.log(
-    "total: " +
-      total +
-      ", nextPage: " +
-      nextPage +
-      ", prevPage: " +
-      prevPage +
-      ", lastPage: " +
-      lastPage
-  );
   return {
     statusCode: "success",
     data: [...result],
@@ -71,24 +53,6 @@ export function paginateResponseWithoutTotal(
   const lastPage = Math.ceil(total / limit);
   const nextPage = page + 1 > lastPage ? null : page + 1;
   const prevPage = page - 1 < 1 ? null : page - 1;
-  console.log(
-    "inside paginateResponse with data: " +
-      data +
-      ", page:" +
-      page +
-      ", limit: " +
-      limit
-  );
-  console.log(
-    "total: " +
-      total +
-      ", nextPage: " +
-      nextPage +
-      ", prevPage: " +
-      prevPage +
-      ", lastPage: " +
-      lastPage
-  );
   return {
     statusCode: "success",
     // data: [...result],

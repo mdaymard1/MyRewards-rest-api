@@ -91,12 +91,7 @@ export const createLoyaltyAccount = async (
   loyaltyProgramId: string,
   phoneNumber: string
 ) => {
-  console.log(
-    "inside createLoyaltyAccount with loyaltyProgramId: " +
-      loyaltyProgramId +
-      ", phoneNumber: " +
-      phoneNumber
-  );
+  console.log("inside createLoyaltyAccount with");
 
   const env = getMerchantEnvironment();
 
@@ -109,7 +104,6 @@ export const createLoyaltyAccount = async (
   const crypto = require("crypto");
 
   let idempotencyKey = crypto.randomUUID();
-  console.log("idempotencyKey: " + idempotencyKey);
   const createLoyaltyBody: CreateLoyaltyAccountRequest = {
     loyaltyAccount: {
       programId: loyaltyProgramId,
@@ -121,23 +115,13 @@ export const createLoyaltyAccount = async (
   };
   const { loyaltyApi } = client;
 
-  console.log(
-    "calling createLoyaltyAccount with body of " +
-      createLoyaltyBody +
-      ", and phone number of " +
-      phoneNumber
-  );
+  console.log("calling createLoyaltyAccount");
   try {
     let createLoyaltyAccountResponse = await loyaltyApi.createLoyaltyAccount(
       createLoyaltyBody
     );
     if (createLoyaltyAccountResponse) {
-      console.log(
-        "just created loyalty account in square. Loyalty account id: " +
-          createLoyaltyAccountResponse.result.loyaltyAccount?.id +
-          ", customerId: " +
-          createLoyaltyAccountResponse.result.loyaltyAccount?.customerId
-      );
+      console.log("just created loyalty account in square");
     }
     return createLoyaltyAccountResponse.result.loyaltyAccount?.customerId;
   } catch (error) {
@@ -184,10 +168,7 @@ export const lookupMerchantCustomerIdByPhoneNumber = async (
       searchCustomerResponse.result.customers &&
       searchCustomerResponse.result.customers.length > 0
     ) {
-      console.log(
-        "found customer with id of " +
-          searchCustomerResponse.result.customers[0].id
-      );
+      console.log("found customer");
       return searchCustomerResponse.result.customers[0].id;
     }
     console.log("customer not found");
@@ -268,10 +249,6 @@ export const getMerchantInfo = async (
   var token: string | undefined = "";
   token = decryptToken(accessToken);
 
-  console.log("converted encrypted token: " + accessToken + " to " + token);
-  console.log("merchantId: " + merchantId);
-  console.log("process.env.NODE_ENV: " + process.env.NODE_ENV);
-
   const env = getMerchantEnvironment();
 
   console.log("env: " + env);
@@ -286,9 +263,7 @@ export const getMerchantInfo = async (
   try {
     const merchantResponse = await merchantsApi.retrieveMerchant(merchantId);
     if (merchantResponse?.result?.merchant) {
-      console.log(
-        "returning merchant for id: " + merchantResponse?.result?.merchant?.id
-      );
+      console.log("returning merchant");
       return merchantResponse.result.merchant;
     } else {
       return undefined;
@@ -351,9 +326,7 @@ export const getMerchantLocation = async (
     const listLocationsResponse = await locationsApi.retrieveLocation(
       merchantLocationId
     );
-    console.log(
-      "Returning location with id: " + listLocationsResponse.result.location?.id
-    );
+    console.log("Returning location");
     return listLocationsResponse.result.location;
   } catch (error) {
     console.log("locationsApi.retrieveLocation returned an error: " + error);
@@ -380,7 +353,7 @@ const getMerchantsMainLoyaltyProgram = async (token: string) => {
     const loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
       "main"
     );
-    console.log("response: " + loyaltyProgramResponse?.result);
+    console.log("returning loyalty");
 
     return loyaltyProgramResponse?.result?.program;
   } catch (error) {
@@ -390,7 +363,7 @@ const getMerchantsMainLoyaltyProgram = async (token: string) => {
 };
 
 export const getMainLoyaltyProgramFromMerchant = async (token: string) => {
-  console.log("token: " + token);
+  console.log("inside getMainLoyaltyProgramFromMerchant");
 
   dotenv.config();
 
@@ -408,14 +381,12 @@ export const getMainLoyaltyProgramFromMerchant = async (token: string) => {
     const loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
       "main"
     );
-    console.log("response: " + loyaltyProgramResponse?.result);
 
     const program = loyaltyProgramResponse?.result?.program;
 
     if (!program) {
       return undefined;
     }
-    console.log("program id: " + program.id);
 
     var promotions: LoyaltyPromotion[] = [];
 
@@ -423,7 +394,6 @@ export const getMainLoyaltyProgramFromMerchant = async (token: string) => {
       program.id!,
       "ACTIVE"
     );
-    console.log("response: " + promotionsResponse?.result);
 
     if (!promotionsResponse) {
       return undefined;
@@ -435,9 +405,7 @@ export const getMainLoyaltyProgramFromMerchant = async (token: string) => {
       program.id!,
       "SCHEDULED"
     );
-    console.log(
-      "scheduledPromotionsResponse: " + scheduledPromotionsResponse?.result
-    );
+    console.log("scheduledPromotionsResponse");
     if (scheduledPromotionsResponse.result?.loyaltyPromotions) {
       scheduledPromotionsResponse.result!.loyaltyPromotions.forEach(function (
         promo
@@ -502,21 +470,11 @@ export const getCatalogItemIdMapFromAccurals = async (
 
   // Loop through each accrual rule to determine its type
   for (var accrualRule of accrualRules) {
-    console.log(
-      accrualRule.accrualType +
-        ", categoryId: " +
-        accrualRule.categoryData?.categoryId
-    );
     if (
       accrualRule.accrualType == "CATEGORY" &&
       accrualRule.categoryData?.categoryId
     ) {
       catalogItemIds.push(accrualRule.categoryData!.categoryId);
-      console.log(
-        "adding categoryId: " +
-          accrualRule.categoryData.categoryId +
-          " to lookup list"
-      );
     } else if (
       accrualRule.accrualType == "ITEM_VARIATION" &&
       accrualRule.itemVariationData?.itemVariationId
@@ -559,9 +517,7 @@ export const getCatalogItemIdMapFromAccurals = async (
           catalogObject.type == "CATEGORY" &&
           catalogObject.categoryData?.name
         ) {
-          console.log(
-            "received a category back: " + catalogObject.categoryData.name
-          );
+          console.log("received a category back");
 
           itemNameMap.set(catalogObject.id, catalogObject.categoryData.name);
         }
@@ -580,9 +536,7 @@ export const getCatalogItemIdMapFromAccurals = async (
             const variantFromMap = variantItemMap.get(variant.id);
             if (variantFromMap) {
               if (relatedObject.itemData.name) {
-                console.log(
-                  "received an item back: " + relatedObject.itemData.name
-                );
+                console.log("received an item back");
                 itemNameMap.set(variant.id, relatedObject.itemData.name);
               }
             }

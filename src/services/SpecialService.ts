@@ -97,7 +97,7 @@ export const createSpecial = async (businessId: string, special: Special) => {
     businessId: businessId,
   });
   await AppDataSource.manager.save(newSpecial);
-  console.log("just created new special with id: " + newSpecial.id);
+  console.log("just created new special with id");
 
   let sortOrder = 1;
 
@@ -328,9 +328,6 @@ export const updateSpecialsFromWebhook = async (
   if (diffInDays < 8) {
     const accessToken = decryptToken(business.merchantAccessToken);
     const refreshToken = decryptToken(business.merchantRefreshToken);
-    console.log(
-      "accessToken: " + accessToken + ", refreshToken: " + refreshToken
-    );
     if (!refreshToken) {
       console.log("could not decrypt refresh token");
       return true;
@@ -388,7 +385,6 @@ export const updateSpecialsFromWebhook = async (
 const requestNewTokens = async (refreshToken: string) => {
   console.log("inside requestNewTokens");
 
-  console.log("refreshToken: " + refreshToken);
   try {
     const requestBody = {
       refresh_token: refreshToken,
@@ -404,11 +400,11 @@ const requestNewTokens = async (refreshToken: string) => {
       .set("Content-Type", "application/json")
       .send(requestBody);
 
-    console.log(
-      "got response from server. result: " + result + ", body: " + result?.body
-    );
-    console.log("result.access_token: " + result?.body?.access_token);
-    console.log("result.errors: " + result?.body?.errors);
+    // console.log(
+    //   "got response from server. result: " + result + ", body: " + result?.body
+    // );
+    // console.log("result.access_token: " + result?.body?.access_token);
+    // console.log("result.errors: " + result?.body?.errors);
 
     const errors = result?.body?.errors;
     if (errors) {
@@ -427,12 +423,12 @@ const requestNewTokens = async (refreshToken: string) => {
     const encryptedRefreshToken = encryptToken(newRefreshToken);
     const refreshDate = new Date(newRefreshDate);
     console.log(
-      "returning new access token: " +
-        newAccessToken +
-        ", new refresh token: " +
-        newRefreshToken +
-        ", new expiration date:" +
-        refreshDate
+      "returning new access token: "
+      //  + newAccessToken +
+      //   ", new refresh token: " +
+      //   newRefreshToken +
+      //   ", new expiration date:" +
+      //   refreshDate
     );
     return [encryptedAccessToken, encryptedRefreshToken, refreshDate];
   } catch (err) {
@@ -452,7 +448,6 @@ const updateSpecialsFromCatalogChangesIfNeeded = async (
   // Create array of item ids to search for
   catalogMap.forEach(function (key, value) {
     itemIds.push(value);
-    console.log("adding key to search list: " + key + ", value: " + value);
   });
 
   if (itemIds.length > 0) {
@@ -471,10 +466,7 @@ const updateSpecialsFromCatalogChangesIfNeeded = async (
               id: itemSpecial.id,
             });
           } else {
-            console.log(
-              "updating existing item from input special, index: " +
-                changedItem.itemData.name
-            );
+            console.log("updating existing item from input special, index: ");
             // Determine price from variants
             let priceRange: string | undefined;
             let priceCurrency: string | undefined;
@@ -490,7 +482,6 @@ const updateSpecialsFromCatalogChangesIfNeeded = async (
                 ) {
                   const amount =
                     variation.itemVariationData?.priceMoney?.amount;
-                  console.log("item amount: " + amount);
                   const currency =
                     variation.itemVariationData?.priceMoney?.currency ?? "USD";
                   if (amount && currency) {
@@ -561,8 +552,6 @@ const updateSpecialsFromCatalogChangesIfNeeded = async (
                 }
               }
             }
-            console.log("priceRange: " + priceRange);
-            console.log("priceCurrency: " + priceCurrency);
 
             // Check if image url has changed
             let firstImageUrl: string | undefined = undefined;
@@ -577,16 +566,9 @@ const updateSpecialsFromCatalogChangesIfNeeded = async (
                   imageObject.imageData
                 ) {
                   firstImageUrl = imageObject.imageData.url;
-                  console.log(
-                    "found image for specialItemId: " +
-                      changedItem.id +
-                      ", url: " +
-                      firstImageUrl
-                  );
                 }
               }
             }
-            console.log("firstImageUrl: " + firstImageUrl);
             await AppDataSource.manager.update(
               SpecialItem,
               {
@@ -638,7 +620,7 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = async (
           accrual.accrualType == "CATEGORY"
             ? accrual.categoryId
             : accrual.variantId;
-        console.log("checking catalogMap for catalogId: " + catalogId);
+        console.log("checking catalogMap for catalogId");
         const catalogItem =
           catalogIdMapAndVariantStates.catalogMap.get(catalogId);
         if (catalogItem) {
@@ -661,7 +643,6 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = async (
     let loyaltyProgramResponse = await loyaltyApi.retrieveLoyaltyProgram(
       "main"
     );
-    console.log("response: " + loyaltyProgramResponse?.result);
 
     const loyaltyProgram = loyaltyProgramResponse?.result?.program;
 
@@ -736,7 +717,7 @@ const getCatalogItemsLastUpdated = async (
 ) => {
   console.log("inside getCatalogItemsLastUpdated");
 
-  console.log("looking up catalog changes with token: " + token);
+  console.log("looking up catalog changes");
 
   const lastUpdateDateIso = lastUpdateDate.toISOString();
 
@@ -766,31 +747,11 @@ const getCatalogItemsLastUpdated = async (
     for (var object of catalogResults.result.objects) {
       if (object.type == "CATEGORY") {
         catalogMap.set(object.id, object);
-        console.log(
-          "got type: " +
-            object.type +
-            ", id: " +
-            object.id +
-            ", isDeleted: " +
-            object.isDeleted +
-            ", category name: " +
-            object.categoryData?.name
-        );
       } else if (object.type == "ITEM") {
         catalogMap.set(object.id, object);
         if (object.itemData?.variations) {
           for (var variant of object.itemData.variations) {
             catalogMap.set(variant.id, object);
-            console.log(
-              "got type: " +
-                object.type +
-                ", id: " +
-                object.id +
-                ", isDeleted: " +
-                object.isDeleted +
-                ", item name: " +
-                object.itemData?.name
-            );
           }
         } else {
           wereVariantsMissing = true;
@@ -805,16 +766,6 @@ const getCatalogItemsLastUpdated = async (
     for (var relatedObject of catalogResults.result.relatedObjects) {
       if (relatedObject.type == "IMAGE") {
         catalogMap.set(relatedObject.id, relatedObject);
-        console.log(
-          "got related type: " +
-            relatedObject.type +
-            ", id: " +
-            relatedObject.id +
-            ", isDeleted: " +
-            relatedObject.isDeleted +
-            ", category name: " +
-            relatedObject.imageData?.url
-        );
       }
     }
   }

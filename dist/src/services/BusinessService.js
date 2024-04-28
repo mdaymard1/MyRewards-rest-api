@@ -155,7 +155,6 @@ const updateLocationSettingsAndImages = (locationId, showThisLocationInApp, show
         if (!location) {
             return false;
         }
-        console.log("firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl);
         yield appDataSource_1.AppDataSource.manager.update(Location_1.Location, {
             id: locationId,
         }, {
@@ -296,7 +295,7 @@ const createBusinessFromMerchantInfo = (name, merchantId, accessToken, refreshTo
         console.log("got merchant, calling createBusinessEntity");
         var merchantName = (_d = merchant.businessName) !== null && _d !== void 0 ? _d : undefined;
         const business = yield createBusinessEntity(merchantId, merchantName, accessToken, refreshToken, expirationDate);
-        console.log("returned from createBusinessEntity with business: " + business);
+        console.log("returned from createBusinessEntity");
         if (business) {
             const wereLocationsCreated = yield createBusinessLocations(business.businessId, merchantId, accessToken);
             console.log("creation of business locations result: " + wereLocationsCreated);
@@ -331,7 +330,7 @@ const createBusinessEntity = (merchantId, merchantName, accessToken, refreshToke
         lastUpdateDate: new Date(),
     });
     yield appDataSource_1.AppDataSource.manager.save(business);
-    console.log("just created business with id: " + business.businessId);
+    console.log("just created business");
     return business;
 });
 const createLocationHours = (businessHourPeriods) => {
@@ -462,17 +461,11 @@ const updateBusinessLocationFromWebhook = (merchantId, merchantLocationId, updat
     }
     // Either it's an update for insert failed. Either way we'll try to update it
     const status = yield updateBusinessLocation(business.businessId, merchantLocation.id, merchantLocation.status, merchantLocation.name, merchantLocation.businessName, merchantLocation.description, (_2 = merchantLocation.address) === null || _2 === void 0 ? void 0 : _2.addressLine1, (_3 = merchantLocation.address) === null || _3 === void 0 ? void 0 : _3.addressLine2, (_4 = merchantLocation.address) === null || _4 === void 0 ? void 0 : _4.locality, (_5 = merchantLocation.address) === null || _5 === void 0 ? void 0 : _5.administrativeDistrictLevel1, (_6 = merchantLocation.address) === null || _6 === void 0 ? void 0 : _6.postalCode, (_7 = merchantLocation.address) === null || _7 === void 0 ? void 0 : _7.country, merchantLocation.phoneNumber, hours, merchantLocation.businessEmail, locationPoint, (_8 = merchantLocation.timezone) !== null && _8 !== void 0 ? _8 : "America/Los_Angeles", merchantLocation.logoUrl, merchantLocation.fullFormatLogoUrl);
-    console.log("");
     return status;
 });
 exports.updateBusinessLocationFromWebhook = updateBusinessLocationFromWebhook;
 const updateBusinessLocation = (businessId, merchantLocationId, status, name, businessName, description, addressLine1, addressLine2, city, state, zipCode, country, phoneNumber, hoursOfOperation, businessEmail, locationPoint, timezone, logUrl, fullFormatLogoUrl) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("inside updateBusinessLocation with merchantLocationId: " +
-        merchantLocationId +
-        ", businessId: " +
-        businessId +
-        ", locationPoint: " +
-        (locationPoint === null || locationPoint === void 0 ? void 0 : locationPoint.coordinates));
+    console.log("inside updateBusinessLocation");
     try {
         const result = yield appDataSource_1.AppDataSource.manager.update(Location_1.Location, {
             businessId: businessId,
@@ -541,7 +534,7 @@ const insertBusinessLocation = (businessId, merchantLocationId, status, name, bu
             showPromotionsInApp: status == "ACTIVE",
         });
         yield appDataSource_1.AppDataSource.manager.save(location);
-        console.log("just created business location with id: " + location.merchantLocationId);
+        console.log("just created business location");
         return location;
     }
     catch (error) {
@@ -557,7 +550,7 @@ const updateBusinessEntity = (businessId, merchantId, accessToken, refreshToken,
         merchantRefreshToken: refreshToken,
         accessTokenExpirationDate: expirationDate,
     });
-    console.log("just updated business with id: " + business.businessId);
+    console.log("just updated business");
     return business;
 });
 exports.updateBusinessEntity = updateBusinessEntity;
@@ -572,7 +565,6 @@ const updateBusinessDetails = (businessId, lastUpdateDate, businessName, address
             return false;
         }
         const lastUpdate = new Date(lastUpdateDate);
-        console.log("firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl);
         // Now update its values
         appDataSource_1.AppDataSource.manager.update(Business_1.Business, {
             businessId: businessId,

@@ -157,21 +157,6 @@ exports.deleteEnrollmentRequest = deleteEnrollmentRequest;
 const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside requestEnrollment");
     const { businessId, appUserId, locationId, firstName, lastName, phone, email, } = request.body;
-    console.log("received input of " +
-        "appUserId: " +
-        appUserId +
-        " locationId: " +
-        locationId +
-        " firstName: " +
-        firstName +
-        " lastName: " +
-        lastName +
-        " email" +
-        email +
-        " phone: " +
-        phone +
-        " businessId: " +
-        businessId);
     if (!businessId || !appUserId || !locationId || !firstName || !phone) {
         console.log("missing fields");
         response.status(400);
@@ -185,20 +170,6 @@ const requestEnrollment = (request, response) => __awaiter(void 0, void 0, void 
 const enrollCustomer = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside enrollCustomer");
     const { businessId, appUserId, locationId, firstName, lastName, phone, email, } = request.body;
-    console.log("received input of " +
-        appUserId +
-        " " +
-        locationId +
-        " " +
-        firstName +
-        " " +
-        lastName +
-        " +" +
-        phone +
-        ", " +
-        email +
-        ", businessId:" +
-        businessId);
     if (!appUserId || !locationId || !firstName || !phone || !businessId) {
         console.log("missing fields");
         response.status(400);
@@ -235,7 +206,6 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
     var _a, _b, _c;
     console.log("inside getLoyalty");
     const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    console.log("businessId: " + businessId);
     if (!businessId) {
         response.status(401);
         response.end();
@@ -253,7 +223,6 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
             response.end();
             return;
         }
-        console.log("about to get loyalty for businessId: " + business.businessId);
         const loyalty = yield appDataSource_1.AppDataSource.manager.findOne(Loyalty_1.Loyalty, {
             where: {
                 businessId: business.businessId,
@@ -337,7 +306,6 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
 const updateLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { loyaltyId } = request.params;
     const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    console.log("businessId: " + businessId + ", + loyaltyId " + loyaltyId);
     if (!businessId || !loyaltyId) {
         console.log("missing input");
         response.status(400);
@@ -357,7 +325,6 @@ const updateLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, f
 const updateLoyaltyStatus = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     const { loyaltyId } = request.params;
     const businessId = yield (0, BusinessService_1.getBusinessIdFromAuthToken)(request);
-    console.log("businessId: " + businessId + ", + loyaltyId" + loyaltyId);
     const { showLoyaltyInApp, showPromotionsInApp, automaticallyUpdateChangesFromMerchant, loyaltyStatus, } = request.body;
     if (!businessId || !loyaltyStatus) {
         console.log("missing input");

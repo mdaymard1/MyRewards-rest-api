@@ -31,8 +31,11 @@ const appDataSource_1 = require("./appDataSource");
 const dotenv_1 = __importDefault(require("dotenv"));
 const checkJwt_1 = require("./src/middleware/checkJwt");
 const asyncHandler_1 = require("./src/middleware/asyncHandler");
+const Utility_1 = require("./src/utility/Utility");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 dotenv_1.default.config();
 appDataSource_1.AppDataSource.initialize()
     .then(() => {
@@ -144,8 +147,37 @@ app.delete("/special/:specialId", [
     checkJwt_1.checkJwt,
     (0, asyncHandler_1.asyncHandler)(specialRoute.deleteSpecial),
 ]);
+const options = {
+    definition: {
+        openapi: "3.1.0",
+        info: {
+            title: "Reward Me! Express API with Swagger",
+            version: "0.1.0",
+            description: "This is Reward Me! API application made with Express and documented with Swagger",
+            license: {
+                name: "MIT",
+                url: "https://spdx.org/licenses/MIT.html",
+            },
+            contact: {
+                name: "LogRocket",
+                url: "https://logrocket.com",
+                email: "info@email.com",
+            },
+        },
+        servers: [
+            {
+                url: "http://localhost:5004",
+            },
+        ],
+    },
+    apis: ["./routes/*.js"],
+};
+const specs = swaggerJsdoc(options);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs, { explorer: true }));
 app.listen(port, () => {
     console.log(`My Rewards app is running on port ${port}.`);
+    const env = (0, Utility_1.getMerchantEnvironment)();
+    console.log("Square is pointing to: " + env);
 });
 // app.listen({ port: port, host: host }, () => {
 //   console.log(`Horror movie app is running on port ${port}.`);

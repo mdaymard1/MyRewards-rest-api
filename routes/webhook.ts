@@ -31,12 +31,10 @@ const handleSquareWebhook = async (request: Request, response: Response) => {
 
   const webhook: SquareWebhook = new SquareWebhook(body);
 
-  console.log(
-    "webhook type: " + webhook.type + " for merchant: " + webhook.merchantId
-  );
+  console.log("webhook type: " + webhook.type);
 
   const requestBody = JSON.stringify(request.body);
-  console.log("requestBody: " + requestBody);
+  // console.log("requestBody: " + requestBody);
 
   if (!webhook) {
     console.log("webhook payload was empty");

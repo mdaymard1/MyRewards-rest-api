@@ -15,7 +15,7 @@ import { CustomerNotificationPreference } from "../entity/CustomerNotificationPr
 import { QueryFailedError } from "typeorm";
 
 export const getUserFavorites = async (userId: string, idsOnly: boolean) => {
-  console.log("inside getUserFavorite with idsonly: " + idsOnly);
+  console.log("inside getUserFavorite with idsonly");
 
   if (idsOnly) {
     const favoriteIds = await Favorite.createQueryBuilder("favorite")
@@ -25,7 +25,6 @@ export const getUserFavorites = async (userId: string, idsOnly: boolean) => {
   } else {
     const query = `SELECT "favorite"."id" AS "favoriteId", "location"."name" AS "locationName", "location"."businessName" AS "businessName", "location"."description" AS "description", "location"."addressLine1" AS "addressLine1", "location"."addressLine2" AS "addressLine2", "location"."city" AS "city", "location"."state" AS "state", "location"."zipCode" AS "zipCode", "location"."phoneNumber" AS "phoneNumber", "location"."hoursOfOperation" AS "hoursOfOperation", "location"."timezone" AS "timezone", "location"."businessEmail" AS "businessEmail", "location"."isLoyaltyActive" AS "isLoyaltyActive", "location"."showLoyaltyInApp" AS "showLoyaltyInApp", "location"."showPromotionsInApp" AS "showPromotionsInApp", "location"."firstImageUrl" AS "firstImageUrl", "location"."secondImageUrl" AS "secondImageUrl", "location"."logoUrl" AS "logoUrl", "location"."fullFormatLogoUrl" AS "fullFormatLogoUrl", "location"."businessId" AS "businessId", "location"."id" AS "locationId", ST_ASTEXT("locationPoint") as "locationpoint" FROM "favorite" "favorite" INNER JOIN "location" "location" ON "location"."id"="favorite"."locationId" WHERE "favorite"."appUserId" = '${userId}'`;
     const favorites = await Location.query(query);
-    console.log("favorites: " + favorites);
     return favorites;
   }
 };
@@ -177,7 +176,6 @@ export const getUserDetails = async (userId: string) => {
   var userDetails: UserDetails | undefined;
   if (user?.userDetails) {
     userDetails = JSON.parse(JSON.stringify(user.userDetails)) as UserDetails;
-    console.log("userDetails: " + userDetails);
   }
   if (userDetails) {
     const details = {
@@ -264,7 +262,6 @@ export const getUserNotificationSettings = async (appUserId: string) => {
     locationPoint = JSON.parse(
       JSON.stringify(appUser.locationPoint)
     ) as LocationPoint;
-    console.log("locationPoint: " + locationPoint);
     if (locationPoint && locationPoint.coordinates.length == 2) {
       latitude = locationPoint.coordinates[1];
       longitude = locationPoint.coordinates[0];

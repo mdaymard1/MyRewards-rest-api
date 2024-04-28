@@ -84,7 +84,7 @@ const createSpecial = (businessId, special) => __awaiter(void 0, void 0, void 0,
         businessId: businessId,
     });
     yield appDataSource_1.AppDataSource.manager.save(newSpecial);
-    console.log("just created new special with id: " + newSpecial.id);
+    console.log("just created new special with id");
     let sortOrder = 1;
     if (special.items) {
         const wasSuccessful = yield createSpecialItems(newSpecial, special.items);
@@ -257,7 +257,6 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated) => __await
     if (diffInDays < 8) {
         const accessToken = (0, EncryptionService_1.decryptToken)(business.merchantAccessToken);
         const refreshToken = (0, EncryptionService_1.decryptToken)(business.merchantRefreshToken);
-        console.log("accessToken: " + accessToken + ", refreshToken: " + refreshToken);
         if (!refreshToken) {
             console.log("could not decrypt refresh token");
             return true;
@@ -298,9 +297,8 @@ const updateSpecialsFromWebhook = (merchantId, catalogVersionUpdated) => __await
 });
 exports.updateSpecialsFromWebhook = updateSpecialsFromWebhook;
 const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d, _e, _f;
+    var _d;
     console.log("inside requestNewTokens");
-    console.log("refreshToken: " + refreshToken);
     try {
         const requestBody = {
             refresh_token: refreshToken,
@@ -314,10 +312,12 @@ const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, fun
             .post("https://connect.squareup.com/oauth2/token")
             .set("Content-Type", "application/json")
             .send(requestBody);
-        console.log("got response from server. result: " + result + ", body: " + (result === null || result === void 0 ? void 0 : result.body));
-        console.log("result.access_token: " + ((_d = result === null || result === void 0 ? void 0 : result.body) === null || _d === void 0 ? void 0 : _d.access_token));
-        console.log("result.errors: " + ((_e = result === null || result === void 0 ? void 0 : result.body) === null || _e === void 0 ? void 0 : _e.errors));
-        const errors = (_f = result === null || result === void 0 ? void 0 : result.body) === null || _f === void 0 ? void 0 : _f.errors;
+        // console.log(
+        //   "got response from server. result: " + result + ", body: " + result?.body
+        // );
+        // console.log("result.access_token: " + result?.body?.access_token);
+        // console.log("result.errors: " + result?.body?.errors);
+        const errors = (_d = result === null || result === void 0 ? void 0 : result.body) === null || _d === void 0 ? void 0 : _d.errors;
         if (errors) {
             console.log("errors returned when requesting new token: " + errors);
             return undefined;
@@ -332,12 +332,13 @@ const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, fun
         const encryptedAccessToken = (0, EncryptionService_1.encryptToken)(newAccessToken);
         const encryptedRefreshToken = (0, EncryptionService_1.encryptToken)(newRefreshToken);
         const refreshDate = new Date(newRefreshDate);
-        console.log("returning new access token: " +
-            newAccessToken +
-            ", new refresh token: " +
-            newRefreshToken +
-            ", new expiration date:" +
-            refreshDate);
+        console.log("returning new access token: "
+        //  + newAccessToken +
+        //   ", new refresh token: " +
+        //   newRefreshToken +
+        //   ", new expiration date:" +
+        //   refreshDate
+        );
         return [encryptedAccessToken, encryptedRefreshToken, refreshDate];
     }
     catch (err) {
@@ -346,13 +347,12 @@ const requestNewTokens = (refreshToken) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __awaiter(void 0, void 0, void 0, function* () {
-    var _g, _h, _j, _k, _l, _m, _o;
+    var _e, _f, _g, _h, _j, _k, _l;
     console.log("inside updateSpecialsFromCatalogChangesIfNeeded");
     let itemIds = [];
     // Create array of item ids to search for
     catalogMap.forEach(function (key, value) {
         itemIds.push(value);
-        console.log("adding key to search list: " + key + ", value: " + value);
     });
     if (itemIds.length > 0) {
         // get all special items matching the catalog items that just changed
@@ -370,8 +370,7 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __a
                         });
                     }
                     else {
-                        console.log("updating existing item from input special, index: " +
-                            changedItem.itemData.name);
+                        console.log("updating existing item from input special, index: ");
                         // Determine price from variants
                         let priceRange;
                         let priceCurrency;
@@ -382,10 +381,9 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __a
                         if (changedItem.itemData.variations) {
                             for (var variation of changedItem.itemData.variations) {
                                 if (variation.type == "ITEM_VARIATION" &&
-                                    ((_h = (_g = variation.itemVariationData) === null || _g === void 0 ? void 0 : _g.priceMoney) === null || _h === void 0 ? void 0 : _h.amount)) {
-                                    const amount = (_k = (_j = variation.itemVariationData) === null || _j === void 0 ? void 0 : _j.priceMoney) === null || _k === void 0 ? void 0 : _k.amount;
-                                    console.log("item amount: " + amount);
-                                    const currency = (_o = (_m = (_l = variation.itemVariationData) === null || _l === void 0 ? void 0 : _l.priceMoney) === null || _m === void 0 ? void 0 : _m.currency) !== null && _o !== void 0 ? _o : "USD";
+                                    ((_f = (_e = variation.itemVariationData) === null || _e === void 0 ? void 0 : _e.priceMoney) === null || _f === void 0 ? void 0 : _f.amount)) {
+                                    const amount = (_h = (_g = variation.itemVariationData) === null || _g === void 0 ? void 0 : _g.priceMoney) === null || _h === void 0 ? void 0 : _h.amount;
+                                    const currency = (_l = (_k = (_j = variation.itemVariationData) === null || _j === void 0 ? void 0 : _j.priceMoney) === null || _k === void 0 ? void 0 : _k.currency) !== null && _l !== void 0 ? _l : "USD";
                                     if (amount && currency) {
                                         const adjustedAmount = Number(amount) / 100.0;
                                         if (!minCurrencyAmount) {
@@ -444,8 +442,6 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __a
                                 }
                             }
                         }
-                        console.log("priceRange: " + priceRange);
-                        console.log("priceCurrency: " + priceCurrency);
                         // Check if image url has changed
                         let firstImageUrl = undefined;
                         let imageWasDeleted = false;
@@ -456,14 +452,9 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __a
                                     !imageObject.isDeleted &&
                                     imageObject.imageData) {
                                     firstImageUrl = imageObject.imageData.url;
-                                    console.log("found image for specialItemId: " +
-                                        changedItem.id +
-                                        ", url: " +
-                                        firstImageUrl);
                                 }
                             }
                         }
-                        console.log("firstImageUrl: " + firstImageUrl);
                         yield appDataSource_1.AppDataSource.manager.update(SpecialItem_1.SpecialItem, {
                             id: itemSpecial.id,
                         }, {
@@ -482,7 +473,7 @@ const updateSpecialsFromCatalogChangesIfNeeded = (businessId, catalogMap) => __a
     return true;
 });
 const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMapAndVariantStates, token) => __awaiter(void 0, void 0, void 0, function* () {
-    var _p, _q;
+    var _m, _o;
     let wereLoyaltyItemsUpdated = false;
     // If a variant was deleted, we don't get the variantId and so can't check to see if
     // it was in an accrual. So unfortunately, we need to assume it may have been on an
@@ -500,7 +491,7 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
                 const catalogId = accrual.accrualType == "CATEGORY"
                     ? accrual.categoryId
                     : accrual.variantId;
-                console.log("checking catalogMap for catalogId: " + catalogId);
+                console.log("checking catalogMap for catalogId");
                 const catalogItem = catalogIdMapAndVariantStates.catalogMap.get(catalogId);
                 if (catalogItem) {
                     wereLoyaltyItemsUpdated = true;
@@ -517,10 +508,9 @@ const updateLoyaltyAccrualsFromCatalogChangesIfNeeded = (businessId, catalogIdMa
         });
         const { loyaltyApi } = client;
         let loyaltyProgramResponse = yield loyaltyApi.retrieveLoyaltyProgram("main");
-        console.log("response: " + (loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result));
-        const loyaltyProgram = (_p = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _p === void 0 ? void 0 : _p.program;
+        const loyaltyProgram = (_m = loyaltyProgramResponse === null || loyaltyProgramResponse === void 0 ? void 0 : loyaltyProgramResponse.result) === null || _m === void 0 ? void 0 : _m.program;
         if (loyaltyProgram) {
-            const catalogItemNameMap = yield (0, MerchantService_1.getCatalogItemIdMapFromAccurals)(token, (_q = loyaltyProgram.accrualRules) !== null && _q !== void 0 ? _q : []);
+            const catalogItemNameMap = yield (0, MerchantService_1.getCatalogItemIdMapFromAccurals)(token, (_o = loyaltyProgram.accrualRules) !== null && _o !== void 0 ? _o : []);
             console.log("Catalog items used by loyalty have changes, so updating loyalty");
             yield updateLoyaltyWithLatestChanges(businessId, loyaltyProgram, catalogItemNameMap);
             return true;
@@ -563,9 +553,9 @@ const updateLoyaltyWithLatestChanges = (businessId, loyaltyProgram, catalogItemN
     }
 });
 const getCatalogItemsLastUpdated = (lastUpdateDate, token) => __awaiter(void 0, void 0, void 0, function* () {
-    var _r, _s, _t, _u;
+    var _p;
     console.log("inside getCatalogItemsLastUpdated");
-    console.log("looking up catalog changes with token: " + token);
+    console.log("looking up catalog changes");
     const lastUpdateDateIso = lastUpdateDate.toISOString();
     const env = (0, Utility_1.getMerchantEnvironment)();
     const client = new square_1.Client({
@@ -587,28 +577,12 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token) => __awaiter(void 0, 
         for (var object of catalogResults.result.objects) {
             if (object.type == "CATEGORY") {
                 catalogMap.set(object.id, object);
-                console.log("got type: " +
-                    object.type +
-                    ", id: " +
-                    object.id +
-                    ", isDeleted: " +
-                    object.isDeleted +
-                    ", category name: " +
-                    ((_r = object.categoryData) === null || _r === void 0 ? void 0 : _r.name));
             }
             else if (object.type == "ITEM") {
                 catalogMap.set(object.id, object);
-                if ((_s = object.itemData) === null || _s === void 0 ? void 0 : _s.variations) {
+                if ((_p = object.itemData) === null || _p === void 0 ? void 0 : _p.variations) {
                     for (var variant of object.itemData.variations) {
                         catalogMap.set(variant.id, object);
-                        console.log("got type: " +
-                            object.type +
-                            ", id: " +
-                            object.id +
-                            ", isDeleted: " +
-                            object.isDeleted +
-                            ", item name: " +
-                            ((_t = object.itemData) === null || _t === void 0 ? void 0 : _t.name));
                     }
                 }
                 else {
@@ -622,14 +596,6 @@ const getCatalogItemsLastUpdated = (lastUpdateDate, token) => __awaiter(void 0, 
         for (var relatedObject of catalogResults.result.relatedObjects) {
             if (relatedObject.type == "IMAGE") {
                 catalogMap.set(relatedObject.id, relatedObject);
-                console.log("got related type: " +
-                    relatedObject.type +
-                    ", id: " +
-                    relatedObject.id +
-                    ", isDeleted: " +
-                    relatedObject.isDeleted +
-                    ", category name: " +
-                    ((_u = relatedObject.imageData) === null || _u === void 0 ? void 0 : _u.url));
             }
         }
     }

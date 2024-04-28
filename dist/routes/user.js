@@ -16,7 +16,6 @@ const getFavorites = (request, response) => __awaiter(void 0, void 0, void 0, fu
     console.log("inside getFavorites");
     const { userId } = request.params;
     const { idsOnly } = request.query;
-    console.log("idsOnly: " + idsOnly);
     if (!userId || !idsOnly) {
         response.status(400);
         response.end();
@@ -203,7 +202,6 @@ const getLoyalty = (request, response) => __awaiter(void 0, void 0, void 0, func
 const requestUserPhoneNumberVerification = (request, response) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside requestCustomerPhoneNumberVerification");
     const { countryCode, phoneNumber } = request.body;
-    console.log("countryCode: " + countryCode + ", phoneNumber: " + phoneNumber);
     if (!countryCode || !phoneNumber) {
         response.status(400);
         return;

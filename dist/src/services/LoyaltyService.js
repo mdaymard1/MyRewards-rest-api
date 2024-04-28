@@ -170,7 +170,6 @@ const enrollRequestIntoLoyalty = (businessId, token, enrollmentRequestId, locati
         }
         dtls = JSON.parse(JSON.stringify(details));
         let det = JSON.stringify(details);
-        console.log(det);
         const firstName = dtls.firstName;
         const lastName = dtls.lastName;
         const email = dtls.email;
@@ -270,7 +269,6 @@ const lookupEnrollmentRequestById = (id) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 const enrollCustomerInLoyalty = (businessId, appUserId, token, enrollmentSource, locationId, phoneNumber, firstName, lastName, email) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("inside enrollCustomerInLoyalty with phoneNumber: " + phoneNumber);
     const existingLoyalty = yield Loyalty_1.Loyalty.createQueryBuilder("loyalty")
         .where("loyalty.businessId = :businessId", { businessId: businessId })
         .getOne();
@@ -393,7 +391,7 @@ const insertCustomer = (businessId, appUserId, merchantCustomerId, ref, enrollme
             enrolledAt: new Date(),
         });
         yield appDataSource_1.AppDataSource.manager.save(customer);
-        console.log("just created customer with id:" + customer.id);
+        console.log("just created customer");
         return customer.id;
     }
     catch (error) {
@@ -415,12 +413,7 @@ const insertCustomer = (businessId, appUserId, merchantCustomerId, ref, enrollme
     }
 });
 const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetimePoints, enrolledAt, enrollmentSource) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("inside upsertCustomerFromWebhook with businessId: " +
-        businessId +
-        ", customerId: " +
-        customerId +
-        ", enrolledAt: " +
-        enrolledAt);
+    console.log("inside upsertCustomerFromWebhook");
     try {
         let customer = yield Customer_1.Customer.createQueryBuilder("customer")
             .where("customer.businessId = :businessId", { businessId: businessId })
@@ -440,18 +433,18 @@ const upsertCustomerFromWebhook = (businessId, customerId, ref, balance, lifetim
                 enrollmentSource: enrollmentSource,
             });
             yield appDataSource_1.AppDataSource.manager.save(customer);
-            console.log("just created customer with id:" + customer.id);
+            console.log("just created customer");
             return balance;
         }
         else {
-            console.log("customer with id:" + customer.id + " already exists");
+            console.log("customer already exists");
             yield appDataSource_1.AppDataSource.manager.update(Customer_1.Customer, {
                 id: customer.id,
             }, {
                 balance: balance,
                 lifetimePoints: lifetimePoints,
             });
-            console.log("just updated customer with id:" + customer.id);
+            console.log("just updated customer");
             return balance - customer.balance;
         }
     }
@@ -495,7 +488,7 @@ const updateLoyaltyFromWebhook = (merchantId, webhookLoyaltyProgram) => __awaite
         yield appDataSource_1.AppDataSource.manager.save(loyalty);
     }
     else {
-        console.log("got loyalty: " + loyalty);
+        console.log("got loyalty");
     }
     if (!loyalty) {
         console.log("Unable to create new Loyalty for webhook");
@@ -711,7 +704,7 @@ const createAppLoyaltyFromLoyaltyProgram = (businessId, loyaltyProgram, loyaltyP
         createDate: new Date(),
     });
     yield appDataSource_1.AppDataSource.manager.save(loyalty);
-    console.log("created new loyalty with id: " + loyalty.id);
+    console.log("created new loyalty");
     const loyaltyId = loyalty.id;
     let loyaltyUsesCatalogItems = false;
     if (loyaltyProgram.accrualRules) {
@@ -778,12 +771,10 @@ const isLoyaltyOrPromotionsOutOfDate = (loyalty, loyaltyProgram, promotions) => 
     /// Now check all promotions to see if they're out of date, removed or new promos have been added
     console.log("promotions length: " + promotions.length);
     for (var loyaltyPromotion of promotions) {
-        console.log("checking promo " + loyaltyPromotion.id);
+        console.log("checking promo ");
         if (loyaltyPromotion.id && loyalty.promotions) {
             var wasPromoFound = false;
             for (var appPromotion of loyalty.promotions) {
-                console.log("appPromotion.promotionId: " + appPromotion.promotionId);
-                console.log("appPromotion.merchantName: " + appPromotion.merchantName);
                 if (appPromotion.promotionId == loyaltyPromotion.id &&
                     appPromotion.lastUpdateDate) {
                     wasPromoFound = true;
@@ -797,23 +788,19 @@ const isLoyaltyOrPromotionsOutOfDate = (loyalty, loyaltyProgram, promotions) => 
                                 loyaltyUpdatedAt);
                             if (appPromotion.lastUpdateDate.getTime() <
                                 loyaltyUpdatedAt.getTime()) {
-                                console.log("returning true1");
                                 return true;
                             }
                         }
                         else {
-                            console.log("returning true2");
                             return true;
                         }
                     }
                     else {
-                        console.log("returning true3");
                         return true;
                     }
                 }
             }
             if (!wasPromoFound) {
-                console.log("returning true4");
                 return true;
             }
         }
@@ -824,10 +811,6 @@ const isLoyaltyOrPromotionsOutOfDate = (loyalty, loyaltyProgram, promotions) => 
                 console.log("checking to see if appPromotion exists in loyalty promotions");
                 var wasPromoFound = false;
                 for (var loyaltyPromotion of promotions) {
-                    console.log("comparing loyaltyPromotion.promotionId: " +
-                        loyaltyPromotion.id +
-                        " to appPromotion.promotionId: " +
-                        appPromotion.promotionId);
                     if (loyaltyPromotion.id &&
                         loyaltyPromotion.id == appPromotion.promotionId) {
                         wasPromoFound = true;
@@ -835,7 +818,7 @@ const isLoyaltyOrPromotionsOutOfDate = (loyalty, loyaltyProgram, promotions) => 
                     }
                 }
                 if (!wasPromoFound) {
-                    console.log("returning true5");
+                    console.log("returning true");
                     return true;
                 }
             }
@@ -938,7 +921,7 @@ const updateLoyaltyItems = (businessId, loyaltyId, loyaltyAccruals, promotions, 
                         loyaltyAccrual.displayEarningPointsDescription ||
                         matches[0].displayEarningAdditionalEarningPointsDescription !=
                             loyaltyAccrual.displayEarningAdditionalEarningPointsDescription) {
-                        console.log("loyaltyAccrual will be updated for id: " + loyaltyAccrual.id);
+                        console.log("loyaltyAccrual will be updated");
                         yield LoyaltyAccrual_1.LoyaltyAccrual.update(loyaltyAccrual.id, {
                             displayEarningPointsDescription: loyaltyAccrual.displayEarningPointsDescription,
                             displayEarningAdditionalEarningPointsDescription: loyaltyAccrual.displayEarningAdditionalEarningPointsDescription,
@@ -953,7 +936,7 @@ const updateLoyaltyItems = (businessId, loyaltyId, loyaltyAccruals, promotions, 
                 var promotionMatches = (_m = existingLoyalty === null || existingLoyalty === void 0 ? void 0 : existingLoyalty.promotions) === null || _m === void 0 ? void 0 : _m.filter((existingPromotion) => existingPromotion.id == promotion.id);
                 if (promotionMatches && promotionMatches.length > 0) {
                     if (promotionMatches[0].displayName != promotion.displayName) {
-                        console.log("promotion will be updated for id: " + promotion.id);
+                        console.log("promotion will be updated");
                         yield Promotion_1.Promotion.update(promotion.id, {
                             displayName: promotion.displayName,
                             lastUpdateDate: new Date(),
@@ -970,8 +953,7 @@ const updateLoyaltyItems = (businessId, loyaltyId, loyaltyAccruals, promotions, 
                         loyaltyRewardTier.displayReward ||
                         rewardTierMatches[0].displayRewardDescription !=
                             loyaltyRewardTier.displayRewardDescription) {
-                        console.log("loyaltyRewardTier will be updated for id: " +
-                            loyaltyRewardTier.id);
+                        console.log("loyaltyRewardTier will be updated");
                         yield LoyaltyRewardTier_1.LoyaltyRewardTier.update(loyaltyRewardTier.id, {
                             displayReward: loyaltyRewardTier.displayReward,
                             displayRewardDescription: loyaltyRewardTier.displayRewardDescription,
@@ -996,16 +978,16 @@ const updateLoyaltyItems = (businessId, loyaltyId, loyaltyAccruals, promotions, 
 exports.updateLoyaltyItems = updateLoyaltyItems;
 const deleteAccrual = (accrualId) => __awaiter(void 0, void 0, void 0, function* () {
     yield appDataSource_1.AppDataSource.manager.delete(LoyaltyAccrual_1.LoyaltyAccrual, accrualId);
-    console.log("just deleted accral with id:" + accrualId);
+    console.log("just deleted accral");
 });
 exports.deleteAccrual = deleteAccrual;
 const deleteRewardTier = (rewardTierId) => __awaiter(void 0, void 0, void 0, function* () {
     yield appDataSource_1.AppDataSource.manager.delete(LoyaltyRewardTier_1.LoyaltyRewardTier, rewardTierId);
-    console.log("just deleted reward tier with id:" + rewardTierId);
+    console.log("just deleted reward tier");
 });
 const deletePromotion = (promotionId) => __awaiter(void 0, void 0, void 0, function* () {
     yield appDataSource_1.AppDataSource.manager.delete(Promotion_1.Promotion, promotionId);
-    console.log("just deleted promotion with id:" + promotionId);
+    console.log("just deleted promotion");
 });
 const createAccrual = (loyaltyAccrualRule, catalogItemNameMap, terminology, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
     var _p, _q, _r, _s;
@@ -1017,7 +999,6 @@ const createAccrual = (loyaltyAccrualRule, catalogItemNameMap, terminology, loya
         itemName = catalogItemNameMap.get(loyaltyAccrualRule.itemVariationData.itemVariationId);
     }
     const ruleValues = (0, exports.rewardsRuleValue)(loyaltyAccrualRule, itemName, terminology);
-    console.log("ruleValues: " + ruleValues);
     const accrual = appDataSource_1.AppDataSource.manager.create(LoyaltyAccrual_1.LoyaltyAccrual, {
         loyaltyId: loyaltyId,
         accrualType: loyaltyAccrualRule.accrualType,
@@ -1027,7 +1008,7 @@ const createAccrual = (loyaltyAccrualRule, catalogItemNameMap, terminology, loya
         merchantAdditionalEarningPointsDescription: ruleValues[1],
     });
     yield appDataSource_1.AppDataSource.manager.save(accrual);
-    console.log("just created accral with id:" + accrual.id);
+    console.log("just created accral");
     return accrual;
 });
 const updateAccrual = (loyaltyAccrualRule, catalogItemNameMap, terminology, loyaltyId, existingAppAccural, displayEarningPointsDescription, displayAdditionalEarningPointsDescription) => __awaiter(void 0, void 0, void 0, function* () {
@@ -1041,9 +1022,6 @@ const updateAccrual = (loyaltyAccrualRule, catalogItemNameMap, terminology, loya
         itemName = catalogItemNameMap.get(loyaltyAccrualRule.itemVariationData.itemVariationId);
     }
     const ruleValues = (0, exports.rewardsRuleValue)(loyaltyAccrualRule, itemName, terminology);
-    console.log("ruleValues: " + ruleValues);
-    console.log("existingAppAccural.displayEarningAdditionalEarningPointsDescription = " +
-        existingAppAccural.displayEarningAdditionalEarningPointsDescription);
     yield appDataSource_1.AppDataSource.manager.update(LoyaltyAccrual_1.LoyaltyAccrual, {
         id: existingAppAccural.id,
     }, {
@@ -1056,7 +1034,7 @@ const updateAccrual = (loyaltyAccrualRule, catalogItemNameMap, terminology, loya
         displayEarningAdditionalEarningPointsDescription: displayAdditionalEarningPointsDescription !== null && displayAdditionalEarningPointsDescription !== void 0 ? displayAdditionalEarningPointsDescription : null,
         lastUpdateDate: new Date(),
     });
-    console.log("just updated loyatyAccrual with id:" + existingAppAccural.id);
+    console.log("just updated loyatyAccrual");
 });
 const createRewardTier = (loyaltyRewardTier, terminology, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
     console.log("inside createRewardTier");
@@ -1068,7 +1046,7 @@ const createRewardTier = (loyaltyRewardTier, terminology, loyaltyId) => __awaite
     });
     // rewardTiers.push(rewardTier);
     yield appDataSource_1.AppDataSource.manager.save(rewardTier);
-    console.log("just created rewardTier with id:" + rewardTier.id);
+    console.log("just created rewardTier");
 });
 const updateRewardTier = (loyaltyRewardTier, terminology, loyaltyId, existingAppRewardTier, displayRewardDescription) => __awaiter(void 0, void 0, void 0, function* () {
     var _z;
@@ -1081,7 +1059,7 @@ const updateRewardTier = (loyaltyRewardTier, terminology, loyaltyId, existingApp
         displayRewardDescription: displayRewardDescription !== null && displayRewardDescription !== void 0 ? displayRewardDescription : null,
         lastUpdateDate: new Date(),
     });
-    console.log("just updaated rewardTier with id:" + existingAppRewardTier.id);
+    console.log("just updaated rewardTier");
 });
 const createPromotion = (loyaltyPromotion, loyaltyId) => __awaiter(void 0, void 0, void 0, function* () {
     var startsOn;
@@ -1097,7 +1075,7 @@ const createPromotion = (loyaltyPromotion, loyaltyId) => __awaiter(void 0, void 
     });
     // promotions.push(promotion);
     yield appDataSource_1.AppDataSource.manager.save(promotion);
-    console.log("just created promotion with id: " + promotion.id);
+    console.log("just created promotion");
 });
 const updatePromotion = (loyaltyPromotion, existingPromotion, displayName) => __awaiter(void 0, void 0, void 0, function* () {
     var startsOn;
@@ -1113,11 +1091,11 @@ const updatePromotion = (loyaltyPromotion, existingPromotion, displayName) => __
         displayName: displayName !== null && displayName !== void 0 ? displayName : null,
         lastUpdateDate: new Date(),
     });
-    console.log("just updated promotion with id: " + existingPromotion.id);
+    console.log("just updated promotion");
 });
 const rewardsRuleValue = (accrualRule, itemName, terminology) => {
     var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
-    console.log("inside rewardsRuleValue with accrualType of " + accrualRule.accrualType);
+    console.log("inside rewardsRuleValue");
     switch (accrualRule.accrualType) {
         case "VISIT":
             console.log("rewardsRuleValue type is VISIT");
@@ -1184,7 +1162,7 @@ const rewardsRuleValue = (accrualRule, itemName, terminology) => {
                 undefined,
             ];
         case "ITEM_VARIATION":
-            console.log("rewardsRuleValue type is ITEM with itemName: " + itemName);
+            console.log("rewardsRuleValue type is ITEM");
             const purchasedItemName = itemName
                 ? " for every " + itemName
                 : " for certain items ";
@@ -1231,7 +1209,7 @@ function removeOldPromotions(loyalty, promotions) {
             }
         }
         if (!wasPromotionFound) {
-            console.log("need to delete promotion: " + appPromotion.id);
+            console.log("need to delete promotion");
             deletePromotion(appPromotion.id);
         }
     }
@@ -1251,7 +1229,7 @@ function removeOldRewardTiers(loyaltyRewardTiers, loyaltyProgram) {
             }
         }
         if (!wasRewardTierFound) {
-            console.log("need to delete rewardTier: " + appRewardTier.id);
+            console.log("need to delete rewardTier");
             deleteRewardTier(appRewardTier.id);
         }
     }
@@ -1290,7 +1268,7 @@ const removeOldAccrualRules = (loyaltyAccruals, loyaltyProgram) => __awaiter(voi
             }
         }
         if (!wasAccrualFound) {
-            console.log("need to delete accrualId: " + appLoyaltyAccrual.id);
+            console.log("need to delete accrua");
             yield (0, exports.deleteAccrual)(appLoyaltyAccrual.id);
         }
     }
@@ -1303,15 +1281,14 @@ function updateAppLoyaltyPromotionsFromMerchant(promotions, terminology, loyalty
         var existingPromotion = undefined;
         var displayName = undefined;
         if (loyalty.promotions && loyaltyPromotion.id) {
-            console.log("searching loyalty.promotions for loyaltyPromotion.promotionId" +
-                loyaltyPromotion.id);
+            console.log("searching loyalty.promotions for loyaltyPromotion.promotionId");
             var promoMatches = loyalty.promotions.filter((promo) => promo.promotionId == loyaltyPromotion.id);
             if (promoMatches && promoMatches.length > 0) {
                 existingPromotion = promoMatches[0];
                 displayName = (_a = existingPromotion.displayName) !== null && _a !== void 0 ? _a : undefined;
             }
         }
-        console.log("existingPromotion: " + existingPromotion);
+        console.log("existingPromotion");
         if (existingPromotion) {
             // Remove overriden name if the merchant name has changed since we overrode it
             if (existingPromotion.merchantName &&
@@ -1335,8 +1312,7 @@ function updateAppLoyaltyRewardTiersFromMerchant(loyaltyProgramRewardTiers, term
         var existingAppRewardTier = undefined;
         var displayRewardDescription = undefined;
         if (loyalty.loyaltyRewardTiers && loyaltyRewardTier.id) {
-            console.log("searching loyaltyRewardTiers for loyaltyRewardTier.id" +
-                loyaltyRewardTier.id);
+            console.log("searching loyaltyRewardTiers for loyaltyRewardTier.id");
             var tierMatches = loyalty.loyaltyRewardTiers.filter((rewardTier) => rewardTier.rewardTierId == loyaltyRewardTier.id);
             if (tierMatches && tierMatches.length > 0) {
                 existingAppRewardTier = tierMatches[0];
@@ -1344,11 +1320,7 @@ function updateAppLoyaltyRewardTiersFromMerchant(loyaltyProgramRewardTiers, term
                     (_a = tierMatches[0].displayRewardDescription) !== null && _a !== void 0 ? _a : undefined;
             }
         }
-        console.log("existingAppRewardTier: " + existingAppRewardTier);
-        console.log("comparing existingAppRewardTier?.merchantRewardDescription: " +
-            (existingAppRewardTier === null || existingAppRewardTier === void 0 ? void 0 : existingAppRewardTier.merchantRewardDescription) +
-            " to loyaltyRewardTier.name: " +
-            loyaltyRewardTier.name);
+        console.log("existingAppRewardTier");
         if (existingAppRewardTier) {
             if (existingAppRewardTier.merchantRewardDescription &&
                 loyaltyRewardTier.name) {
@@ -1371,7 +1343,7 @@ function updateAppLoyaltyRewardTiersFromMerchant(loyaltyProgramRewardTiers, term
 const updateAppLoyaltyAccrualsFromMerchant = (loyaltyProgramAccrualRules, terminology, loyalty, catalogItemNameMap) => __awaiter(void 0, void 0, void 0, function* () {
     var _2, _3, _4, _5, _6, _7, _8, _9, _10, _11;
     console.log("inside updateAppLoyaltyAccrualsFromMerchant");
-    console.log("catalogItemNameMap size: " + catalogItemNameMap.size);
+    console.log("catalogItemNameMap size");
     for (var loyaltyAccrualRule of loyaltyProgramAccrualRules) {
         var existingAppAccural = undefined;
         var displayEarningPointsDescription = undefined;
@@ -1421,19 +1393,14 @@ const updateAppLoyaltyAccrualsFromMerchant = (loyaltyProgramAccrualRules, termin
         }
         var itemName = undefined;
         if ((_10 = loyaltyAccrualRule.categoryData) === null || _10 === void 0 ? void 0 : _10.categoryId) {
-            console.log("looking up categoryId in map " +
-                loyaltyAccrualRule.categoryData.categoryId);
+            console.log("looking up categoryId");
             itemName = catalogItemNameMap.get(loyaltyAccrualRule.categoryData.categoryId);
         }
         else if ((_11 = loyaltyAccrualRule.itemVariationData) === null || _11 === void 0 ? void 0 : _11.itemVariationId) {
-            console.log("looking up itemId in map " +
-                loyaltyAccrualRule.itemVariationData.itemVariationId);
+            console.log("looking up itemId in map");
             itemName = catalogItemNameMap.get(loyaltyAccrualRule.itemVariationData.itemVariationId);
         }
-        console.log("itemName: " + itemName);
         const currentRuleDescriptions = (0, exports.rewardsRuleValue)(loyaltyAccrualRule, itemName, terminology);
-        console.log("currentRuleDescriptions: " + currentRuleDescriptions);
-        console.log("existingAppAccural: " + existingAppAccural);
         let shouldRemoveAccrualWhenItemIsMissiong = false;
         // If core description or core additional description has changed, disregard existing app accrual
         if (existingAppAccural) {
@@ -1442,16 +1409,11 @@ const updateAppLoyaltyAccrualsFromMerchant = (loyaltyProgramAccrualRules, termin
                 console.log("removing accrual because name was not found");
             }
             else {
-                console.log("existingAppAccural!.merchantEarningPointsDescription: " +
-                    existingAppAccural.merchantEarningPointsDescription);
-                console.log("currentRuleDescriptions[0]: " + currentRuleDescriptions[0]);
+                console.log("existingAppAccural!.merchantEarningPointsDescription");
                 if (existingAppAccural.merchantEarningPointsDescription &&
                     existingAppAccural.merchantEarningPointsDescription !=
                         currentRuleDescriptions[0]) {
-                    console.log("setting existingAppAccural to null1. existingAppAccural?.merchantEarningPointsDescription: " +
-                        (existingAppAccural === null || existingAppAccural === void 0 ? void 0 : existingAppAccural.merchantEarningPointsDescription) +
-                        ", currentRuleDescriptions[0]: " +
-                        currentRuleDescriptions[0]);
+                    console.log("setting existingAppAccural to null. existingAppAccural?.merchantEarningPointsDescription");
                     displayEarningPointsDescription = undefined;
                 }
                 //TODO: Need to figure out why this code fails with Cannot read properties of undefined (reading 'merchantAdditionalEarningPointsDescription')
@@ -1480,10 +1442,7 @@ const updateAppLoyaltyAccrualsFromMerchant = (loyaltyProgramAccrualRules, termin
 });
 exports.updateAppLoyaltyAccrualsFromMerchant = updateAppLoyaltyAccrualsFromMerchant;
 const accrualIsValid = (accrualType, itemName) => {
-    console.log("inside accrualIsValid. accrualType: + " +
-        accrualType +
-        ", itemName: " +
-        itemName);
+    console.log("inside accrualIsValid. accrualType: + " + accrualType);
     if ((accrualType == "CATEGORY" || accrualType == "ITEM_VARIATION") &&
         itemName == undefined) {
         return false;

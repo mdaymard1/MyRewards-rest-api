@@ -240,24 +240,6 @@ const requestEnrollment = async (request: Request, response: Response) => {
     email,
   } = request.body;
 
-  console.log(
-    "received input of " +
-      "appUserId: " +
-      appUserId +
-      " locationId: " +
-      locationId +
-      " firstName: " +
-      firstName +
-      " lastName: " +
-      lastName +
-      " email" +
-      email +
-      " phone: " +
-      phone +
-      " businessId: " +
-      businessId
-  );
-
   if (!businessId || !appUserId || !locationId || !firstName || !phone) {
     console.log("missing fields");
     response.status(400);
@@ -291,23 +273,6 @@ const enrollCustomer = async (request: Request, response: Response) => {
     phone,
     email,
   } = request.body;
-
-  console.log(
-    "received input of " +
-      appUserId +
-      " " +
-      locationId +
-      " " +
-      firstName +
-      " " +
-      lastName +
-      " +" +
-      phone +
-      ", " +
-      email +
-      ", businessId:" +
-      businessId
-  );
 
   if (!appUserId || !locationId || !firstName || !phone || !businessId) {
     console.log("missing fields");
@@ -358,7 +323,6 @@ const getLoyalty = async (request: Request, response: Response) => {
   console.log("inside getLoyalty");
 
   const businessId = await getBusinessIdFromAuthToken(request);
-  console.log("businessId: " + businessId);
 
   if (!businessId) {
     response.status(401);
@@ -380,7 +344,6 @@ const getLoyalty = async (request: Request, response: Response) => {
       return;
     }
 
-    console.log("about to get loyalty for businessId: " + business.businessId);
     const loyalty = await AppDataSource.manager.findOne(Loyalty, {
       where: {
         businessId: business.businessId,
@@ -478,7 +441,6 @@ const updateLoyalty = async (request: Request, response: Response) => {
   const { loyaltyId } = request.params;
 
   const businessId = await getBusinessIdFromAuthToken(request);
-  console.log("businessId: " + businessId + ", + loyaltyId " + loyaltyId);
 
   if (!businessId || !loyaltyId) {
     console.log("missing input");
@@ -510,8 +472,6 @@ const updateLoyaltyStatus = async (request: Request, response: Response) => {
   const { loyaltyId } = request.params;
 
   const businessId = await getBusinessIdFromAuthToken(request);
-
-  console.log("businessId: " + businessId + ", + loyaltyId" + loyaltyId);
 
   const {
     showLoyaltyInApp,

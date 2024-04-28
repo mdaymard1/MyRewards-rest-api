@@ -132,15 +132,10 @@ const search = (request, response) => __awaiter(void 0, void 0, void 0, function
     const long = Number(longitude);
     const searchPhrase = searchTerm;
     const userId = appUserId;
-    console.log("searchTerm: " +
-        searchTerm +
-        ", searchPhrase: " +
-        searchPhrase +
-        ", appUserId: " +
-        userId);
+    console.log("searchTerm: " + searchTerm + ", searchPhrase: " + searchPhrase);
     const results = yield (0, BusinessService_1.searchBusiness)(lat, long, page, size, searchPhrase, userId);
     if (results) {
-        console.log("results:" + results);
+        // console.log("results:" + results);
         response.send(results);
     }
     else {
@@ -306,9 +301,6 @@ const createBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
     catch (error) {
         console.log("handling missing businessId");
     }
-    console.log("businessId: " + businessId);
-    console.log("accessToken: " + accessToken);
-    console.log("refreshToken: " + refreshToken);
     var date;
     console.log("expirationDate: " + expirationDate);
     if (expirationDate) {
@@ -412,8 +404,6 @@ const updateBusiness = (request, response) => __awaiter(void 0, void 0, void 0, 
         response.sendStatus(400);
         return;
     }
-    console.log("businessId: " + businessId);
-    console.log("firstImageUrl:" + firstImageUrl + ", secondImageUrl:" + secondImageUrl);
     const wasUpdated = yield (0, BusinessService_1.updateBusinessDetails)(businessId, lastUpdateDate, businessName, addressLine1, addressLine2, city, state, zipCode, phone, hoursOfOperation, businessDescription, websiteUrl, appStoreUrl, googlePlayStoreUrl, reviewsUrl, firstImageUrl, secondImageUrl);
     response.status(wasUpdated ? 203 : 500);
     response.end();
